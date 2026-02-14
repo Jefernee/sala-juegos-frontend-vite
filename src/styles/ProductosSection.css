@@ -1,0 +1,31 @@
+/* Asegura que los iconos de Bootstrap estén disponibles */
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css");
+/* Estilos para la sección de productos en venta */
+#productos-venta {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+#productos-venta .hover-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+#productos-venta .hover-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
+  border-color: #667eea;
+}
+
+#productos-venta .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5) !important;
+}
+
+#productos-venta .position-relative img {
+  transition: transform 0.3s ease;
+}
+
+#productos-venta .position-relative:hover img {
+  transform: scale(1.05);
+}

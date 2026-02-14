@@ -1,0 +1,444 @@
+/* Contenedor principal */
+.products-list-container {
+  min-height: 100vh;
+  background: radial-gradient(
+    circle at top,
+    #1f2933 0%,
+    #0f172a 60%,
+    #020617 100%
+  );
+  display: flex;
+  flex-direction: column;
+}
+
+/* Contenido de productos */
+.products-content {
+  flex: 1;
+  padding: 0;
+}
+
+/* Loading */
+.loading-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 56px);
+}
+
+/* Título */
+.products-title {
+  background: linear-gradient(90deg, #38bdf8, #22d3ee, #a5f3fc);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  font-weight: 700;
+  line-height: 1.3;
+  padding-bottom: 0.15em;
+}
+
+/* Barra de búsqueda */
+.search-bar {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.search-bar .form-control {
+  border: 2px solid #38bdf8;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
+}
+
+.search-bar .form-control:focus {
+  border-color: #22d3ee;
+  box-shadow: 0 0 0 0.2rem rgba(56, 189, 248, 0.25);
+  background: white;
+}
+
+.search-bar .btn {
+  border: none;
+  font-weight: 500;
+}
+
+.search-bar .btn-primary {
+  background: linear-gradient(90deg, #38bdf8, #22d3ee);
+}
+
+.search-bar .btn-primary:hover {
+  background: linear-gradient(90deg, #22d3ee, #38bdf8);
+}
+
+/* Tarjetas de producto */
+.product-card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+}
+
+/* ✅ SOLUCIÓN: Contenedor de imagen - Muestra imagen completa sin recortar */
+.product-image-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: #f8f9fa; /* Fondo claro para que se vea bien */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ✅ SOLUCIÓN: object-fit: contain para que NO se recorte la imagen */
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Muestra la imagen COMPLETA sin recortar */
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  padding: 8px; /* Pequeño padding para que no toque los bordes */
+}
+
+.product-image:hover {
+  transform: scale(1.05);
+}
+
+/* Info del producto */
+.product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.info-value {
+  font-size: 0.85rem;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+/* Card title */
+.product-card .card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0;
+}
+
+/* Card body compacto */
+.product-card .card-body {
+  padding: 0.85rem;
+}
+
+/* Badge de cantidad */
+.product-card .badge {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+}
+
+/* Paginación */
+.pagination {
+  margin-top: 2rem;
+}
+
+.pagination .page-link {
+  color: #38bdf8;
+  border: 2px solid #38bdf8;
+  background: white;
+  margin: 0 4px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.pagination .page-link:hover {
+  background: linear-gradient(90deg, #38bdf8, #22d3ee);
+  color: white;
+  border-color: #38bdf8;
+  transform: translateY(-2px);
+}
+
+.pagination .page-item.active .page-link {
+  background: linear-gradient(90deg, #38bdf8, #22d3ee);
+  border-color: #38bdf8;
+  color: white;
+}
+
+.pagination .page-item.disabled .page-link {
+  color: #9ca3af;
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
+/* Alert */
+.alert-info {
+  background: rgba(56, 189, 248, 0.1);
+  border: 2px solid #38bdf8;
+  color: #e0f2fe;
+  border-radius: 12px;
+  padding: 1.5rem;
+  font-size: 1.1rem;
+}
+
+/* Text muted para fondo oscuro */
+.products-content .text-muted {
+  color: #cbd5e1 !important;
+}
+
+/* ========================================
+   RESPONSIVE - TABLETS (768px - 991px)
+   ======================================== */
+@media (max-width: 991px) {
+  .products-title {
+    font-size: 1.75rem;
+  }
+  
+  .product-image-container {
+    height: 180px;
+  }
+  
+  .search-bar {
+    max-width: 100%;
+  }
+}
+
+/* ========================================
+   RESPONSIVE - MÓVILES (menos de 768px)
+   ======================================== */
+@media (max-width: 768px) {
+  .products-title {
+    font-size: 1.5rem;
+    padding: 0 1rem;
+  }
+  
+  .product-image-container {
+    height: 160px;
+  }
+  
+  .search-bar {
+    max-width: 100%;
+    padding: 0 0.5rem;
+  }
+  
+  /* Cards compactas */
+  .product-card {
+    border-radius: 10px;
+  }
+  
+  .product-card .card-body {
+    padding: 0.7rem;
+  }
+  
+  .product-card .card-title {
+    font-size: 0.9rem;
+    line-height: 1.3;
+  }
+  
+  /* Info compacta */
+  .product-info {
+    gap: 4px;
+    margin-top: 8px;
+  }
+  
+  .info-row {
+    padding: 4px 0;
+  }
+  
+  .info-label,
+  .info-value {
+    font-size: 0.75rem;
+  }
+  
+  .product-card .badge {
+    font-size: 0.7rem;
+    padding: 3px 7px;
+  }
+  
+  /* Container con menos padding */
+  .products-content .container {
+    padding: 1rem 0.5rem;
+  }
+  
+  /* Grid compacto */
+  .products-content .row {
+    row-gap: 0.75rem !important;
+    column-gap: 0.5rem !important;
+  }
+  
+  .products-content .col-sm-6 {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+}
+
+/* ========================================
+   RESPONSIVE - MÓVILES PEQUEÑOS (menos de 576px)
+   ✅ 1 COLUMNA CENTRADA, MÁS ESTRECHA Y COMPACTA
+   ======================================== */
+@media (max-width: 576px) {
+  .products-title {
+    font-size: 1.3rem;
+    text-align: center;
+  }
+  
+  .product-image-container {
+    height: 180px;
+  }
+  
+  /* ✅ Contenedor centrado con máximo ancho */
+  .products-content .row {
+    justify-content: center;
+    row-gap: 0.75rem !important;
+  }
+  
+  /* ✅ Cards más estrechas (solo 65% del ancho) */
+  .products-content .col-12 {
+    flex: 0 0 65%;
+    max-width: 240px;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  .product-card {
+    border-radius: 10px;
+    margin: 0 auto;
+  }
+  
+  .product-card .card-body {
+    padding: 0.6rem;
+  }
+  
+  .product-card .card-title {
+    font-size: 0.9rem;
+    line-height: 1.2;
+    margin-bottom: 0.3rem;
+  }
+  
+  .product-info {
+    gap: 3px;
+    margin-top: 6px;
+  }
+  
+  .info-row {
+    padding: 3px 0;
+  }
+  
+  .info-label {
+    font-size: 0.75rem;
+  }
+  
+  .info-value {
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  
+  .product-card .badge {
+    font-size: 0.75rem;
+    padding: 3px 7px;
+  }
+  
+  /* Búsqueda compacta */
+  .search-bar .btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+  
+  .search-bar .form-control {
+    font-size: 0.85rem;
+    padding: 0.55rem;
+  }
+  
+  /* Texto de resultados */
+  .products-content .text-muted {
+    font-size: 0.8rem;
+    text-align: center;
+  }
+  
+  /* Paginación */
+  .pagination .page-link {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  
+  /* Alert compacto */
+  .alert-info {
+    padding: 1rem;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+  
+  /* Container con padding */
+  .products-content .container {
+    padding: 1rem 1rem;
+  }
+}
+
+/* ========================================
+   RESPONSIVE - MÓVILES MUY PEQUEÑOS (menos de 400px)
+   ======================================== */
+@media (max-width: 400px) {
+  .products-title {
+    font-size: 1.2rem;
+  }
+  
+  .products-content .col-12 {
+    flex: 0 0 70%;
+    max-width: 220px;
+  }
+  
+  .product-image-container {
+    height: 160px;
+  }
+  
+  .product-card .card-body {
+    padding: 0.5rem;
+  }
+  
+  .product-card .card-title {
+    font-size: 0.85rem;
+  }
+  
+  .info-label {
+    font-size: 0.7rem;
+  }
+  
+  .info-value {
+    font-size: 0.75rem;
+  }
+  
+  .product-card .badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+  }
+  
+  .info-row {
+    padding: 2px 0;
+  }
+}
+
+
+

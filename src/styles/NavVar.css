@@ -1,0 +1,164 @@
+/* src/styles/NavVar.css */
+
+/* =========================================================
+   NAVBAR – COLOR NEGRO FORZADO
+   ========================================================= */
+.navbar {
+  background-color: #000000 !important;
+  margin: 0;
+  padding: 0.5rem 0 !important;
+  border: none;
+}
+
+.navbar .container {
+  padding: 0 1rem;
+}
+
+.navbar .navbar-brand {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.navbar .nav-link {
+  color: #ffffff !important;
+  padding: 0.5rem 1rem !important;
+  transition: color 0.3s ease, background-color 0.3s ease;
+  border-radius: 6px;
+}
+
+.navbar .nav-link:hover {
+  color: #38bdf8 !important;
+  background-color: rgba(56, 189, 248, 0.1);
+}
+
+/* FIX: Asegurar que los items del navbar estén en fila en desktop */
+.navbar-nav {
+  gap: 0.5rem;
+  flex-direction: row; /* Forzar dirección horizontal en desktop */
+}
+
+/* =========================================================
+   NAVBAR MÓVIL – MENÚ HAMBURGUESA
+   ========================================================= */
+.navbar-toggler {
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  padding: 0.5rem 0.75rem;
+}
+
+.navbar-toggler:focus {
+  box-shadow: 0 0 0 0.2rem rgba(56, 189, 248, 0.25);
+  outline: none;
+}
+
+.navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.navbar-collapse {
+  background-color: #000000 !important;
+}
+
+/* =========================================================
+   RESPONSIVE MÓVIL
+   ========================================================= */
+@media (max-width: 991px) {
+  /* FIX: En móvil SÍ queremos columna */
+  .navbar-nav {
+    flex-direction: column !important;
+  }
+
+  .navbar-collapse {
+    padding: 1rem 0;
+    margin-top: 0.5rem;
+  }
+
+  .navbar-nav .nav-link {
+    padding: 0.75rem 1rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: color 0.3s ease, background-color 0.3s ease;
+  }
+
+  .navbar-nav .nav-link:last-child {
+    border-bottom: none;
+  }
+
+  .navbar-nav .nav-link:hover {
+    color: #38bdf8 !important;
+    background-color: rgba(56, 189, 248, 0.1);
+  }
+}
+
+/* =========================================================
+   DESKTOP
+   ========================================================= */
+@media (min-width: 992px) {
+  .navbar-nav {
+    gap: 0.5rem;
+    flex-direction: row !important; /* Asegurar horizontal en desktop */
+  }
+
+  .navbar-nav .nav-link {
+    padding: 0.5rem 1rem !important;
+  }
+
+  /* Asegurar que ml-auto funcione correctamente */
+  .navbar-nav.ms-auto {
+    margin-left: auto !important;
+  }
+}
+
+/* =========================================================
+   ANIMACIONES - MÁS RÁPIDAS Y SUAVES
+   ========================================================= */
+.navbar-collapse.collapsing {
+  transition: height 0.2s ease; /* Reducido de 0.35s a 0.2s */
+  overflow: hidden;
+}
+
+.navbar-collapse.show {
+  animation: none;
+}
+
+/* FIX: Eliminar cualquier delay o animación extra */
+.navbar-collapse {
+  transition-delay: 0s !important;
+}
+
+
+/* =========================================================
+   EFECTO RAYITA INFERIOR (UNDERLINE ANIMADO)
+   ========================================================= */
+
+.navbar .nav-link {
+  position: relative; /* necesario para la rayita */
+  overflow: hidden;
+}
+
+/* Rayita */
+.navbar .nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0%;
+  height: 2px;
+  background-color: #38bdf8;
+  transition: width 0.3s ease;
+}
+
+/* Hover */
+.navbar .nav-link:hover::after {
+  width: 100%;
+}
+
+/* Link activo */
+.navbar .nav-link.active::after {
+  width: 100%;
+}
+
+/* Opcional: leve elevación */
+.navbar .nav-link:hover {
+  transform: translateY(-2px);
+}

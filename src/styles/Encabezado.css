@@ -1,0 +1,232 @@
+/* =========================================================
+   TÍTULO PRINCIPAL (H1)
+   ---------------------------------------------------------
+   - Usa degradado de color con background-clip.
+   - line-height y padding-bottom evitan que letras
+     descendentes como "g" se corten en desktop.
+   ========================================================= */
+
+.hero-content h1 {
+  font-size: clamp(2.5rem, 4vw, 3.6rem);
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+  letter-spacing: 0.5px;
+
+  line-height: 1.15;
+  padding-bottom: 0.15em;
+
+  background: linear-gradient(
+    90deg,
+    #38bdf8,
+    #22d3ee,
+    #a5f3fc
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* =========================================================
+   CONTENEDOR PRINCIPAL DEL ENCABEZADO
+   ---------------------------------------------------------
+   - Ocupa casi toda la altura de la pantalla
+   - Se resta la altura del navbar (56px)
+   - Usa flex para organizar el hero interno
+   ========================================================= */
+
+.encabezado {
+  min-height: calc(100vh - 56px); /* Altura visible sin el navbar */
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+/* =========================================================
+   HERO HEADER
+   ---------------------------------------------------------
+   - Contenedor principal del hero
+   - Divide el espacio en imagen + contenido
+   ========================================================= */
+
+.hero-accent {
+  display: flex;
+  width: 100%;
+  overflow: hidden; /* Evita desbordes visuales */
+}
+
+/* =========================================================
+   SECCIÓN DE IMAGEN (IZQUIERDA EN DESKTOP)
+   ---------------------------------------------------------
+   - Ocupa el 30% del ancho
+   - Imagen decorativa de impacto visual
+   ========================================================= */
+
+.hero-image {
+  flex: 0 0 30%;
+  background-image: url("https://res.cloudinary.com/drjsg8j92/image/upload/v1737318752/Imagen_de_WhatsApp_2025-01-11_a_las_21.53.16_f15972d6_h3rx20.jpg");
+  background-size: cover;       /* La imagen siempre cubre */
+  background-position: center; /* Enfoque centrado */
+}
+
+/* =========================================================
+   CONTENIDO PRINCIPAL (DERECHA EN DESKTOP)
+   ---------------------------------------------------------
+   - Ocupa el 70% restante
+   - Contiene texto y logo
+   - Fondo con degradado oscuro moderno
+   ========================================================= */
+
+.hero-content {
+  flex: 1;
+  position: relative; /* Necesario para posicionar el logo */
+  background: radial-gradient(
+    circle at top,
+    #1f2933 0%,
+    #0f172a 60%,
+    #020617 100%
+  );
+  color: #ffffff;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Centrado vertical */
+  align-items: center;     /* Centrado horizontal */
+  text-align: center;
+
+  padding: 3rem;
+  overflow: hidden;
+}
+
+/* =========================================================
+   LOGO
+   ---------------------------------------------------------
+   - Posicionado arriba a la derecha en desktop
+   - En mobile cambia de comportamiento (ver media query)
+   ========================================================= */
+
+.hero-logo {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+}
+
+.hero-logo img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%; /* Logo circular */
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+}
+
+/* =========================================================
+   TEXTO DEL HERO
+   ========================================================= */
+
+/* Título principal con degradado */
+.hero-content h1 {
+  font-size: clamp(2.5rem, 4vw, 3.6rem);
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+  letter-spacing: 0.5px;
+
+  color: #38bdf8; /* Fallback por compatibilidad */
+
+  background: linear-gradient(
+    90deg,
+    #38bdf8,
+    #22d3ee,
+    #a5f3fc
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Subtítulo descriptivo */
+.hero-content p {
+  font-size: 1.15rem;
+  color: #cbd5e1;
+  max-width: 520px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   ANIMACIONES
+   ---------------------------------------------------------
+   - Aparición suave desde abajo
+   - Se usa con delays para efecto progresivo
+   ========================================================= */
+
+.fade-up {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: fadeUp 0.8s ease-out forwards;
+}
+
+.delay-1 {
+  animation-delay: 0.25s;
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================
+   RESPONSIVE - TABLET Y MOBILE
+   ---------------------------------------------------------
+   - El layout pasa de horizontal a vertical
+   - Imagen arriba, contenido abajo
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  /* El hero se organiza en columna */
+  .hero-accent {
+    flex-direction: column;
+    height: 100%;
+  }
+
+  /* Imagen superior */
+  .hero-image {
+    height: 35%;
+  }
+
+  /* Contenido inferior */
+  .hero-content {
+    height: 65%;
+    padding: 2rem;
+  }
+
+  /* LOGO EN MOBILE
+     - Deja de ser flotante
+     - Se centra arriba del texto
+  */
+  .hero-logo {
+    position: static;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .hero-logo img {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+/* =========================================================
+   DESKTOP GRANDE
+   ---------------------------------------------------------
+   - Aumenta ligeramente el tamaño del logo
+   ========================================================= */
+
+@media (min-width: 1200px) {
+  .hero-logo img {
+    width: 90px;
+    height: 90px;
+  }
+}

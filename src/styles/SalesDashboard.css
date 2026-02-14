@@ -1,0 +1,697 @@
+/* Contenedor principal */
+.sales-container {
+  min-height: 100vh;
+  background: radial-gradient(
+    circle at top,
+    #1f2933 0%,
+    #0f172a 60%,
+    #020617 100%
+  );
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.sales-content {
+  flex: 1;
+  padding: 0;
+}
+
+.loading-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 56px);
+}
+
+/* Título */
+.sales-title {
+  background: linear-gradient(90deg, #10b981, #059669, #047857);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  font-weight: 700;
+}
+
+/* Paneles */
+.productos-panel,
+.carrito-panel {
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1;
+}
+
+.card-header {
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-bottom: 2px solid #e5e7eb;
+  padding: 1rem 1.25rem;
+  border-radius: 10px 10px 0 0 !important;
+}
+
+.card-header h5 {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* Lista de productos - DISEÑO HORIZONTAL PARA TODAS LAS RESOLUCIONES */
+.productos-lista {
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.productos-lista::-webkit-scrollbar {
+  width: 8px;
+}
+
+.productos-lista::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.productos-lista::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.productos-lista::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ✅ DISEÑO HORIZONTAL: Imagen | Info | Botón */
+.producto-item {
+  display: grid;
+  grid-template-columns: 70px 1fr auto;
+  gap: 0.75rem;
+  padding: 0.65rem;
+  border: 2px solid #f3f4f6;
+  border-radius: 8px;
+  margin-bottom: 0.65rem;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.producto-item:hover {
+  border-color: #10b981;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+}
+
+.producto-img {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 2px solid #f3f4f6;
+  grid-column: 1;
+}
+
+.producto-info {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.producto-nombre {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.35rem;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  line-height: 1.3;
+}
+
+.producto-detalles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.precio {
+  color: #10b981;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.stock {
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+.producto-item .btn {
+  grid-column: 3;
+  align-self: center;
+  white-space: nowrap;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+/* Carrito */
+.carrito-panel {
+  top: 20px;
+  z-index: 1;
+}
+
+.carrito-vacio {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #9ca3af;
+}
+
+.carrito-vacio p {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.carrito-items {
+  max-height: 150px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  padding-right: 0.5rem;
+}
+
+.carrito-items::-webkit-scrollbar {
+  width: 6px;
+}
+
+.carrito-items::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.carrito-items::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.carrito-item {
+  border: 2px solid #f3f4f6;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: #fafafa;
+}
+
+.item-info h6 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.item-precio {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.item-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cantidad-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cantidad-input {
+  width: 60px;
+  text-align: center;
+  padding: 0.25rem;
+}
+
+.item-subtotal {
+  font-weight: 600;
+  color: #10b981;
+  font-size: 0.9rem;
+  margin-left: auto;
+}
+
+/* Total */
+.total-section {
+  border-top: 2px solid #e5e7eb;
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.2rem;
+}
+
+.total-amount {
+  color: #10b981;
+  font-size: 1.5rem;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+  animation: fadeIn 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-resultado {
+  background: white;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+  position: relative;
+  z-index: 100000;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header-resultado {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 14px 14px 0 0;
+  text-align: center;
+}
+
+.modal-header-resultado h3 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.modal-body-resultado {
+  padding: 2rem;
+}
+
+.resultado-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 1.1rem;
+}
+
+.resultado-row.total-final {
+  border-top: 2px solid #10b981;
+  border-bottom: none;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  font-size: 1.3rem;
+  color: #10b981;
+}
+
+.productos-vendidos {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px dashed #e5e7eb;
+}
+
+.productos-vendidos h6 {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.productos-vendidos ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.productos-vendidos li {
+  padding: 0.5rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.modal-footer-resultado {
+  padding: 1.5rem;
+  text-align: center;
+  border-top: 1px solid #f3f4f6;
+}
+
+.modal-footer-resultado .btn {
+  min-width: 150px;
+  padding: 0.75rem 2rem;
+  font-size: 1.1rem;
+}
+
+/* Botones */
+.btn-success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: none;
+  font-weight: 600;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-success:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Notificación */
+.notificacion-exito {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 100001;
+  animation: slideInRight 0.4s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.notificacion-contenido {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 350px;
+  max-width: 450px;
+  position: relative;
+}
+
+.notificacion-exito.warning .notificacion-contenido {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
+}
+
+.notificacion-exito.error .notificacion-contenido {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);
+}
+
+.notificacion-exito.success .notificacion-contenido {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+}
+
+.notificacion-icono {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+
+.notificacion-texto h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.notificacion-texto p {
+  margin: 0.5rem 0 0.25rem 0;
+  font-size: 0.95rem;
+  opacity: 0.95;
+}
+
+.notificacion-texto small {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.notificacion-cerrar {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.notificacion-cerrar:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ========================================
+   RESPONSIVE - TABLETS
+   ======================================== */
+@media (max-width: 991px) {
+  .carrito-panel {
+    position: static !important;
+    margin-top: 1rem;
+  }
+}
+
+/* ========================================
+   RESPONSIVE - MÓVILES
+   🎯 FORZAR DISEÑO HORIZONTAL
+   ======================================== */
+@media (max-width: 768px) {
+  .sales-title {
+    font-size: 1.3rem;
+    margin-bottom: 1rem !important;
+  }
+  
+  /* ✅ ORDEN INVERTIDO: Carrito arriba, productos abajo */
+  .row.g-4 {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+  
+  /* ✅ Carrito compacto arriba */
+  .carrito-panel {
+    margin-bottom: 1.5rem;
+  }
+  
+  .carrito-panel .card-body {
+    padding: 1rem;
+  }
+  
+  /* ✅ FORZAR diseño horizontal en productos */
+  .producto-item {
+    display: grid !important;
+    grid-template-columns: 70px 1fr auto !important;
+    gap: 0.75rem !important;
+    padding: 0.65rem !important;
+    align-items: center !important;
+  }
+  
+  .producto-img {
+    width: 70px !important;
+    height: 70px !important;
+    grid-column: 1 !important;
+  }
+  
+  .producto-info {
+    grid-column: 2 !important;
+  }
+  
+  .producto-nombre {
+    font-size: 0.9rem !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+  }
+  
+  .producto-detalles {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.15rem !important;
+  }
+  
+  .producto-item .btn {
+    grid-column: 3 !important;
+    padding: 0.5rem 0.8rem !important;
+    font-size: 0.85rem !important;
+  }
+  
+  /* ✅ Productos - 2 productos visibles */
+  .productos-lista {
+    max-height: 200px;
+  }
+  
+  /* ✅ Carrito items - 1 y medio visible */
+  .carrito-items {
+    max-height: 150px;
+  }
+  
+  .item-controls {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .cantidad-controls {
+    flex: 1;
+    min-width: 140px;
+  }
+  
+  .item-subtotal {
+    flex: 1;
+    text-align: right;
+    margin-left: 0;
+  }
+  
+  .item-controls .btn-danger {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+  }
+  
+  /* ✅ Total más compacto */
+  .total-section {
+    padding-top: 0.75rem;
+    margin-top: 0.75rem;
+  }
+  
+  .total-row {
+    font-size: 1.2rem;
+  }
+  
+  .total-amount {
+    font-size: 1.4rem;
+  }
+}
+
+/* ========================================
+   RESPONSIVE - MÓVILES PEQUEÑOS
+   ======================================== */
+@media (max-width: 576px) {
+  .sales-title {
+    font-size: 1.2rem;
+  }
+  
+  /* Modal responsive */
+  .modal-resultado {
+    width: 95%;
+  }
+  
+  .modal-body-resultado {
+    padding: 1.25rem;
+  }
+  
+  .resultado-row {
+    font-size: 1rem;
+  }
+  
+  .resultado-row.total-final {
+    font-size: 1.2rem;
+  }
+  
+  /* Notificación móvil */
+  .notificacion-exito {
+    top: 70px;
+    right: 10px;
+    left: 10px;
+  }
+  
+  .notificacion-contenido {
+    min-width: auto;
+    max-width: 100%;
+    padding: 1.25rem;
+  }
+  
+  .notificacion-icono {
+    font-size: 2rem;
+  }
+  
+  .notificacion-texto h4 {
+    font-size: 1rem;
+  }
+  
+  .notificacion-texto p {
+    font-size: 0.85rem;
+  }
+}
+
+/* ========================================
+   ESTILOS PARA BOTÓN DE HISTORIAL
+   Agregar al final del archivo SalesDashboard.css
+   ======================================== */
+
+/* Botón de historial */
+.btn-outline-success {
+  color: #10b981;
+  border: 2px solid #10b981;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-success:hover {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #10b981;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* Responsive para el header con botón */
+@media (max-width: 576px) {
+  .d-flex.justify-content-between.align-items-center.mb-4 {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+  }
+  
+  .sales-title {
+    text-align: center !important;
+  }
+  
+  .btn-outline-success {
+    width: 100%;
+  }
+}

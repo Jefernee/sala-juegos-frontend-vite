@@ -1,0 +1,179 @@
+/* Contenedor principal centrado con degradado del tema */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: radial-gradient(
+    circle at top,
+    #1f2933 0%,
+    #0f172a 60%,
+    #020617 100%
+  );
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Formulario */
+.login-form {
+  background: white;
+  padding: 50px 40px;
+  border-radius: 15px;
+  box-shadow: 0 8px 24px rgba(56, 189, 248, 0.15);
+  border: 2px solid #38bdf8;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Efecto al pasar el mouse sobre el formulario */
+.login-form:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(56, 189, 248, 0.3);
+}
+
+/* Título con degradado del tema */
+.login-form h2 {
+  margin-bottom: 25px;
+  font-size: 2rem;
+  letter-spacing: 1px;
+  font-weight: 700;
+  line-height: 1.3;
+  padding-bottom: 0.15em;
+  background: linear-gradient(90deg, #38bdf8, #22d3ee, #a5f3fc);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Inputs */
+.login-form input {
+  width: 100%;
+  padding: 14px;
+  margin: 12px 0;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  font-size: 1rem;
+  transition:
+    border 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Resaltar input al enfocar */
+.login-form input:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 0.2rem rgba(56, 189, 248, 0.25);
+}
+
+/* Botón con degradado del tema */
+.login-form button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 15px;
+  background: linear-gradient(90deg, #38bdf8, #22d3ee);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+/* Hover en botón */
+.login-form button:hover {
+  background: linear-gradient(90deg, #22d3ee, #38bdf8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
+}
+
+/* Contenedor del spinner de carga en el botón */
+.loading-button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Spinner pequeño para el botón */
+.button-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Efecto de pulso en el botón mientras carga */
+.login-form button:disabled {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Animación shake para errores */
+.error {
+  animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-10px);
+  }
+  75% {
+    transform: translateX(10px);
+  }
+}
+
+/* Efecto de deshabilitado en inputs */
+.login-form input:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Mensaje de error */
+.error {
+  color: #e53e3e;
+  margin-top: 12px;
+  font-weight: 500;
+}
+
+/* Responsivo */
+@media (max-width: 480px) {
+  .login-form {
+    padding: 35px 25px;
+  }
+
+  .login-form h2 {
+    font-size: 1.6rem;
+  }
+
+  .login-form input,
+  .login-form button {
+    padding: 12px;
+    font-size: 1rem;
+  }
+}

@@ -1,0 +1,46 @@
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+.App {
+  min-height: 100vh;
+}
+
+/* Este Cambia el color de toda la página */
+   .bg-custom {background-color: #e5e7eb  /* Cambia este valor por el color que desees #F5F5F5*/
+}
+
+/* Inscripción a torneos */
+.p-3.shadow.rounded{
+  background-color: hsl(180, 14%, 97%); /* Cambia este valor si deseas otro color */
+}
+.p-4.shadow.rounded.text-center {
+  background-color: hsl(0, 0%, 100%); /* Cambia este valor si deseas otro color */
+}
+.col-12.shadow.rounded.text-center {
+  background-color: hsl(0, 0%, 100%); /* Fondo blanco, puedes cambiar el color */
+}
+
+#gallery .gallery-item img {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.gallery-items img {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 100%; /* Asegura que la imagen ocupe el 100% del contenedor */
+  height: 200px; /* Ajusta la altura de la imagen */
+  object-fit: cover; /* Asegura que la imagen cubra el área sin distorsionarse */
+}
+
+#gallery .gallery-item img:hover {
+  transform: scale(1.05); /* Aumenta ligeramente el tamaño de la imagen */
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2); /* Añade un efecto de sombra más grande al hacer hover */
+}
+
+
+
+
+ 
+
+
+

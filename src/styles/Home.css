@@ -1,0 +1,172 @@
+/* src/styles/Home.css */
+
+/* Gallery Items - Mantener consistencia */
+.gallery-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.gallery-item img,
+.gallery-items img {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  display: block;
+}
+
+.gallery-item img:hover {
+  transform: scale(1.05);
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Hero Logo - Asegurar que se vea bien */
+.hero-logo img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  display: block;
+  margin: 0 auto;
+}
+
+/* Productos Section - Hover Cards */
+.hover-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.hover-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Ganadores Cards - Colores de fondo EXACTOS */
+.card-verde {
+  background-color: hsl(131, 84%, 10%) !important; 
+}
+
+.card-azul {
+  background-color: hsl(209, 88%, 10%) !important;
+}
+
+.card-roja {
+  background-color: hsl(285, 82%, 11%) !important;
+}
+
+.card-amarillo {
+  background-color: hsl(0, 76%, 16%) !important;
+}
+
+/* Ganadores - imágenes circulares centradas */
+#ganadores .img-fluid.rounded-circle {
+  width: 200px !important;
+  height: 200px !important;
+  object-fit: contain;
+  border-radius: 50%;
+  background: white;
+  padding: 10px;
+  display: block;
+  margin: 0 auto 1rem auto;
+}
+
+/* Map Container - Responsivo */
+.map-container {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+#map {
+  height: 50vh;
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Asegurar que las imágenes de juegos mantengan proporciones */
+#games .col-md-3 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#games img {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+  display: block;
+  margin: 0 auto;
+}
+
+#games img:hover {
+  transform: scale(1.1);
+}
+
+#games p {
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+/* Secciones con fondos específicos */
+.p-3.shadow.rounded {
+  background-color: hsl(180, 14%, 97%);
+}
+
+.p-4.shadow.rounded.text-center {
+  background-color: hsl(0, 0%, 100%);
+}
+
+.col-12.shadow.rounded.text-center {
+  background-color: hsl(0, 0%, 100%);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .gallery-item {
+    margin-bottom: 1rem;
+  }
+  
+  .hero-logo img {
+    width: 60px;
+    height: 60px;
+  }
+  
+  #map {
+    height: 40vh;
+  }
+  
+  .card-verde,
+  .card-azul,
+  .card-roja,
+  .card-amarillo {
+    margin-bottom: 1rem;
+  }
+
+  #ganadores .img-fluid.rounded-circle {
+    width: 150px !important;
+    height: 150px !important;
+  }
+
+  /* Centrar imágenes de juegos en móvil */
+  #games .col-md-3 {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  #games img {
+    width: 180px;
+    height: 180px;
+    margin: 0 auto;
+  }
+
+  #games p {
+    margin-top: 0.75rem;
+  }
+}

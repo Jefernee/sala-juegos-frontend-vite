@@ -1,0 +1,16 @@
+
+.card-verde {
+  background-color: hsl(131, 84%, 10%) !important; 
+}
+
+.card-azul {
+  background-color: hsl(209, 88%, 10%) !important;
+}
+
+.card-roja {
+  background-color: hsl(285, 82%, 11%) !important;
+}
+
+.card-amarillo {
+  background-color: hsl(0, 76%, 16%) !important;
+}

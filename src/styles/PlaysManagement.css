@@ -1,0 +1,984 @@
+/* src/styles/PlaysManagement.css */
+
+/* ========================================
+   ESTILOS BASE
+   ======================================== */
+
+/* Contenedor principal */
+.plays-container {
+  min-height: 100vh;
+  background: radial-gradient(
+    circle at top,
+    #1f2933 0%,
+    #0f172a 60%,
+    #020617 100%
+  );
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.plays-content {
+  flex: 1;
+  padding: 0;
+}
+
+.loading-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 56px);
+}
+
+/* Título */
+.plays-title {
+  background: linear-gradient(90deg, #10b981, #059669, #047857);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  font-weight: 700;
+}
+
+/* ========================================
+   PANELES Y CARDS
+   ======================================== */
+
+.formulario-panel,
+.tabla-panel {
+  background: white;
+  border-radius: 16px;
+  border: none;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  border: none !important;
+}
+
+.card-header h5 {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.card.bg-light {
+  border-radius: 12px;
+  border: 2px solid #10b981 !important;
+}
+
+.card.bg-light .card-body {
+  padding: 1.25rem;
+}
+
+.shadow-lg {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* ========================================
+   FORMULARIO - INPUTS Y LABELS
+   ======================================== */
+
+.formulario-panel .form-label {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.formulario-panel .form-control,
+.formulario-panel .form-select {
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.formulario-panel .form-control:focus,
+.formulario-panel .form-select:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.15);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.formulario-panel .form-control-lg,
+.formulario-panel .form-select-lg {
+  padding: 0.85rem 1.1rem;
+  font-size: 1.05rem;
+}
+
+/* ========================================
+   SELECTS PERSONALIZADOS PARA MÓVIL
+   ======================================== */
+
+/* Select de lugar de juego - VERSIÓN MEJORADA */
+.custom-select-mobile {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2310b981' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  padding-right: 2.5rem;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  font-size: 16px !important; /* Previene zoom en iOS */
+}
+
+/* Estilos para las opciones - MÁS COMPACTOS */
+.custom-select-mobile option {
+  padding: 8px 10px !important;
+  font-size: 14px !important;
+  line-height: 1.3 !important;
+  background-color: white !important;
+  color: #1f2937 !important;
+  font-weight: 500 !important;
+}
+
+/* Select múltiple de juegos mejorado */
+.select-juegos-mejorado {
+  min-height: 140px !important;
+  max-height: 180px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px !important; /* Previene zoom en iOS */
+}
+
+.select-juegos-mejorado option {
+  padding: 10px 12px !important;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 2px 3px;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  transition: all 0.2s ease;
+}
+
+.select-juegos-mejorado option:hover {
+  background: linear-gradient(135deg, #e0f2fe, #bae6fd) !important;
+  color: #0369a1 !important;
+}
+
+.select-juegos-mejorado option:checked {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: white !important;
+  font-weight: 700;
+  border: 2px solid #059669;
+}
+
+/* ========================================
+   INPUT GROUPS MEJORADOS
+   ======================================== */
+
+.input-group-text {
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  border: 2px solid #e5e7eb;
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.9rem;
+  border-left: none;
+}
+
+.input-group .form-control {
+  border-right: none;
+}
+
+.input-group .form-control:focus {
+  border-color: #10b981;
+  box-shadow: none;
+}
+
+.input-group .form-control:focus + .input-group-text {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+}
+
+.input-group:focus-within .input-group-text {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+}
+
+/* Estilos para inputs deshabilitados (tiempo pendiente) */
+.input-group .form-control:disabled {
+  background-color: #f9fafb;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.input-group .form-control:disabled + .input-group-text {
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  opacity: 0.7;
+}
+
+/* ========================================
+   SECCIONES DEL FORMULARIO
+   ======================================== */
+
+.border-bottom {
+  border-bottom: 2px solid #e5e7eb !important;
+}
+
+.text-primary {
+  color: #10b981 !important;
+}
+
+/* ========================================
+   TABLA
+   ======================================== */
+
+.tabla-panel .table {
+  margin-bottom: 0;
+  font-size: 0.95rem;
+}
+
+.tabla-panel .table-dark {
+  background: linear-gradient(135deg, #1f2937, #111827);
+}
+
+.tabla-panel .table-dark th {
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+.tabla-panel tbody td {
+  vertical-align: middle;
+  border-color: #f3f4f6;
+}
+
+.tabla-panel tbody tr {
+  transition: all 0.2s ease;
+}
+
+.tabla-panel tbody tr:hover {
+  background: #f9fafb;
+  transform: scale(1.01);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.tabla-panel .table-striped tbody tr:nth-of-type(odd) {
+  background-color: #fafafa;
+}
+
+.juegos-list small {
+  line-height: 1.8;
+  color: #374151;
+  font-size: 0.85rem;
+}
+
+/* ========================================
+   BADGES
+   ======================================== */
+
+.badge {
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.bg-success {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+}
+
+.bg-warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+}
+
+.bg-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+}
+
+.bg-info {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+}
+
+/* ========================================
+   BOTONES
+   ======================================== */
+
+.btn {
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  letter-spacing: 0.3px;
+}
+
+.btn-lg {
+  padding: 0.75rem 1.5rem;
+  font-size: 1.05rem;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: none;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-success:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: none;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  border: none;
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(135deg, #4b5563, #374151);
+  transform: translateY(-2px);
+}
+
+.btn-group .btn {
+  border-radius: 6px;
+  margin: 0 2px;
+}
+
+/* ========================================
+   PAGINACIÓN - ESTILOS COMPLETOS
+   ======================================== */
+
+.pagination {
+  margin: 0;
+  gap: 4px;
+}
+
+.pagination .page-item {
+  margin: 0 2px;
+}
+
+.pagination .page-link {
+  border: 2px solid #e5e7eb;
+  color: #1f2937;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.pagination .page-link:hover {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  border-color: #10b981;
+  color: #047857;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
+}
+
+.pagination .page-item.active .page-link {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #10b981;
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  font-weight: 700;
+}
+
+.pagination .page-item.disabled .page-link {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pagination .page-item.disabled .page-link:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Flechas de navegación en paginación */
+.pagination .page-link[aria-label*="Primera"],
+.pagination .page-link[aria-label*="anterior"],
+.pagination .page-link[aria-label*="siguiente"],
+.pagination .page-link[aria-label*="Última"] {
+  font-size: 1.1rem;
+  padding: 0.5rem 0.75rem;
+}
+
+/* ========================================
+   NOTIFICACIONES
+   ======================================== */
+
+.notificacion-exito {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 100001;
+  animation: slideInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(500px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.notificacion-contenido {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 1.5rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 15px 40px rgba(16, 185, 129, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  min-width: 380px;
+  max-width: 480px;
+  position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.notificacion-exito.warning .notificacion-contenido {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 15px 40px rgba(245, 158, 11, 0.5);
+}
+
+.notificacion-exito.error .notificacion-contenido {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 15px 40px rgba(239, 68, 68, 0.5);
+}
+
+.notificacion-icono {
+  font-size: 2.8rem;
+  flex-shrink: 0;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.notificacion-texto h4 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.notificacion-texto p {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.95rem;
+  opacity: 0.95;
+}
+
+.notificacion-cerrar {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: rgba(255, 255, 255, 0.25);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-weight: bold;
+}
+
+.notificacion-cerrar:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: rotate(90deg);
+}
+
+/* ========================================
+   ANIMACIONES
+   ======================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.formulario-panel,
+.tabla-panel {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* ========================================
+   UTILIDADES
+   ======================================== */
+
+.fw-semibold {
+  font-weight: 600;
+}
+
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========================================
+   RESPONSIVE - TABLETS (768px - 992px)
+   ======================================== */
+
+@media (max-width: 992px) {
+  .formulario-panel .col-md-4,
+  .formulario-panel .col-md-3,
+  .formulario-panel .col-md-6 {
+    margin-bottom: 0.5rem;
+  }
+  
+  .pagination .page-link {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* ========================================
+   RESPONSIVE - MÓVILES GRANDES (576px - 768px)
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Títulos */
+  .plays-title {
+    font-size: 1.5rem;
+  }
+
+  /* Botones */
+  .btn-lg {
+    padding: 0.85rem 1.5rem;
+    font-size: 1.1rem;
+  }
+
+  /* Tabla */
+  .table-responsive {
+    font-size: 0.85rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabla-panel .table {
+    font-size: 0.8rem;
+  }
+
+  .tabla-panel .table td,
+  .tabla-panel .table th {
+    padding: 0.5rem !important;
+    white-space: nowrap;
+  }
+
+  /* Badges */
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  /* Botones de acción en tabla */
+  .btn-group-sm .btn {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.9rem;
+  }
+
+  /* Notificaciones */
+  .notificacion-exito {
+    top: 70px;
+    right: 10px;
+    left: 10px;
+  }
+
+  .notificacion-contenido {
+    min-width: auto;
+    max-width: 100%;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .notificacion-icono {
+    font-size: 2.2rem;
+  }
+
+  /* Inputs de tiempo más accesibles */
+  .input-group-lg .form-control {
+    font-size: 1.1rem;
+    padding: 0.75rem 0.5rem;
+  }
+
+  .input-group-lg .input-group-text {
+    font-size: 0.85rem;
+    padding: 0.75rem 0.75rem;
+  }
+
+  /* Selects optimizados para móvil - MÁS COMPACTOS */
+  .form-select,
+  .custom-select-mobile {
+    font-size: 16px !important;
+    -webkit-appearance: none;
+    appearance: none;
+    padding: 0.75rem 2.5rem 0.75rem 0.9rem !important;
+  }
+
+  .custom-select-mobile option {
+    font-size: 14px !important;
+    padding: 8px 10px !important;
+    line-height: 1.3 !important;
+  }
+
+  .select-juegos-mejorado {
+    font-size: 16px !important;
+    max-height: 140px;
+    min-height: 120px !important;
+  }
+
+  .select-juegos-mejorado option {
+    font-size: 14px !important;
+    padding: 10px 10px !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Paginación en tablets */
+  .pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px;
+  }
+
+  .pagination .page-link {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.85rem;
+    margin: 2px;
+  }
+
+  .pagination .page-item {
+    margin: 0;
+  }
+}
+
+/* ========================================
+   RESPONSIVE - MÓVILES PEQUEÑOS (< 576px)
+   ======================================== */
+
+@media (max-width: 576px) {
+  /* Títulos */
+  .plays-title {
+    font-size: 1.2rem;
+  }
+
+  /* Cards y formularios */
+  .card-body {
+    padding: 1rem !important;
+  }
+
+  .formulario-panel .card-body {
+    padding: 1.5rem 1rem !important;
+  }
+
+  /* Input groups */
+  .input-group {
+    margin-bottom: 0.5rem;
+  }
+
+  .input-group-lg .form-control {
+    font-size: 1rem;
+    padding: 0.65rem 0.5rem;
+  }
+
+  .input-group-lg .input-group-text {
+    font-size: 0.75rem;
+    padding: 0.65rem 0.6rem;
+  }
+
+  /* Selects en móviles pequeños - VERSIÓN ULTRA COMPACTA */
+  .custom-select-mobile {
+    font-size: 15px !important;
+    padding: 0.7rem 2.5rem 0.7rem 0.8rem !important;
+  }
+
+  .custom-select-mobile option {
+    font-size: 13px !important;
+    padding: 6px 8px !important;
+    line-height: 1.2 !important;
+  }
+
+  .select-juegos-mejorado {
+    font-size: 15px !important;
+    max-height: 120px;
+    min-height: 100px !important;
+  }
+
+  .select-juegos-mejorado option {
+    font-size: 13px !important;
+    padding: 8px 8px !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Botones */
+  .btn-lg {
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+  }
+
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .btn-group .btn {
+    width: 100%;
+    margin: 0;
+  }
+
+  /* Resumen de cobro en móvil */
+  .card.bg-light .card-body {
+    padding: 1rem;
+  }
+
+  .card.bg-light h6 {
+    font-size: 0.95rem;
+  }
+
+  .card.bg-light .d-flex {
+    font-size: 0.9rem;
+  }
+
+  /* Paginación en móvil pequeño */
+  .pagination {
+    gap: 2px;
+  }
+
+  .pagination .page-link {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+  }
+
+  .pagination .page-link[aria-label*="Primera"],
+  .pagination .page-link[aria-label*="anterior"],
+  .pagination .page-link[aria-label*="siguiente"],
+  .pagination .page-link[aria-label*="Última"] {
+    font-size: 0.9rem;
+    padding: 0.35rem 0.5rem;
+  }
+
+  /* Ocultar puntos suspensivos en móvil muy pequeño */
+  .pagination .page-item.disabled.d-none.d-sm-block {
+    display: none !important;
+  }
+
+  /* Info de paginación más compacta */
+  .card-footer .text-muted {
+    font-size: 0.8rem;
+  }
+
+  /* Tabla más compacta */
+  .tabla-panel .table {
+    font-size: 0.75rem;
+  }
+
+  .tabla-panel .table td,
+  .tabla-panel .table th {
+    padding: 0.4rem !important;
+  }
+
+  /* Notificación más pequeña */
+  .notificacion-contenido {
+    padding: 1rem 1.25rem;
+  }
+
+  .notificacion-texto h4 {
+    font-size: 1rem;
+  }
+
+  .notificacion-texto p {
+    font-size: 0.85rem;
+  }
+
+  .notificacion-icono {
+    font-size: 1.8rem;
+  }
+}
+
+/* ========================================
+   RESPONSIVE - EXTRA PEQUEÑOS (< 400px)
+   ======================================== */
+
+@media (max-width: 400px) {
+  .plays-title {
+    font-size: 1.1rem;
+  }
+
+  .formulario-panel .card-body {
+    padding: 1rem 0.75rem !important;
+  }
+
+  .btn-lg {
+    padding: 0.65rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  .custom-select-mobile,
+  .select-juegos-mejorado {
+    font-size: 14px !important;
+  }
+  
+  .custom-select-mobile option,
+  .select-juegos-mejorado option {
+    font-size: 12px !important;
+    padding: 5px 6px !important;
+  }
+
+  .pagination .page-link {
+    padding: 0.3rem 0.45rem;
+    font-size: 0.75rem;
+  }
+
+  /* Hacer la tabla más scrolleable */
+  .table-responsive {
+    max-width: 100vw;
+    overflow-x: auto;
+  }
+}
+
+/* ========================================
+   MEJORAS ESPECÍFICAS PARA iOS Y ANDROID
+   ======================================== */
+
+/* Prevenir zoom en inputs en iOS y Android */
+select,
+input[type="text"],
+input[type="date"],
+input[type="time"],
+input[type="number"],
+textarea {
+  font-size: 16px !important;
+}
+
+/* Mejorar apariencia de selects nativos en móvil */
+@supports (-webkit-touch-callout: none) {
+  /* iOS específico */
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+  
+  /* Mejorar tap targets en iOS */
+  .btn,
+  .page-link,
+  select,
+  option {
+    -webkit-tap-highlight-color: rgba(16, 185, 129, 0.2);
+  }
+
+  /* Scroll suave en iOS */
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Android específico - mejorar renderizado de options */
+@supports not (-webkit-touch-callout: none) {
+  select option {
+    background-color: white !important;
+    color: #1f2937 !important;
+    padding: 10px 12px !important;
+  }
+  
+  select option:checked {
+    background-color: #10b981 !important;
+    color: white !important;
+  }
+}
+
+/* ========================================
+   ACCESIBILIDAD
+   ======================================== */
+
+/* Focus visible para teclado */
+.form-control:focus-visible,
+.form-select:focus-visible,
+.btn:focus-visible,
+.page-link:focus-visible {
+  outline: 3px solid #10b981;
+  outline-offset: 2px;
+}
+
+/* Mejorar contraste para lectores de pantalla */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ========================================
+   MEJORAS DE RENDIMIENTO
+   ======================================== */
+
+/* Optimizar animaciones en dispositivos de gama baja */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Usar will-change para animaciones frecuentes */
+.btn:hover,
+.pagination .page-link:hover,
+.tabla-panel tbody tr:hover {
+  will-change: transform;
+}
