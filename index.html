@@ -1,13 +1,57 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>sala-de-juegos-vite</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+
+    <!-- Pre-conectar al backend -->
+    <link rel="preconnect" href="https://chosen-sandra-jefernee-f13f70d9.koyeb.app/" />
+    <link rel="dns-prefetch" href="https://chosen-sandra-jefernee-f13f70d9.koyeb.app/" />
+
+    <!-- Iconos -->
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/logo192.png" />
+
+    <title>Sala de Juegos Ruiz - Diversión en Batán de Limón</title>
+
+    <!-- SEO -->
+    <meta name="description" content="Vive la diversión al máximo en la Sala de Juegos Ruiz, ubicada en Batán de Limón." />
+    <meta name="author" content="Jefernee Ruiz" />
+    <meta name="keywords" content="sala de juegos, entretenimiento, videojuegos, Batán de Limón, Costa Rica" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Sala de Juegos Ruiz" />
+    <meta property="og:description" content="Un lugar seguro y confiable para divertirse sanamente" />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:url" content="https://salajuegosruiz.netlify.app/" />
+
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Google Verification / Adsense -->
+    <meta name="google-site-verification" content="tdIeuxZ8KKJ6pX6zBi7PV7bYjTRJCXeu1mS6KqZWt5Y" />
+    <meta name="google-adsense-account" content="ca-pub-3625472845182144" />
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZLG40V0E8E"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag("js", new Date());
+      gtag("config", "G-ZLG40V0E8E");
+    </script>
+
+    <!-- Bootstrap -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
   </head>
   <body>
+    <noscript>Necesitas habilitar JavaScript para usar esta aplicación.</noscript>
+
     <div id="root"></div>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+
