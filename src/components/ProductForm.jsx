@@ -179,7 +179,7 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
         return;
       }
 
-      const apiUrl = process.env.REACT_APP_API_URL;
+      const apiUrl = import.meta.env.VITE_API_URL;
       if (!apiUrl) {
         showToast("Error de configuración: URL del API no definida.", "error");
         return;
