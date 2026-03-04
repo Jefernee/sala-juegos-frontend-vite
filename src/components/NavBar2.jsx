@@ -3,14 +3,12 @@ import { NavLink } from "react-router-dom";
 import "../styles/NavBar2.css";
 
 const Navbar = () => {
-
   const navClass = ({ isActive }) =>
     isActive ? "nav-link active" : "nav-link";
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark w-100 dashboard-navbar">
       <div className="container-fluid">
-
         <NavLink className="navbar-brand fw-bold" to="/">
           🎮 Sala de Juegos Ruiz
         </NavLink>
@@ -26,7 +24,12 @@ const Navbar = () => {
 
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav ms-auto gap-2">
-
+            <li className="nav-item">
+              <NavLink to="/dashboard/administracion" className={navClass}>
+                🏦 Administración
+              </NavLink>
+            </li>
+            
             <li className="nav-item">
               <NavLink to="/dashboard/plays" className={navClass}>
                 🎮 Control de Plays
@@ -56,7 +59,6 @@ const Navbar = () => {
                 ⚙️ Gestionar Productos
               </NavLink>
             </li>
-
           </ul>
         </div>
       </div>

@@ -14,6 +14,7 @@ const PedidosDashboard = lazy(() => import("./pages/PedidosDashboard"));
 const ReportesDashboard = lazy(() => import("./pages/ReportesDashboard"));
 const PlaysManagement = lazy(() => import("./pages/PlaysManagement"));
 const SalesHistory = lazy(() => import("./pages/SalesHistory"));
+const Administracion = lazy(() => import("./pages/Administracion"));
 
 const PageLoader = () => <div>Cargando...</div>;
 
@@ -39,6 +40,7 @@ function App() {
           <Route path="/dashboard/reportes" element={<ReportesDashboard />} />
           <Route path="/dashboard/plays" element={<PlaysManagement />} />
           <Route path="/sales-history" element={<SalesHistory />} />
+          <Route path="/dashboard/administracion" element={<Administracion />} />
         </Routes>
       </Suspense>
     </AppRouter>
