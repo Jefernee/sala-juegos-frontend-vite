@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import "../styles/ReportesDashboard.css";
 import Navbar from "../components/NavBar2";
-import { BarChart3, Gamepad2, FileText, Zap } from "lucide-react";
+import { BarChart3, Gamepad2, FileText } from "lucide-react";
 import { lazy, Suspense } from "react";
 
 // Lazy load de los componentes de reportes
 const ReportesVentas = lazy(() => import("../components/ReportesVentas"));
 const ReportesPlays = lazy(() => import("../components/ReportesPlays"));
 const ReportesGeneral = lazy(() => import("../components/ReportesGeneral"));
-const ReportesOptimizados = lazy(() => import("../components/ReportesOptimizados"));
+
 
 export default function ReportesDashboard() {
   const [vistaActual, setVistaActual] = useState("ventas");
@@ -35,14 +35,6 @@ export default function ReportesDashboard() {
       descripcion: "Resumen completo del negocio",
       color: "azul",
     },
-    {
-      id: "optimizado",
-      titulo: "Reportes Optimizados",
-      icono: <Zap size={24} />,
-      descripcion: "⚡ PRUEBAS - DailyAggregate",
-      color: "morado",
-      badge: "BETA"
-    },
   ];
 
   const renderContenido = () => {
@@ -53,8 +45,6 @@ export default function ReportesDashboard() {
         return <ReportesPlays />;
       case "general":
         return <ReportesGeneral />;
-      case "optimizado":
-        return <ReportesOptimizados />;
       default:
         return <ReportesVentas />;
     }

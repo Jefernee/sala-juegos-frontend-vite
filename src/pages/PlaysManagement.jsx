@@ -16,62 +16,58 @@ const getAxios = async () => {
 
 // Constantes para los selects
 const LUGARES_JUEGO = [
-  'Play 4 número 1',
-  'Play 4 número 2',
-  'Play 4 número 3',
-  'Play 5 número 1',
-  'Play 5 número 2',
-  'Ping Pong'
+  "Play 4 número 1",
+  "Play 4 número 2",
+  "Play 4 número 3",
+  "Play 5 número 1",
+  "Play 5 número 2",
+  "Ping Pong",
 ];
 
 const JUEGOS_DISPONIBLES = [
-  'Dragon Ball Sparking Zero',
-  'FIFA 25',
-  'Call of Duty',
-  'Mortal Kombat 1',
-  'NBA 2K24',
-  'GTA V',
-  'Minecraft',
-  'Fortnite',
-  'Rocket League',
-  'EA Sports FC 25',
-  'Resident Evil',
-  'Spider-Man 2',
-  'God of War Ragnarök'
+  "Dragon Ball Sparking Zero",
+  "FIFA 25",
+  "Call of Duty",
+  "Mortal Kombat 1",
+  "NBA 2K24",
+  "GTA V",
+  "Minecraft",
+  "Fortnite",
+  "Rocket League",
+  "EA Sports FC 25",
+  "Resident Evil",
+  "Spider-Man 2",
+  "God of War Ragnarök",
 ];
 
-const ESTADOS_PAGO = [
-  'En Proceso',
-  'Completado',
-  'Pendiente'
-];
+const ESTADOS_PAGO = ["En Proceso", "Completado", "Pendiente"];
 
 // Función para obtener el usuario logueado
 const obtenerUsuarioLogueado = () => {
   try {
-    const userString = localStorage.getItem('user');
+    const userString = localStorage.getItem("user");
     if (userString) {
       const user = JSON.parse(userString);
-      return user.nombre || user.name || '';
+      return user.nombre || user.name || "";
     }
-    return '';
+    return "";
   } catch (error) {
-    console.error('Error al obtener usuario:', error);
-    return '';
+    console.error("Error al obtener usuario:", error);
+    return "";
   }
 };
 
 // Función para sumar minutos a una hora
 const sumarMinutosAHora = (horaInicio, minutosASumar) => {
-  if (!horaInicio) return '';
-  
-  const [horas, minutos] = horaInicio.split(':').map(Number);
+  if (!horaInicio) return "";
+
+  const [horas, minutos] = horaInicio.split(":").map(Number);
   const totalMinutos = horas * 60 + minutos + minutosASumar;
-  
+
   const nuevasHoras = Math.floor(totalMinutos / 60) % 24;
   const nuevosMinutos = totalMinutos % 60;
-  
-  return `${String(nuevasHoras).padStart(2, '0')}:${String(nuevosMinutos).padStart(2, '0')}`;
+
+  return `${String(nuevasHoras).padStart(2, "0")}:${String(nuevosMinutos).padStart(2, "0")}`;
 };
 
 // Función para obtener hora actual en formato 12h
@@ -79,38 +75,38 @@ const obtenerHoraActual12h = () => {
   const ahora = new Date();
   let horas = ahora.getHours();
   const minutos = ahora.getMinutes();
-  const periodo = horas >= 12 ? 'PM' : 'AM';
+  const periodo = horas >= 12 ? "PM" : "AM";
   horas = horas % 12 || 12;
-  return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')} ${periodo}`;
+  return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")} ${periodo}`;
 };
 
 // Función para convertir formato 24h a 12h
 const convertirA12Horas = (hora24) => {
-  if (!hora24) return '';
-  const [horas, minutos] = hora24.split(':').map(Number);
-  const periodo = horas >= 12 ? 'PM' : 'AM';
+  if (!hora24) return "";
+  const [horas, minutos] = hora24.split(":").map(Number);
+  const periodo = horas >= 12 ? "PM" : "AM";
   const horas12 = horas % 12 || 12;
-  return `${horas12}:${String(minutos).padStart(2, '0')} ${periodo}`;
+  return `${horas12}:${String(minutos).padStart(2, "0")} ${periodo}`;
 };
 
 // Función para convertir formato 12h a 24h para guardar
 const convertir12hA24h = (hora12) => {
-  if (!hora12) return '';
-  
+  if (!hora12) return "";
+
   const match = hora12.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (!match) return '';
-  
+  if (!match) return "";
+
   let horas = parseInt(match[1]);
   const minutos = match[2];
   const periodo = match[3].toUpperCase();
-  
-  if (periodo === 'PM' && horas !== 12) {
+
+  if (periodo === "PM" && horas !== 12) {
     horas += 12;
-  } else if (periodo === 'AM' && horas === 12) {
+  } else if (periodo === "AM" && horas === 12) {
     horas = 0;
   }
-  
-  return `${String(horas).padStart(2, '0')}:${minutos}`;
+
+  return `${String(horas).padStart(2, "0")}:${minutos}`;
 };
 
 const PlaysManagement = () => {
@@ -122,7 +118,7 @@ const PlaysManagement = () => {
   const [notificacion, setNotificacion] = useState(null);
 
   const [formData, setFormData] = useState({
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: new Date().toISOString().split("T")[0],
     cliente: "",
     atendio: obtenerUsuarioLogueado(),
     tiempoPagado: 0,
@@ -132,18 +128,24 @@ const PlaysManagement = () => {
     lugarDeJuego: "",
     juegosJugados: [],
     controlAdicional: 0,
-    estadoPago: "En Proceso"
+    estadoPago: "En Proceso",
   });
 
   // Estado para los inputs de tiempo (horas y minutos separados)
-  const [tiempoPagadoInput, setTiempoPagadoInput] = useState({ horas: '', minutos: '' });
-  const [tiempoPendienteInput, setTiempoPendienteInput] = useState({ horas: '', minutos: '' });
+  const [tiempoPagadoInput, setTiempoPagadoInput] = useState({
+    horas: "",
+    minutos: "",
+  });
+  const [tiempoPendienteInput, setTiempoPendienteInput] = useState({
+    horas: "",
+    minutos: "",
+  });
 
   // Estado para mostrar el desglose de costos (SOLO PARA PREVIEW)
   const [desgloseCostos, setDesgloseCostos] = useState({
     subtotal: 0,
     costoControles: 0,
-    total: 0
+    total: 0,
   });
 
   // Estado para paginación
@@ -153,7 +155,7 @@ const PlaysManagement = () => {
     total: 0,
     totalPages: 0,
     hasNextPage: false,
-    hasPrevPage: false
+    hasPrevPage: false,
   });
 
   const getAuthHeaders = useCallback(() => {
@@ -166,27 +168,30 @@ const PlaysManagement = () => {
   }, []);
 
   // Función para calcular costos en tiempo real (SOLO PARA MOSTRAR AL USUARIO)
-  const calcularCostos = useCallback((lugarDeJuego, tiempoPagado, controlAdicional) => {
-    if (!lugarDeJuego || !tiempoPagado) {
-      return { subtotal: 0, costoControles: 0, total: 0 };
-    }
+  const calcularCostos = useCallback(
+    (lugarDeJuego, tiempoPagado, controlAdicional) => {
+      if (!lugarDeJuego || !tiempoPagado) {
+        return { subtotal: 0, costoControles: 0, total: 0 };
+      }
 
-    let precioPorHora = 0;
-    
-    if (lugarDeJuego.includes('Play 5')) {
-      precioPorHora = 1000;
-    } else if (lugarDeJuego.includes('Play 4')) {
-      precioPorHora = 800;
-    } else if (lugarDeJuego === 'Ping Pong') {
-      precioPorHora = 800;
-    }
-    
-    const subtotal = Math.round((tiempoPagado / 60) * precioPorHora);
-    const costoControles = controlAdicional * 200;
-    const total = subtotal + costoControles;
-    
-    return { subtotal, costoControles, total };
-  }, []);
+      let precioPorHora = 0;
+
+      if (lugarDeJuego.includes("Play 5")) {
+        precioPorHora = 1000;
+      } else if (lugarDeJuego.includes("Play 4")) {
+        precioPorHora = 800;
+      } else if (lugarDeJuego === "Ping Pong") {
+        precioPorHora = 800;
+      }
+
+      const subtotal = Math.round((tiempoPagado / 60) * precioPorHora);
+      const costoControles = controlAdicional * 200;
+      const total = subtotal + costoControles;
+
+      return { subtotal, costoControles, total };
+    },
+    [],
+  );
 
   // Actualizar hora final cuando cambian hora inicio o tiempo pagado
   useEffect(() => {
@@ -194,9 +199,9 @@ const PlaysManagement = () => {
       const hora24 = convertir12hA24h(formData.horaInicio);
       const nuevaHoraFinal24 = sumarMinutosAHora(hora24, formData.tiempoPagado);
       const nuevaHoraFinal12 = convertirA12Horas(nuevaHoraFinal24);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        horaFinal: nuevaHoraFinal12
+        horaFinal: nuevaHoraFinal12,
       }));
     }
   }, [formData.horaInicio, formData.tiempoPagado]);
@@ -206,50 +211,60 @@ const PlaysManagement = () => {
     const costos = calcularCostos(
       formData.lugarDeJuego,
       formData.tiempoPagado,
-      formData.controlAdicional
+      formData.controlAdicional,
     );
     setDesgloseCostos(costos);
-  }, [formData.lugarDeJuego, formData.tiempoPagado, formData.controlAdicional, calcularCostos]);
+  }, [
+    formData.lugarDeJuego,
+    formData.tiempoPagado,
+    formData.controlAdicional,
+    calcularCostos,
+  ]);
 
-  const fetchPlays = useCallback(async (page = 1) => {
-    setLoading(true);
-    try {
-      const axios = await getAxios();
-      const response = await axios.get(
-        `${API_URL}/api/plays?page=${page}&limit=5`,
-        getAuthHeaders()
-      );
-      
-      setPlays(response.data.data || []);
-      setPaginacion(response.data.pagination || {
-        page: 1,
-        limit: 5,
-        total: 0,
-        totalPages: 0,
-        hasNextPage: false,
-        hasPrevPage: false
-      });
-    } catch (error) {
-      console.error("❌ Error al cargar plays:", error);
-      
-      let mensajeError = "Error al cargar los registros";
-      let detalle = "";
-      
-      if (error.response) {
-        mensajeError = error.response.data?.message || mensajeError;
-        detalle = error.response.data?.error || "";
-      } else if (error.request) {
-        mensajeError = "No se pudo conectar con el servidor";
-        detalle = "Verifica que el backend esté corriendo";
-      } else {
-        detalle = error.message;
+  const fetchPlays = useCallback(
+    async (page = 1) => {
+      setLoading(true);
+      try {
+        const axios = await getAxios();
+        const response = await axios.get(
+          `${API_URL}/api/plays?page=${page}&limit=5`,
+          getAuthHeaders(),
+        );
+
+        setPlays(response.data.data || []);
+        setPaginacion(
+          response.data.pagination || {
+            page: 1,
+            limit: 5,
+            total: 0,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPrevPage: false,
+          },
+        );
+      } catch (error) {
+        console.error("❌ Error al cargar plays:", error);
+
+        let mensajeError = "Error al cargar los registros";
+        let detalle = "";
+
+        if (error.response) {
+          mensajeError = error.response.data?.message || mensajeError;
+          detalle = error.response.data?.error || "";
+        } else if (error.request) {
+          mensajeError = "No se pudo conectar con el servidor";
+          detalle = "Verifica que el backend esté corriendo";
+        } else {
+          detalle = error.message;
+        }
+
+        mostrarNotif(mensajeError, "error", detalle);
+      } finally {
+        setLoading(false);
       }
-      
-      mostrarNotif(mensajeError, "error", detalle);
-    } finally {
-      setLoading(false);
-    }
-  }, [getAuthHeaders]);
+    },
+    [getAuthHeaders],
+  );
 
   useEffect(() => {
     fetchPlays();
@@ -264,73 +279,89 @@ const PlaysManagement = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: name === 'controlAdicional' ? Number(value) : value
+      [name]: name === "controlAdicional" ? Number(value) : value,
     }));
   };
 
   // Manejador para cambios en tiempo pagado
   const handleTiempoPagadoChange = (tipo, valor) => {
-    const nuevoValor = valor === '' ? '' : Math.max(0, parseInt(valor) || 0);
-    
+    const nuevoValor = valor === "" ? "" : Math.max(0, parseInt(valor) || 0);
+
     const nuevosTiempos = {
       ...tiempoPagadoInput,
-      [tipo]: tipo === 'horas' ? (nuevoValor === '' ? '' : Math.min(nuevoValor, 12)) : (nuevoValor === '' ? '' : Math.min(nuevoValor, 59))
+      [tipo]:
+        tipo === "horas"
+          ? nuevoValor === ""
+            ? ""
+            : Math.min(nuevoValor, 12)
+          : nuevoValor === ""
+            ? ""
+            : Math.min(nuevoValor, 59),
     };
-    
+
     setTiempoPagadoInput(nuevosTiempos);
-    
-    const horas = nuevosTiempos.horas === '' ? 0 : nuevosTiempos.horas;
-    const minutos = nuevosTiempos.minutos === '' ? 0 : nuevosTiempos.minutos;
-    const totalMinutos = (horas * 60) + minutos;
-    
-    setFormData(prev => ({
+
+    const horas = nuevosTiempos.horas === "" ? 0 : nuevosTiempos.horas;
+    const minutos = nuevosTiempos.minutos === "" ? 0 : nuevosTiempos.minutos;
+    const totalMinutos = horas * 60 + minutos;
+
+    setFormData((prev) => ({
       ...prev,
-      tiempoPagado: totalMinutos
+      tiempoPagado: totalMinutos,
     }));
   };
 
   // Manejador para cambios en tiempo pendiente
   const handleTiempoPendienteChange = (tipo, valor) => {
     if (!editando) return;
-    
-    const nuevoValor = valor === '' ? '' : Math.max(0, parseInt(valor) || 0);
-    
+
+    const nuevoValor = valor === "" ? "" : Math.max(0, parseInt(valor) || 0);
+
     const nuevosTiempos = {
       ...tiempoPendienteInput,
-      [tipo]: tipo === 'horas' ? (nuevoValor === '' ? '' : Math.min(nuevoValor, 12)) : (nuevoValor === '' ? '' : Math.min(nuevoValor, 59))
+      [tipo]:
+        tipo === "horas"
+          ? nuevoValor === ""
+            ? ""
+            : Math.min(nuevoValor, 12)
+          : nuevoValor === ""
+            ? ""
+            : Math.min(nuevoValor, 59),
     };
-    
+
     setTiempoPendienteInput(nuevosTiempos);
-    
-    const horas = nuevosTiempos.horas === '' ? 0 : nuevosTiempos.horas;
-    const minutos = nuevosTiempos.minutos === '' ? 0 : nuevosTiempos.minutos;
-    const totalMinutos = (horas * 60) + minutos;
-    
-    setFormData(prev => ({
+
+    const horas = nuevosTiempos.horas === "" ? 0 : nuevosTiempos.horas;
+    const minutos = nuevosTiempos.minutos === "" ? 0 : nuevosTiempos.minutos;
+    const totalMinutos = horas * 60 + minutos;
+
+    setFormData((prev) => ({
       ...prev,
-      tiempoPendiente: totalMinutos
+      tiempoPendiente: totalMinutos,
     }));
   };
 
   const handleJuegoChange = (e) => {
-    const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-    
+    const selectedOptions = Array.from(
+      e.target.selectedOptions,
+      (option) => option.value,
+    );
+
     if (selectedOptions.length > 2) {
       mostrarNotif("Solo puedes seleccionar hasta 2 juegos", "warning");
       return;
     }
-    
-    setFormData(prev => ({
+
+    setFormData((prev) => ({
       ...prev,
-      juegosJugados: selectedOptions
+      juegosJugados: selectedOptions,
     }));
   };
 
   const limpiarFormulario = () => {
     setFormData({
-      fecha: new Date().toISOString().split('T')[0],
       cliente: "",
       atendio: obtenerUsuarioLogueado(),
       tiempoPagado: 0,
@@ -340,10 +371,10 @@ const PlaysManagement = () => {
       lugarDeJuego: "",
       juegosJugados: [],
       controlAdicional: 0,
-      estadoPago: "En Proceso"
+      estadoPago: "En Proceso",
     });
-    setTiempoPagadoInput({ horas: '', minutos: '' });
-    setTiempoPendienteInput({ horas: '', minutos: '' });
+    setTiempoPagadoInput({ horas: "", minutos: "" });
+    setTiempoPendienteInput({ horas: "", minutos: "" });
     setDesgloseCostos({ subtotal: 0, costoControles: 0, total: 0 });
     setEditando(null);
     setMostrarFormulario(false);
@@ -357,22 +388,31 @@ const PlaysManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.cliente || !formData.atendio || !formData.tiempoPagado || 
-        !formData.horaInicio || !formData.horaFinal || !formData.lugarDeJuego) {
-      mostrarNotif("Por favor completa todos los campos obligatorios", "warning");
+    if (
+      !formData.cliente ||
+      !formData.atendio ||
+      !formData.tiempoPagado ||
+      !formData.horaInicio ||
+      !formData.horaFinal ||
+      !formData.lugarDeJuego ||
+      formData.juegosJugados.length === 0
+    ) {
+      mostrarNotif(
+        "Por favor completa todos los campos obligatorios. Tienen un asterisco",
+        "warning",
+      );
       return;
     }
 
     try {
       const axios = await getAxios();
-      
+
       // Convertir horas de 12h a 24h para guardar
       const horaInicio24 = convertir12hA24h(formData.horaInicio);
       const horaFinal24 = convertir12hA24h(formData.horaFinal);
-      
+
       // ✅ Solo enviar datos básicos - el backend calcula todo lo demás
       const datosAEnviar = {
-        fecha: formData.fecha,
         cliente: formData.cliente,
         atendio: formData.atendio,
         tiempoPagado: formData.tiempoPagado,
@@ -382,21 +422,21 @@ const PlaysManagement = () => {
         lugarDeJuego: formData.lugarDeJuego,
         juegosJugados: formData.juegosJugados,
         controlAdicional: formData.controlAdicional,
-        estadoPago: formData.estadoPago
+        estadoPago: formData.estadoPago,
       };
 
       if (editando) {
         await axios.put(
           `${API_URL}/api/plays/${editando}`,
           datosAEnviar,
-          getAuthHeaders()
+          getAuthHeaders(),
         );
         mostrarNotif("Play actualizado exitosamente", "success");
       } else {
         await axios.post(
           `${API_URL}/api/plays`,
           datosAEnviar,
-          getAuthHeaders()
+          getAuthHeaders(),
         );
         mostrarNotif("Play registrado exitosamente", "success");
       }
@@ -405,17 +445,17 @@ const PlaysManagement = () => {
       fetchPlays(paginacion.page);
     } catch (error) {
       console.error("❌ Error:", error);
-      
+
       let mensajeError = "Error al guardar el play";
       let detalle = "";
-      
+
       if (error.response) {
         mensajeError = error.response.data?.message || mensajeError;
         detalle = error.response.data?.error || "";
-        
+
         if (error.response.data?.errors) {
           const erroresValidacion = Object.values(error.response.data.errors)
-            .map(err => err.message)
+            .map((err) => err.message)
             .join(", ");
           detalle = erroresValidacion;
         }
@@ -425,7 +465,7 @@ const PlaysManagement = () => {
       } else {
         detalle = error.message;
       }
-      
+
       mostrarNotif(mensajeError, "error", detalle);
     }
   };
@@ -433,15 +473,17 @@ const PlaysManagement = () => {
   const handleEditar = (play) => {
     const horasPagado = Math.floor(play.tiempoPagado / 60);
     const minutosPagado = play.tiempoPagado % 60;
-    
+
     const horasPendiente = Math.floor((play.tiempoPendiente || 0) / 60);
     const minutosPendiente = (play.tiempoPendiente || 0) % 60;
-    
+
     setTiempoPagadoInput({ horas: horasPagado, minutos: minutosPagado });
-    setTiempoPendienteInput({ horas: horasPendiente, minutos: minutosPendiente });
-    
+    setTiempoPendienteInput({
+      horas: horasPendiente,
+      minutos: minutosPendiente,
+    });
+
     setFormData({
-      fecha: play.fecha.split('T')[0],
       cliente: play.cliente,
       atendio: play.atendio,
       tiempoPagado: play.tiempoPagado,
@@ -451,7 +493,7 @@ const PlaysManagement = () => {
       lugarDeJuego: play.lugarDeJuego,
       juegosJugados: play.juegosJugados || [],
       controlAdicional: play.controlAdicional || 0,
-      estadoPago: play.estadoPago || "En Proceso"
+      estadoPago: play.estadoPago || "En Proceso",
     });
     setEditando(play._id);
     setMostrarFormulario(true);
@@ -464,7 +506,7 @@ const PlaysManagement = () => {
       const axios = await getAxios();
       await axios.delete(`${API_URL}/api/plays/${id}`, getAuthHeaders());
       mostrarNotif("Play eliminado exitosamente", "success");
-      
+
       if (plays.length === 1 && paginacion.page > 1) {
         fetchPlays(paginacion.page - 1);
       } else {
@@ -472,10 +514,10 @@ const PlaysManagement = () => {
       }
     } catch (error) {
       console.error("❌ Error:", error);
-      
+
       let mensajeError = "Error al eliminar el play";
       let detalle = "";
-      
+
       if (error.response) {
         mensajeError = error.response.data?.message || mensajeError;
         detalle = error.response.data?.error || "";
@@ -485,7 +527,7 @@ const PlaysManagement = () => {
       } else {
         detalle = error.message;
       }
-      
+
       mostrarNotif(mensajeError, "error", detalle);
     }
   };
@@ -493,9 +535,9 @@ const PlaysManagement = () => {
   // Funciones de paginación
   const irAPagina = (numeroPagina) => {
     fetchPlays(numeroPagina);
-    document.querySelector('.tabla-panel')?.scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'start' 
+    document.querySelector(".tabla-panel")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
     });
   };
 
@@ -516,7 +558,7 @@ const PlaysManagement = () => {
     if (minutos === 0) return "0 min";
     const horas = Math.floor(minutos / 60);
     const mins = minutos % 60;
-    
+
     if (horas === 0) return `${mins} min`;
     if (mins === 0) return `${horas}h`;
     return `${horas}h ${mins}min`;
@@ -567,7 +609,9 @@ const PlaysManagement = () => {
             <div className="card formulario-panel mb-4 shadow-lg">
               <div className="card-header bg-gradient-primary">
                 <h5 className="mb-0 text-white">
-                  {editando ? "✏️ Editar Registro" : "➕ Nuevo Registro de Play"}
+                  {editando
+                    ? "✏️ Editar Registro"
+                    : "➕ Nuevo Registro de Play"}
                 </h5>
               </div>
               <div className="card-body p-4">
@@ -578,18 +622,6 @@ const PlaysManagement = () => {
                       <h6 className="border-bottom pb-2 mb-3 text-primary fw-bold">
                         📋 Información Básica
                       </h6>
-                    </div>
-
-                    <div className="col-12 col-md-6">
-                      <label className="form-label fw-bold">Fecha *</label>
-                      <input
-                        type="date"
-                        className="form-control form-control-lg"
-                        name="fecha"
-                        value={formData.fecha}
-                        onChange={handleInputChange}
-                        required
-                      />
                     </div>
 
                     <div className="col-12 col-md-6">
@@ -613,7 +645,9 @@ const PlaysManagement = () => {
                     </div>
 
                     <div className="col-12">
-                      <label className="form-label fw-bold">Lugar de Juego *</label>
+                      <label className="form-label fw-bold">
+                        Lugar de Juego *
+                      </label>
                       <select
                         className="form-select form-select-lg custom-select-mobile"
                         name="lugarDeJuego"
@@ -622,16 +656,19 @@ const PlaysManagement = () => {
                         required
                       >
                         <option value="">Seleccionar lugar...</option>
-                        {LUGARES_JUEGO.map(lugar => (
+                        {LUGARES_JUEGO.map((lugar) => (
                           <option key={lugar} value={lugar}>
-                            {lugar} - ₡{lugar.includes('Play 5') ? '1000' : '800'}/hora
+                            {lugar} - ₡
+                            {lugar.includes("Play 5") ? "1000" : "800"}/hora
                           </option>
                         ))}
                       </select>
                     </div>
 
                     <div className="col-12">
-                      <label className="form-label fw-bold">Juegos Jugados (máx. 2)</label>
+                      <label className="form-label fw-bold">
+                        Juegos Jugados agregar almenos 1 (máx. 2) *
+                      </label>
                       <select
                         className="form-select select-juegos-mejorado custom-select-mobile"
                         multiple
@@ -639,8 +676,10 @@ const PlaysManagement = () => {
                         onChange={handleJuegoChange}
                         size="3"
                       >
-                        {JUEGOS_DISPONIBLES.map(juego => (
-                          <option key={juego} value={juego}>{juego}</option>
+                        {JUEGOS_DISPONIBLES.map((juego) => (
+                          <option key={juego} value={juego}>
+                            {juego}
+                          </option>
                         ))}
                       </select>
                       <small className="text-muted d-block mt-1">
@@ -656,7 +695,9 @@ const PlaysManagement = () => {
                     </div>
 
                     <div className="col-12">
-                      <label className="form-label fw-bold">Tiempo Pagado *</label>
+                      <label className="form-label fw-bold">
+                        Tiempo Pagado *
+                      </label>
                       <div className="row g-2">
                         <div className="col-6">
                           <div className="input-group input-group-lg">
@@ -666,7 +707,12 @@ const PlaysManagement = () => {
                               min="0"
                               max="12"
                               value={tiempoPagadoInput.horas}
-                              onChange={(e) => handleTiempoPagadoChange('horas', e.target.value)}
+                              onChange={(e) =>
+                                handleTiempoPagadoChange(
+                                  "horas",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="0"
                             />
                             <span className="input-group-text">horas</span>
@@ -680,7 +726,12 @@ const PlaysManagement = () => {
                               min="0"
                               max="59"
                               value={tiempoPagadoInput.minutos}
-                              onChange={(e) => handleTiempoPagadoChange('minutos', e.target.value)}
+                              onChange={(e) =>
+                                handleTiempoPagadoChange(
+                                  "minutos",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="0"
                             />
                             <span className="input-group-text">min</span>
@@ -696,7 +747,7 @@ const PlaysManagement = () => {
 
                     <div className="col-12">
                       <label className="form-label fw-bold">
-                        Tiempo Pendiente {editando && '*'}
+                        Tiempo Pendiente {editando && "*"}
                       </label>
                       <div className="row g-2">
                         <div className="col-6">
@@ -707,7 +758,12 @@ const PlaysManagement = () => {
                               min="0"
                               max="12"
                               value={tiempoPendienteInput.horas}
-                              onChange={(e) => handleTiempoPendienteChange('horas', e.target.value)}
+                              onChange={(e) =>
+                                handleTiempoPendienteChange(
+                                  "horas",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="0"
                               disabled={!editando}
                             />
@@ -722,7 +778,12 @@ const PlaysManagement = () => {
                               min="0"
                               max="59"
                               value={tiempoPendienteInput.minutos}
-                              onChange={(e) => handleTiempoPendienteChange('minutos', e.target.value)}
+                              onChange={(e) =>
+                                handleTiempoPendienteChange(
+                                  "minutos",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="0"
                               disabled={!editando}
                             />
@@ -743,7 +804,9 @@ const PlaysManagement = () => {
                     </div>
 
                     <div className="col-12 col-md-6">
-                      <label className="form-label fw-bold">Hora Inicio *</label>
+                      <label className="form-label fw-bold">
+                        Hora Inicio *
+                      </label>
                       <input
                         type="text"
                         className="form-control form-control-lg"
@@ -756,7 +819,9 @@ const PlaysManagement = () => {
                     </div>
 
                     <div className="col-12 col-md-6">
-                      <label className="form-label fw-bold">Hora Final (calculada)</label>
+                      <label className="form-label fw-bold">
+                        Hora Final (calculada)
+                      </label>
                       <input
                         type="text"
                         className="form-control form-control-lg bg-light"
@@ -764,7 +829,7 @@ const PlaysManagement = () => {
                         readOnly
                         disabled
                         placeholder="4:10 PM"
-                        style={{ cursor: 'not-allowed' }}
+                        style={{ cursor: "not-allowed" }}
                       />
                     </div>
 
@@ -792,15 +857,19 @@ const PlaysManagement = () => {
                     </div>
 
                     <div className="col-12 col-md-6">
-                      <label className="form-label fw-bold">Estado del Pago</label>
+                      <label className="form-label fw-bold">
+                        Estado del Pago
+                      </label>
                       <select
                         className="form-select form-select-lg custom-select-mobile"
                         name="estadoPago"
                         value={formData.estadoPago}
                         onChange={handleInputChange}
                       >
-                        {ESTADOS_PAGO.map(estado => (
-                          <option key={estado} value={estado}>{estado}</option>
+                        {ESTADOS_PAGO.map((estado) => (
+                          <option key={estado} value={estado}>
+                            {estado}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -809,14 +878,20 @@ const PlaysManagement = () => {
                     <div className="col-12">
                       <div className="card bg-light border-success">
                         <div className="card-body">
-                          <h6 className="text-success mb-3 fw-bold">💵 Resumen de Cobro</h6>
+                          <h6 className="text-success mb-3 fw-bold">
+                            💵 Resumen de Cobro
+                          </h6>
                           <div className="d-flex justify-content-between mb-2">
                             <span>Tiempo de juego:</span>
-                            <strong>₡{desgloseCostos.subtotal.toLocaleString()}</strong>
+                            <strong>
+                              ₡{desgloseCostos.subtotal.toLocaleString()}
+                            </strong>
                           </div>
                           <div className="d-flex justify-content-between mb-2">
                             <span>Controles extra:</span>
-                            <strong>₡{desgloseCostos.costoControles.toLocaleString()}</strong>
+                            <strong>
+                              ₡{desgloseCostos.costoControles.toLocaleString()}
+                            </strong>
                           </div>
                           <hr className="my-2" />
                           <div className="d-flex justify-content-between">
@@ -838,7 +913,10 @@ const PlaysManagement = () => {
                     >
                       ❌ Cancelar
                     </button>
-                    <button type="submit" className="btn btn-success btn-lg px-4">
+                    <button
+                      type="submit"
+                      className="btn btn-success btn-lg px-4"
+                    >
                       {editando ? "💾 Actualizar" : "✅ Guardar"}
                     </button>
                   </div>
@@ -859,7 +937,9 @@ const PlaysManagement = () => {
                     <i className="fs-1">🎮</i>
                   </div>
                   <p className="fs-4 mb-2">No hay registros aún</p>
-                  <small>Agrega tu primer registro de play usando el botón superior</small>
+                  <small>
+                    Agrega tu primer registro de play usando el botón superior
+                  </small>
                 </div>
               ) : (
                 <div className="table-responsive">
@@ -882,13 +962,15 @@ const PlaysManagement = () => {
                       {plays.map((play) => (
                         <tr key={play._id}>
                           <td className="px-3 py-3">
-                            {new Date(play.fecha).toLocaleDateString('es-CR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric'
+                            {new Date(play.fecha).toLocaleDateString("es-CR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
                             })}
                           </td>
-                          <td className="px-3 py-3 fw-semibold">{play.cliente}</td>
+                          <td className="px-3 py-3 fw-semibold">
+                            {play.cliente}
+                          </td>
                           <td className="px-3 py-3">{play.atendio}</td>
                           <td className="px-3 py-3">
                             <div className="fw-bold text-primary">
@@ -901,8 +983,12 @@ const PlaysManagement = () => {
                             )}
                           </td>
                           <td className="px-3 py-3">
-                            <small className="d-block">{convertirA12Horas(play.horaInicio)}</small>
-                            <small className="text-muted">{convertirA12Horas(play.horaFinal)}</small>
+                            <small className="d-block">
+                              {convertirA12Horas(play.horaInicio)}
+                            </small>
+                            <small className="text-muted">
+                              {convertirA12Horas(play.horaFinal)}
+                            </small>
                           </td>
                           <td className="px-3 py-3">
                             <span className="badge bg-info text-dark">
@@ -910,10 +996,15 @@ const PlaysManagement = () => {
                             </span>
                           </td>
                           <td className="px-3 py-3">
-                            {play.juegosJugados && play.juegosJugados.length > 0 ? (
+                            {play.juegosJugados &&
+                            play.juegosJugados.length > 0 ? (
                               <div className="juegos-list">
                                 {play.juegosJugados.map((juego, index) => (
-                                  <small key={index} className="d-block text-truncate" style={{maxWidth: '150px'}}>
+                                  <small
+                                    key={index}
+                                    className="d-block text-truncate"
+                                    style={{ maxWidth: "150px" }}
+                                  >
                                     🎮 {juego}
                                   </small>
                                 ))}
@@ -933,16 +1024,23 @@ const PlaysManagement = () => {
                             )}
                           </td>
                           <td className="px-3 py-3">
-                            <span className={`badge ${
-                              play.estadoPago === 'Completado' ? 'bg-success' :
-                              play.estadoPago === 'En Proceso' ? 'bg-warning text-dark' :
-                              'bg-danger'
-                            } px-3 py-2`}>
+                            <span
+                              className={`badge ${
+                                play.estadoPago === "Completado"
+                                  ? "bg-success"
+                                  : play.estadoPago === "En Proceso"
+                                    ? "bg-warning text-dark"
+                                    : "bg-danger"
+                              } px-3 py-2`}
+                            >
                               {play.estadoPago}
                             </span>
                           </td>
                           <td className="px-3 py-3 text-center">
-                            <div className="btn-group btn-group-sm" role="group">
+                            <div
+                              className="btn-group btn-group-sm"
+                              role="group"
+                            >
                               <button
                                 className="btn btn-primary"
                                 onClick={() => handleEditar(play)}
@@ -973,12 +1071,17 @@ const PlaysManagement = () => {
                 <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
                   <div className="text-muted small">
                     Mostrando {plays.length} de {paginacion.total} registros
-                    <span className="d-none d-sm-inline"> (Página {paginacion.page} de {paginacion.totalPages})</span>
+                    <span className="d-none d-sm-inline">
+                      {" "}
+                      (Página {paginacion.page} de {paginacion.totalPages})
+                    </span>
                   </div>
-                  
+
                   <nav aria-label="Paginación de plays">
                     <ul className="pagination pagination-sm mb-0">
-                      <li className={`page-item ${!paginacion.hasPrevPage ? 'disabled' : ''}`}>
+                      <li
+                        className={`page-item ${!paginacion.hasPrevPage ? "disabled" : ""}`}
+                      >
                         <button
                           className="page-link"
                           onClick={() => irAPagina(1)}
@@ -988,8 +1091,10 @@ const PlaysManagement = () => {
                           <span aria-hidden="true">««</span>
                         </button>
                       </li>
-                      
-                      <li className={`page-item ${!paginacion.hasPrevPage ? 'disabled' : ''}`}>
+
+                      <li
+                        className={`page-item ${!paginacion.hasPrevPage ? "disabled" : ""}`}
+                      >
                         <button
                           className="page-link"
                           onClick={paginaAnterior}
@@ -999,9 +1104,12 @@ const PlaysManagement = () => {
                           <span aria-hidden="true">‹</span>
                         </button>
                       </li>
-                      
-                      {Array.from({ length: paginacion.totalPages }, (_, i) => i + 1)
-                        .filter(num => {
+
+                      {Array.from(
+                        { length: paginacion.totalPages },
+                        (_, i) => i + 1,
+                      )
+                        .filter((num) => {
                           const current = paginacion.page;
                           return (
                             num === 1 ||
@@ -1012,7 +1120,7 @@ const PlaysManagement = () => {
                         .map((num, index, array) => {
                           const prevNum = array[index - 1];
                           const showSeparator = prevNum && num - prevNum > 1;
-                          
+
                           return (
                             <React.Fragment key={num}>
                               {showSeparator && (
@@ -1020,7 +1128,9 @@ const PlaysManagement = () => {
                                   <span className="page-link">...</span>
                                 </li>
                               )}
-                              <li className={`page-item ${paginacion.page === num ? 'active' : ''}`}>
+                              <li
+                                className={`page-item ${paginacion.page === num ? "active" : ""}`}
+                              >
                                 <button
                                   className="page-link"
                                   onClick={() => irAPagina(num)}
@@ -1031,8 +1141,10 @@ const PlaysManagement = () => {
                             </React.Fragment>
                           );
                         })}
-                      
-                      <li className={`page-item ${!paginacion.hasNextPage ? 'disabled' : ''}`}>
+
+                      <li
+                        className={`page-item ${!paginacion.hasNextPage ? "disabled" : ""}`}
+                      >
                         <button
                           className="page-link"
                           onClick={paginaSiguiente}
@@ -1042,8 +1154,10 @@ const PlaysManagement = () => {
                           <span aria-hidden="true">›</span>
                         </button>
                       </li>
-                      
-                      <li className={`page-item ${!paginacion.hasNextPage ? 'disabled' : ''}`}>
+
+                      <li
+                        className={`page-item ${!paginacion.hasNextPage ? "disabled" : ""}`}
+                      >
                         <button
                           className="page-link"
                           onClick={() => irAPagina(paginacion.totalPages)}
@@ -1069,8 +1183,8 @@ const PlaysManagement = () => {
               {notificacion.tipo === "warning"
                 ? "⚠️"
                 : notificacion.tipo === "error"
-                ? "❌"
-                : "✅"}
+                  ? "❌"
+                  : "✅"}
             </div>
             <div className="notificacion-texto">
               <h4>{notificacion.mensaje}</h4>
