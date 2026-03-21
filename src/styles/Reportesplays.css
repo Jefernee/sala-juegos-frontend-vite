@@ -181,7 +181,7 @@
   gap: 12px;
   margin-bottom: 1.25rem;
 }
-@media (max-width: 640px) { .rp-dos-col { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .rp-dos-col { grid-template-columns: 1fr; } }
 .rp-dos-col .rp-seccion { margin-bottom: 0; }
 
 /* ── Filas tipo play ──────────────────────────────────────────────────────── */
@@ -426,4 +426,23 @@
   margin-top: 10px;
   font-size: 10px;
   color: #9ca3af;
+}
+
+@media (max-width: 768px) {
+  .reportes-plays-contenido {
+    padding: 0.75rem;
+  }
+  
+  .rp-controles {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rp-controles-der {
+    width: 100%;
+  }
+
+  .rp-select {
+    flex: 1;
+  }
 }
