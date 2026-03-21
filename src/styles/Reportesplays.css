@@ -429,20 +429,54 @@
 }
 
 @media (max-width: 768px) {
+  .rp-juego-der {
+    gap: 4px;
+  }
+  
+  .rp-juego-der .rp-bar-track {
+    width: 50px !important;
+  }
+
+  .rp-juego-nombre {
+    font-size: 12px;
+  }
+
+  .rp-bar-label {
+    width: 60px;
+  }
+
+  .rp-bar-value {
+    width: 50px;
+  }
+}
+
+@media (max-width: 768px) {
   .reportes-plays-contenido {
     padding: 0.75rem;
   }
-  
   .rp-controles {
     flex-direction: column;
     align-items: flex-start;
   }
-
   .rp-controles-der {
     width: 100%;
   }
-
   .rp-select {
     flex: 1;
+  }
+  .rp-juego-der {
+    gap: 4px;
+  }
+  .rp-juego-der .rp-bar-track {
+    width: 50px !important;
+  }
+  .rp-juego-nombre {
+    font-size: 12px;
+  }
+  .rp-bar-label {
+    width: 60px;
+  }
+  .rp-bar-value {
+    width: 50px;
   }
 }
