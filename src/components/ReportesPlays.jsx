@@ -442,7 +442,7 @@ export default function ReportesPlays() {
             <option value={0}>Año completo</option>
             {MESES.slice(1).map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
           </select>
-          <button className="rp-btn-generar" onClick={handleGenerar} disabled={generando}>
+          <button className="rp-btn-generar" onClick={handleGenerar} disabled={generando || selectedAño < new Date().getFullYear()} title={selectedAño < new Date().getFullYear() ? "No se puede regenerar un año anterior" : ""}>
             <RefreshCw size={13} style={{ animation: generando ? "rp-spin 1s linear infinite" : "none" }} />
             {generando ? "Generando..." : "Regenerar"}
           </button>
