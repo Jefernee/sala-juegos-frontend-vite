@@ -66,7 +66,9 @@
   padding: 1.5rem;
 }
 
-.rp-btn-volver:hover { background: #f3f4f6; }
+.rp-btn-volver:hover {
+  background: #f3f4f6;
+}
 
 .rp-btn-generar {
   display: flex;
@@ -79,15 +81,24 @@
   background: #ffffff;
   color: #1f2937;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .rp-btn-generar:hover:not(:disabled) {
   background: #f3f4f6;
   border-color: #6366f1;
 }
-.rp-btn-generar:disabled { opacity: 0.55; cursor: not-allowed; }
+.rp-btn-generar:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
-@keyframes rp-spin { to { transform: rotate(360deg); } }
+@keyframes rp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* ── Mensajes ─────────────────────────────────────────────────────────────── */
 .rp-error {
@@ -113,20 +124,28 @@
   gap: 10px;
   margin-bottom: 1.25rem;
 }
-@media (max-width: 700px) { .rp-kpis { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 400px) { .rp-kpis { grid-template-columns: 1fr; } }
+@media (max-width: 700px) {
+  .rp-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 400px) {
+  .rp-kpis {
+    grid-template-columns: 1fr;
+  }
+}
 
 .rp-kpi-card {
   background: white;
   border-radius: 10px;
   padding: 14px 16px;
   border: 2px solid #e5e7eb;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
 }
 .rp-kpi-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(99,102,241,0.12);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.12);
   border-color: #c7d2fe;
 }
 .rp-kpi-header {
@@ -155,7 +174,9 @@
 }
 
 /* ── Secciones y cards ────────────────────────────────────────────────────── */
-.rp-seccion { margin-bottom: 1.25rem; }
+.rp-seccion {
+  margin-bottom: 1.25rem;
+}
 .rp-seccion-titulo {
   font-size: 11px;
   font-weight: 700;
@@ -169,10 +190,12 @@
   border: 2px solid #e5e7eb;
   border-radius: 12px;
   padding: 14px 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: border-color 0.3s;
 }
-.rp-card:hover { border-color: #c7d2fe; }
+.rp-card:hover {
+  border-color: #c7d2fe;
+}
 
 /* ── Dos columnas ─────────────────────────────────────────────────────────── */
 .rp-dos-col {
@@ -181,8 +204,14 @@
   gap: 12px;
   margin-bottom: 1.25rem;
 }
-@media (max-width: 768px) { .rp-dos-col { grid-template-columns: 1fr; } }
-.rp-dos-col .rp-seccion { margin-bottom: 0; }
+@media (max-width: 768px) {
+  .rp-dos-col {
+    grid-template-columns: 1fr;
+  }
+}
+.rp-dos-col .rp-seccion {
+  margin-bottom: 0;
+}
 
 /* ── Filas tipo play ──────────────────────────────────────────────────────── */
 .rp-tipo-row {
@@ -192,13 +221,42 @@
   padding: 8px 0;
   border-bottom: 1px solid #f3f4f6;
 }
-.rp-tipo-row:last-child { border-bottom: none; }
-.rp-tipo-left  { display: flex; align-items: center; gap: 8px; flex: 1; }
-.rp-tipo-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.rp-tipo-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.rp-tipo-name  { font-size: 13px; color: #374151; }
-.rp-tipo-value { font-size: 13px; font-weight: 700; color: #1f2937; }
-.rp-tipo-pct   { font-size: 11px; color: #9ca3af; min-width: 32px; text-align: right; }
+.rp-tipo-row:last-child {
+  border-bottom: none;
+}
+.rp-tipo-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.rp-tipo-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.rp-tipo-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.rp-tipo-name {
+  font-size: 13px;
+  color: #374151;
+}
+.rp-tipo-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+}
+.rp-tipo-pct {
+  font-size: 11px;
+  color: #9ca3af;
+  min-width: 32px;
+  text-align: right;
+}
 
 /* ── Estados de pago ──────────────────────────────────────────────────────── */
 .rp-estados {
@@ -216,8 +274,15 @@
   border-radius: 8px;
   border: 1px solid #e5e7eb;
 }
-.rp-estado-val { font-size: 17px; font-weight: 700; }
-.rp-estado-lbl { font-size: 10px; color: #6b7280; margin-top: 2px; }
+.rp-estado-val {
+  font-size: 17px;
+  font-weight: 700;
+}
+.rp-estado-lbl {
+  font-size: 10px;
+  color: #6b7280;
+  margin-top: 2px;
+}
 
 /* ── Barras horizontales ──────────────────────────────────────────────────── */
 .rp-bar-row {
@@ -227,11 +292,13 @@
   padding: 6px 0;
   border-bottom: 1px solid #f3f4f6;
 }
-.rp-bar-row:last-child { border-bottom: none; }
+.rp-bar-row:last-child {
+  border-bottom: none;
+}
 .rp-bar-label {
   font-size: 12px;
   color: #6b7280;
-  width: 80px;
+  width: 130px;
   flex-shrink: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -265,7 +332,11 @@
 }
 
 /* ── Juegos más jugados ───────────────────────────────────────────────────── */
-.rp-juegos-lista { display: flex; flex-direction: column; gap: 2px; }
+.rp-juegos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
 .rp-juego-row {
   display: flex;
@@ -274,7 +345,9 @@
   padding: 7px 0;
   border-bottom: 1px solid #f3f4f6;
 }
-.rp-juego-row:last-child { border-bottom: none; }
+.rp-juego-row:last-child {
+  border-bottom: none;
+}
 
 .rp-juego-izq {
   display: flex;
@@ -350,9 +423,15 @@
   border-radius: 4px;
   transition: background 0.15s;
 }
-.rp-mes-activo { cursor: pointer; }
-.rp-mes-activo:hover { background: #f3f4f6; }
-.rp-mes-activo:hover .rp-mes-barra-inner { opacity: 0.75; }
+.rp-mes-activo {
+  cursor: pointer;
+}
+.rp-mes-activo:hover {
+  background: #f3f4f6;
+}
+.rp-mes-activo:hover .rp-mes-barra-inner {
+  opacity: 0.75;
+}
 .rp-mes-barra-outer {
   width: 100%;
   height: 56px;
@@ -368,13 +447,36 @@
   transition: height 0.4s ease;
   min-height: 2px;
 }
-.rp-mes-lbl { font-size: 9px; color: #9ca3af; }
-.rp-mes-ses { font-size: 9px; font-weight: 700; color: #6b7280; }
+.rp-mes-lbl {
+  font-size: 9px;
+  color: #9ca3af;
+}
+.rp-mes-ses {
+  font-size: 9px;
+  font-weight: 700;
+  color: #6b7280;
+}
 
 /* ── Leyenda ──────────────────────────────────────────────────────────────── */
-.rp-leyenda { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
-.rp-leyenda-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #6b7280; }
-.rp-leyenda-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.rp-leyenda {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.rp-leyenda-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #6b7280;
+}
+.rp-leyenda-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 
 /* ── Calendario heatmap ───────────────────────────────────────────────────── */
 .rp-cal-grid {
@@ -401,7 +503,10 @@
   cursor: default;
   transition: transform 0.1s;
 }
-.rp-cal-cell:hover { transform: scale(1.15); z-index: 2; }
+.rp-cal-cell:hover {
+  transform: scale(1.15);
+  z-index: 2;
+}
 .rp-cal-tooltip {
   position: absolute;
   bottom: calc(100% + 6px);
@@ -417,7 +522,7 @@
   z-index: 20;
   pointer-events: none;
   line-height: 1.5;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 .rp-cal-legend {
   display: flex;
@@ -432,7 +537,7 @@
   .rp-juego-der {
     gap: 4px;
   }
-  
+
   .rp-juego-der .rp-bar-track {
     width: 50px !important;
   }
@@ -474,7 +579,7 @@
     font-size: 12px;
   }
   .rp-bar-label {
-    width: 60px;
+    width: 90px;
   }
   .rp-bar-value {
     width: 50px;

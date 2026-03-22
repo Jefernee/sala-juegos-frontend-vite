@@ -18,7 +18,7 @@ export default function ReportesDashboard() {
       id: "ventas",
       titulo: "Reportes de Ventas",
       icono: <BarChart3 size={24} />,
-      descripcion: "Ventas, productos y pedidos",
+      descripcion: "Análisis financiero de ventas mensual",
       color: "verde",
     },
     {
