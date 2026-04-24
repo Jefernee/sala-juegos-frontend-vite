@@ -8,13 +8,10 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 let axiosModule = null;
 const getAxios = async () => {
-  if (!axiosModule) {
-    axiosModule = await import("axios");
-  }
+  if (!axiosModule) axiosModule = await import("axios");
   return axiosModule.default;
 };
 
-// Constantes para los selects
 const LUGARES_JUEGO = [
   "Play 4 número 1",
   "Play 4 número 2",
@@ -50,7 +47,13 @@ const JUEGOS_DISPONIBLES = [
 
 const ESTADOS_PAGO = ["En Proceso", "Completado", "Pendiente"];
 
-// Función para obtener el usuario logueado
+// ✅ Constante fuera del componente para que useEffect no la detecte como cambio
+const FILTROS_VACIOS = {
+  soloPendiente: false,
+  minPendienteHoras: "",
+  minPendienteMinutos: "",
+};
+
 const obtenerUsuarioLogueado = () => {
   try {
     const userString = localStorage.getItem("user");
@@ -59,62 +62,44 @@ const obtenerUsuarioLogueado = () => {
       return user.nombre || user.name || "";
     }
     return "";
-  } catch (error) {
-    console.error("Error al obtener usuario:", error);
+  } catch {
     return "";
   }
 };
 
-// Función para sumar minutos a una hora
 const sumarMinutosAHora = (horaInicio, minutosASumar) => {
   if (!horaInicio) return "";
-
-  const [horas, minutos] = horaInicio.split(":").map(Number);
-  const totalMinutos = horas * 60 + minutos + minutosASumar;
-
-  const nuevasHoras = Math.floor(totalMinutos / 60) % 24;
-  const nuevosMinutos = totalMinutos % 60;
-
-  return `${String(nuevasHoras).padStart(2, "0")}:${String(nuevosMinutos).padStart(2, "0")}`;
+  const [h, m] = horaInicio.split(":").map(Number);
+  const total = h * 60 + m + minutosASumar;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 };
 
-// Función para obtener hora actual en formato 12h
 const obtenerHoraActual12h = () => {
   const ahora = new Date();
-  let horas = ahora.getHours();
-  const minutos = ahora.getMinutes();
-  const periodo = horas >= 12 ? "PM" : "AM";
-  horas = horas % 12 || 12;
-  return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")} ${periodo}`;
+  let h = ahora.getHours();
+  const m = ahora.getMinutes();
+  const p = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")} ${p}`;
 };
 
-// Función para convertir formato 24h a 12h
 const convertirA12Horas = (hora24) => {
   if (!hora24) return "";
-  const [horas, minutos] = hora24.split(":").map(Number);
-  const periodo = horas >= 12 ? "PM" : "AM";
-  const horas12 = horas % 12 || 12;
-  return `${horas12}:${String(minutos).padStart(2, "0")} ${periodo}`;
+  const [h, m] = hora24.split(":").map(Number);
+  const p = h >= 12 ? "PM" : "AM";
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${p}`;
 };
 
-// Función para convertir formato 12h a 24h para guardar
 const convertir12hA24h = (hora12) => {
   if (!hora12) return "";
-
   const match = hora12.match(/(\d+):(\d+)\s*(AM|PM)/i);
   if (!match) return "";
-
-  let horas = parseInt(match[1]);
-  const minutos = match[2];
-  const periodo = match[3].toUpperCase();
-
-  if (periodo === "PM" && horas !== 12) {
-    horas += 12;
-  } else if (periodo === "AM" && horas === 12) {
-    horas = 0;
-  }
-
-  return `${String(horas).padStart(2, "0")}:${minutos}`;
+  let h = parseInt(match[1]);
+  const m = match[2];
+  const p = match[3].toUpperCase();
+  if (p === "PM" && h !== 12) h += 12;
+  else if (p === "AM" && h === 12) h = 0;
+  return `${String(h).padStart(2, "0")}:${m}`;
 };
 
 const PlaysManagement = () => {
@@ -124,6 +109,11 @@ const PlaysManagement = () => {
   const [editando, setEditando] = useState(null);
   const [mostrarNotificacion, setMostrarNotificacion] = useState(false);
   const [notificacion, setNotificacion] = useState(null);
+
+  // filtros: lo que el usuario está escribiendo en el panel (NO dispara fetch)
+  const [filtros, setFiltros] = useState(FILTROS_VACIOS);
+  // filtrosAplicados: los que están realmente activos (se actualizan solo al hacer clic en Buscar)
+  const [filtrosAplicados, setFiltrosAplicados] = useState(FILTROS_VACIOS);
 
   const [formData, setFormData] = useState({
     fecha: new Date().toISOString().split("T")[0],
@@ -139,7 +129,6 @@ const PlaysManagement = () => {
     estadoPago: "En Proceso",
   });
 
-  // Estado para los inputs de tiempo (horas y minutos separados)
   const [tiempoPagadoInput, setTiempoPagadoInput] = useState({
     horas: "",
     minutos: "",
@@ -148,15 +137,11 @@ const PlaysManagement = () => {
     horas: "",
     minutos: "",
   });
-
-  // Estado para mostrar el desglose de costos (SOLO PARA PREVIEW)
   const [desgloseCostos, setDesgloseCostos] = useState({
     subtotal: 0,
     costoControles: 0,
     total: 0,
   });
-
-  // Estado para paginación
   const [paginacion, setPaginacion] = useState({
     page: 1,
     limit: 5,
@@ -168,60 +153,44 @@ const PlaysManagement = () => {
 
   const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem("token");
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
+    return { headers: { Authorization: `Bearer ${token}` } };
   }, []);
 
-  // Función para calcular costos en tiempo real (SOLO PARA MOSTRAR AL USUARIO)
   const calcularCostos = useCallback(
     (lugarDeJuego, tiempoPagado, controlAdicional) => {
-      if (!lugarDeJuego || !tiempoPagado) {
+      if (!lugarDeJuego || !tiempoPagado)
         return { subtotal: 0, costoControles: 0, total: 0 };
-      }
-
-      let precioPorHora = 0;
-
-      if (lugarDeJuego.includes("Play 5")) {
-        precioPorHora = 1000;
-      } else if (lugarDeJuego.includes("Play 4")) {
-        precioPorHora = 800;
-      } else if (lugarDeJuego === "Ping Pong") {
-        precioPorHora = 800;
-      }
-
-      const subtotal = Math.round((tiempoPagado / 60) * precioPorHora);
+      let pph = 0;
+      if (lugarDeJuego.includes("Play 5")) pph = 1000;
+      else if (lugarDeJuego.includes("Play 4")) pph = 800;
+      else if (lugarDeJuego === "Ping Pong") pph = 800;
+      const subtotal = Math.round((tiempoPagado / 60) * pph);
       const costoControles = controlAdicional * 200;
-      const total = subtotal + costoControles;
-
-      return { subtotal, costoControles, total };
+      return { subtotal, costoControles, total: subtotal + costoControles };
     },
     [],
   );
 
-  // Actualizar hora final cuando cambian hora inicio o tiempo pagado
   useEffect(() => {
     if (formData.horaInicio && formData.tiempoPagado > 0) {
       const hora24 = convertir12hA24h(formData.horaInicio);
-      const nuevaHoraFinal24 = sumarMinutosAHora(hora24, formData.tiempoPagado);
-      const nuevaHoraFinal12 = convertirA12Horas(nuevaHoraFinal24);
       setFormData((prev) => ({
         ...prev,
-        horaFinal: nuevaHoraFinal12,
+        horaFinal: convertirA12Horas(
+          sumarMinutosAHora(hora24, formData.tiempoPagado),
+        ),
       }));
     }
   }, [formData.horaInicio, formData.tiempoPagado]);
 
-  // Actualizar costos cuando cambian los campos relevantes (SOLO PARA PREVIEW)
   useEffect(() => {
-    const costos = calcularCostos(
-      formData.lugarDeJuego,
-      formData.tiempoPagado,
-      formData.controlAdicional,
+    setDesgloseCostos(
+      calcularCostos(
+        formData.lugarDeJuego,
+        formData.tiempoPagado,
+        formData.controlAdicional,
+      ),
     );
-    setDesgloseCostos(costos);
   }, [
     formData.lugarDeJuego,
     formData.tiempoPagado,
@@ -229,16 +198,28 @@ const PlaysManagement = () => {
     calcularCostos,
   ]);
 
+  // ✅ fetchPlays NO tiene filtros en sus dependencias
+  //    Siempre recibe filtrosActuales como parámetro → tipear en el panel no recarga nada
   const fetchPlays = useCallback(
-    async (page = 1) => {
+    async (page = 1, filtrosActuales = FILTROS_VACIOS) => {
       setLoading(true);
       try {
         const axios = await getAxios();
+        const params = new URLSearchParams({ page, limit: 5 });
+
+        if (filtrosActuales.soloPendiente) {
+          params.append("soloPendiente", "true");
+        } else {
+          const h = parseInt(filtrosActuales.minPendienteHoras) || 0;
+          const m = parseInt(filtrosActuales.minPendienteMinutos) || 0;
+          const totalMin = h * 60 + m;
+          if (totalMin > 0) params.append("minPendiente", totalMin);
+        }
+
         const response = await axios.get(
-          `${API_URL}/api/plays?page=${page}&limit=5`,
+          `${API_URL}/api/plays?${params.toString()}`,
           getAuthHeaders(),
         );
-
         setPlays(response.data.data || []);
         setPaginacion(
           response.data.pagination || {
@@ -252,10 +233,8 @@ const PlaysManagement = () => {
         );
       } catch (error) {
         console.error("❌ Error al cargar plays:", error);
-
         let mensajeError = "Error al cargar los registros";
         let detalle = "";
-
         if (error.response) {
           mensajeError = error.response.data?.message || mensajeError;
           detalle = error.response.data?.error || "";
@@ -265,17 +244,17 @@ const PlaysManagement = () => {
         } else {
           detalle = error.message;
         }
-
         mostrarNotif(mensajeError, "error", detalle);
       } finally {
         setLoading(false);
       }
     },
     [getAuthHeaders],
-  );
+  ); // ✅ filtros NO está aquí
 
+  // Carga inicial sin filtros
   useEffect(() => {
-    fetchPlays();
+    fetchPlays(1, FILTROS_VACIOS);
     document.title = "Gestión de Plays - Sala de Juegos Ruiz";
   }, [fetchPlays]);
 
@@ -285,6 +264,29 @@ const PlaysManagement = () => {
     setTimeout(() => setMostrarNotificacion(false), 5000);
   };
 
+  // ✅ Solo al hacer clic en Buscar se aplican los filtros
+  const aplicarFiltros = () => {
+    setFiltrosAplicados(filtros);
+    fetchPlays(1, filtros);
+  };
+
+  // ✅ Limpiar: resetea panel y búsqueda
+  const limpiarFiltros = () => {
+    setFiltros(FILTROS_VACIOS);
+    setFiltrosAplicados(FILTROS_VACIOS);
+    fetchPlays(1, FILTROS_VACIOS);
+  };
+
+  const hayFiltroActivo =
+    filtrosAplicados.soloPendiente ||
+    filtrosAplicados.minPendienteHoras !== "" ||
+    filtrosAplicados.minPendienteMinutos !== "";
+
+  const hayAlgoEscrito =
+    filtros.soloPendiente ||
+    filtros.minPendienteHoras !== "" ||
+    filtros.minPendienteMinutos !== "";
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -293,79 +295,58 @@ const PlaysManagement = () => {
     }));
   };
 
-  // Manejador para cambios en tiempo pagado
   const handleTiempoPagadoChange = (tipo, valor) => {
-    const nuevoValor = valor === "" ? "" : Math.max(0, parseInt(valor) || 0);
-
-    const nuevosTiempos = {
+    const v = valor === "" ? "" : Math.max(0, parseInt(valor) || 0);
+    const t = {
       ...tiempoPagadoInput,
       [tipo]:
         tipo === "horas"
-          ? nuevoValor === ""
+          ? v === ""
             ? ""
-            : Math.min(nuevoValor, 12)
-          : nuevoValor === ""
+            : Math.min(v, 12)
+          : v === ""
             ? ""
-            : Math.min(nuevoValor, 59),
+            : Math.min(v, 59),
     };
-
-    setTiempoPagadoInput(nuevosTiempos);
-
-    const horas = nuevosTiempos.horas === "" ? 0 : nuevosTiempos.horas;
-    const minutos = nuevosTiempos.minutos === "" ? 0 : nuevosTiempos.minutos;
-    const totalMinutos = horas * 60 + minutos;
-
+    setTiempoPagadoInput(t);
     setFormData((prev) => ({
       ...prev,
-      tiempoPagado: totalMinutos,
+      tiempoPagado:
+        (t.horas === "" ? 0 : t.horas) * 60 +
+        (t.minutos === "" ? 0 : t.minutos),
     }));
   };
 
-  // Manejador para cambios en tiempo pendiente
   const handleTiempoPendienteChange = (tipo, valor) => {
     if (!editando) return;
-
-    const nuevoValor = valor === "" ? "" : Math.max(0, parseInt(valor) || 0);
-
-    const nuevosTiempos = {
+    const v = valor === "" ? "" : Math.max(0, parseInt(valor) || 0);
+    const t = {
       ...tiempoPendienteInput,
       [tipo]:
         tipo === "horas"
-          ? nuevoValor === ""
+          ? v === ""
             ? ""
-            : Math.min(nuevoValor, 12)
-          : nuevoValor === ""
+            : Math.min(v, 12)
+          : v === ""
             ? ""
-            : Math.min(nuevoValor, 59),
+            : Math.min(v, 59),
     };
-
-    setTiempoPendienteInput(nuevosTiempos);
-
-    const horas = nuevosTiempos.horas === "" ? 0 : nuevosTiempos.horas;
-    const minutos = nuevosTiempos.minutos === "" ? 0 : nuevosTiempos.minutos;
-    const totalMinutos = horas * 60 + minutos;
-
+    setTiempoPendienteInput(t);
     setFormData((prev) => ({
       ...prev,
-      tiempoPendiente: totalMinutos,
+      tiempoPendiente:
+        (t.horas === "" ? 0 : t.horas) * 60 +
+        (t.minutos === "" ? 0 : t.minutos),
     }));
   };
 
   const handleJuegoChange = (e) => {
-    const selectedOptions = Array.from(
-      e.target.selectedOptions,
-      (option) => option.value,
-    );
-
-    if (selectedOptions.length > 2) {
+    const sel = Array.from(e.target.selectedOptions, (o) => o.value);
+    if (sel.length > 2) {
       mostrarNotif("Solo puedes seleccionar hasta 2 juegos", "warning");
       return;
     }
-
-    setFormData((prev) => ({
-      ...prev,
-      juegosJugados: selectedOptions,
-    }));
+    setFormData((prev) => ({ ...prev, juegosJugados: sel }));
   };
 
   const limpiarFormulario = () => {
@@ -388,14 +369,8 @@ const PlaysManagement = () => {
     setMostrarFormulario(false);
   };
 
-  const abrirFormularioNuevo = () => {
-    limpiarFormulario();
-    setMostrarFormulario(true);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (
       !formData.cliente ||
       !formData.atendio ||
@@ -411,28 +386,20 @@ const PlaysManagement = () => {
       );
       return;
     }
-
     try {
       const axios = await getAxios();
-
-      // Convertir horas de 12h a 24h para guardar
-      const horaInicio24 = convertir12hA24h(formData.horaInicio);
-      const horaFinal24 = convertir12hA24h(formData.horaFinal);
-
-      // ✅ Solo enviar datos básicos - el backend calcula todo lo demás
       const datosAEnviar = {
         cliente: formData.cliente,
         atendio: formData.atendio,
         tiempoPagado: formData.tiempoPagado,
         tiempoPendiente: formData.tiempoPendiente,
-        horaInicio: horaInicio24,
-        horaFinal: horaFinal24,
+        horaInicio: convertir12hA24h(formData.horaInicio),
+        horaFinal: convertir12hA24h(formData.horaFinal),
         lugarDeJuego: formData.lugarDeJuego,
         juegosJugados: formData.juegosJugados,
         controlAdicional: formData.controlAdicional,
         estadoPago: formData.estadoPago,
       };
-
       if (editando) {
         await axios.put(
           `${API_URL}/api/plays/${editando}`,
@@ -448,49 +415,38 @@ const PlaysManagement = () => {
         );
         mostrarNotif("Play registrado exitosamente", "success");
       }
-
       limpiarFormulario();
-      fetchPlays(paginacion.page);
+      fetchPlays(paginacion.page, filtrosAplicados);
     } catch (error) {
       console.error("❌ Error:", error);
-
       let mensajeError = "Error al guardar el play";
       let detalle = "";
-
       if (error.response) {
         mensajeError = error.response.data?.message || mensajeError;
-        detalle = error.response.data?.error || "";
-
-        if (error.response.data?.errors) {
-          const erroresValidacion = Object.values(error.response.data.errors)
-            .map((err) => err.message)
-            .join(", ");
-          detalle = erroresValidacion;
-        }
+        detalle = error.response.data?.errors
+          ? Object.values(error.response.data.errors)
+              .map((e) => e.message)
+              .join(", ")
+          : error.response.data?.error || "";
       } else if (error.request) {
         mensajeError = "No se pudo conectar con el servidor";
         detalle = "Verifica que el backend esté corriendo";
       } else {
         detalle = error.message;
       }
-
       mostrarNotif(mensajeError, "error", detalle);
     }
   };
 
   const handleEditar = (play) => {
-    const horasPagado = Math.floor(play.tiempoPagado / 60);
-    const minutosPagado = play.tiempoPagado % 60;
-
-    const horasPendiente = Math.floor((play.tiempoPendiente || 0) / 60);
-    const minutosPendiente = (play.tiempoPendiente || 0) % 60;
-
-    setTiempoPagadoInput({ horas: horasPagado, minutos: minutosPagado });
-    setTiempoPendienteInput({
-      horas: horasPendiente,
-      minutos: minutosPendiente,
+    setTiempoPagadoInput({
+      horas: Math.floor(play.tiempoPagado / 60),
+      minutos: play.tiempoPagado % 60,
     });
-
+    setTiempoPendienteInput({
+      horas: Math.floor((play.tiempoPendiente || 0) / 60),
+      minutos: (play.tiempoPendiente || 0) % 60,
+    });
     setFormData({
       cliente: play.cliente,
       atendio: play.atendio,
@@ -509,23 +465,20 @@ const PlaysManagement = () => {
 
   const handleEliminar = async (id) => {
     if (!window.confirm("¿Estás seguro de eliminar este registro?")) return;
-
     try {
       const axios = await getAxios();
       await axios.delete(`${API_URL}/api/plays/${id}`, getAuthHeaders());
       mostrarNotif("Play eliminado exitosamente", "success");
-
-      if (plays.length === 1 && paginacion.page > 1) {
-        fetchPlays(paginacion.page - 1);
-      } else {
-        fetchPlays(paginacion.page);
-      }
+      fetchPlays(
+        plays.length === 1 && paginacion.page > 1
+          ? paginacion.page - 1
+          : paginacion.page,
+        filtrosAplicados,
+      );
     } catch (error) {
       console.error("❌ Error:", error);
-
       let mensajeError = "Error al eliminar el play";
       let detalle = "";
-
       if (error.response) {
         mensajeError = error.response.data?.message || mensajeError;
         detalle = error.response.data?.error || "";
@@ -535,41 +488,24 @@ const PlaysManagement = () => {
       } else {
         detalle = error.message;
       }
-
       mostrarNotif(mensajeError, "error", detalle);
     }
   };
 
-  // Funciones de paginación
-  const irAPagina = (numeroPagina) => {
-    fetchPlays(numeroPagina);
-    document.querySelector(".tabla-panel")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+  const irAPagina = (num) => {
+    fetchPlays(num, filtrosAplicados);
+    document
+      .querySelector(".tabla-panel")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const paginaAnterior = () => {
-    if (paginacion.hasPrevPage) {
-      irAPagina(paginacion.page - 1);
-    }
-  };
-
-  const paginaSiguiente = () => {
-    if (paginacion.hasNextPage) {
-      irAPagina(paginacion.page + 1);
-    }
-  };
-
-  // Función helper para convertir minutos a texto
   const minutosATexto = (minutos) => {
     if (minutos === 0) return "0 min";
-    const horas = Math.floor(minutos / 60);
-    const mins = minutos % 60;
-
-    if (horas === 0) return `${mins} min`;
-    if (mins === 0) return `${horas}h`;
-    return `${horas}h ${mins}min`;
+    const h = Math.floor(minutos / 60);
+    const m = minutos % 60;
+    if (h === 0) return `${m} min`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}min`;
   };
 
   if (loading) {
@@ -594,25 +530,24 @@ const PlaysManagement = () => {
   return (
     <div className="plays-container">
       <Navbar />
-
       <div className="plays-content">
         <div className="container-fluid py-4">
+          {/* Header */}
           <div className="d-flex justify-content-between align-items-center mb-4">
             <h2 className="plays-title mb-0">🎮 Control de Plays</h2>
             <button
               className="btn btn-success btn-lg"
-              onClick={() => {
-                if (mostrarFormulario) {
-                  limpiarFormulario();
-                } else {
-                  abrirFormularioNuevo();
-                }
-              }}
+              onClick={() =>
+                mostrarFormulario
+                  ? limpiarFormulario()
+                  : setMostrarFormulario(true)
+              }
             >
               {mostrarFormulario ? "❌ Cancelar" : "➕ Nuevo Registro"}
             </button>
           </div>
 
+          {/* Formulario */}
           {mostrarFormulario && (
             <div className="card formulario-panel mb-4 shadow-lg">
               <div className="card-header bg-gradient-primary">
@@ -625,13 +560,11 @@ const PlaysManagement = () => {
               <div className="card-body p-4">
                 <form onSubmit={handleSubmit}>
                   <div className="row g-3">
-                    {/* Información básica */}
                     <div className="col-12">
                       <h6 className="border-bottom pb-2 mb-3 text-primary fw-bold">
                         📋 Información Básica
                       </h6>
                     </div>
-
                     <div className="col-12 col-md-6">
                       <label className="form-label fw-bold">Cliente *</label>
                       <input
@@ -644,14 +577,11 @@ const PlaysManagement = () => {
                         required
                       />
                     </div>
-
-                    {/* Detalles del juego */}
                     <div className="col-12 mt-4">
                       <h6 className="border-bottom pb-2 mb-3 text-primary fw-bold">
                         🎮 Detalles del Juego
                       </h6>
                     </div>
-
                     <div className="col-12">
                       <label className="form-label fw-bold">
                         Lugar de Juego *
@@ -664,15 +594,13 @@ const PlaysManagement = () => {
                         required
                       >
                         <option value="">Seleccionar lugar...</option>
-                        {LUGARES_JUEGO.map((lugar) => (
-                          <option key={lugar} value={lugar}>
-                            {lugar} - ₡
-                            {lugar.includes("Play 5") ? "1000" : "800"}/hora
+                        {LUGARES_JUEGO.map((l) => (
+                          <option key={l} value={l}>
+                            {l} - ₡{l.includes("Play 5") ? "1000" : "800"}/hora
                           </option>
                         ))}
                       </select>
                     </div>
-
                     <div className="col-12">
                       <label className="form-label fw-bold">
                         Juegos Jugados agregar almenos 1 (máx. 2) *
@@ -684,9 +612,9 @@ const PlaysManagement = () => {
                         onChange={handleJuegoChange}
                         size="3"
                       >
-                        {JUEGOS_DISPONIBLES.map((juego) => (
-                          <option key={juego} value={juego}>
-                            {juego}
+                        {JUEGOS_DISPONIBLES.map((j) => (
+                          <option key={j} value={j}>
+                            {j}
                           </option>
                         ))}
                       </select>
@@ -694,14 +622,11 @@ const PlaysManagement = () => {
                         💡 Mantén presionado para seleccionar múltiples
                       </small>
                     </div>
-
-                    {/* Tiempos y horarios */}
                     <div className="col-12 mt-4">
                       <h6 className="border-bottom pb-2 mb-3 text-primary fw-bold">
                         ⏰ Tiempos y Horarios
                       </h6>
                     </div>
-
                     <div className="col-12">
                       <label className="form-label fw-bold">
                         Tiempo Pagado *
@@ -715,13 +640,13 @@ const PlaysManagement = () => {
                               min="0"
                               max="12"
                               value={tiempoPagadoInput.horas}
+                              placeholder="0"
                               onChange={(e) =>
                                 handleTiempoPagadoChange(
                                   "horas",
                                   e.target.value,
                                 )
                               }
-                              placeholder="0"
                             />
                             <span className="input-group-text">horas</span>
                           </div>
@@ -734,13 +659,13 @@ const PlaysManagement = () => {
                               min="0"
                               max="59"
                               value={tiempoPagadoInput.minutos}
+                              placeholder="0"
                               onChange={(e) =>
                                 handleTiempoPagadoChange(
                                   "minutos",
                                   e.target.value,
                                 )
                               }
-                              placeholder="0"
                             />
                             <span className="input-group-text">min</span>
                           </div>
@@ -752,7 +677,6 @@ const PlaysManagement = () => {
                         </small>
                       )}
                     </div>
-
                     <div className="col-12">
                       <label className="form-label fw-bold">
                         Tiempo Pendiente {editando && "*"}
@@ -766,14 +690,14 @@ const PlaysManagement = () => {
                               min="0"
                               max="12"
                               value={tiempoPendienteInput.horas}
+                              placeholder="0"
+                              disabled={!editando}
                               onChange={(e) =>
                                 handleTiempoPendienteChange(
                                   "horas",
                                   e.target.value,
                                 )
                               }
-                              placeholder="0"
-                              disabled={!editando}
                             />
                             <span className="input-group-text">horas</span>
                           </div>
@@ -786,14 +710,14 @@ const PlaysManagement = () => {
                               min="0"
                               max="59"
                               value={tiempoPendienteInput.minutos}
+                              placeholder="0"
+                              disabled={!editando}
                               onChange={(e) =>
                                 handleTiempoPendienteChange(
                                   "minutos",
                                   e.target.value,
                                 )
                               }
-                              placeholder="0"
-                              disabled={!editando}
                             />
                             <span className="input-group-text">min</span>
                           </div>
@@ -810,7 +734,6 @@ const PlaysManagement = () => {
                         </small>
                       )}
                     </div>
-
                     <div className="col-12 col-md-6">
                       <label className="form-label fw-bold">
                         Hora Inicio *
@@ -825,7 +748,6 @@ const PlaysManagement = () => {
                         required
                       />
                     </div>
-
                     <div className="col-12 col-md-6">
                       <label className="form-label fw-bold">
                         Hora Final (calculada)
@@ -840,14 +762,11 @@ const PlaysManagement = () => {
                         style={{ cursor: "not-allowed" }}
                       />
                     </div>
-
-                    {/* Costos */}
                     <div className="col-12 mt-4">
                       <h6 className="border-bottom pb-2 mb-3 text-primary fw-bold">
                         💰 Costos y Estado
                       </h6>
                     </div>
-
                     <div className="col-12 col-md-6">
                       <label className="form-label fw-bold">
                         Controles Adicionales (₡200 c/u)
@@ -863,7 +782,6 @@ const PlaysManagement = () => {
                         <option value={2}>2 controles (+₡400)</option>
                       </select>
                     </div>
-
                     <div className="col-12 col-md-6">
                       <label className="form-label fw-bold">
                         Estado del Pago
@@ -874,15 +792,13 @@ const PlaysManagement = () => {
                         value={formData.estadoPago}
                         onChange={handleInputChange}
                       >
-                        {ESTADOS_PAGO.map((estado) => (
-                          <option key={estado} value={estado}>
-                            {estado}
+                        {ESTADOS_PAGO.map((e) => (
+                          <option key={e} value={e}>
+                            {e}
                           </option>
                         ))}
                       </select>
                     </div>
-
-                    {/* Desglose de costos */}
                     <div className="col-12">
                       <div className="card bg-light border-success">
                         <div className="card-body">
@@ -912,7 +828,6 @@ const PlaysManagement = () => {
                       </div>
                     </div>
                   </div>
-
                   <div className="d-flex gap-3 mt-4 justify-content-end">
                     <button
                       type="button"
@@ -933,7 +848,122 @@ const PlaysManagement = () => {
             </div>
           )}
 
-          {/* Tabla de registros */}
+          {/* ✅ Panel de Filtros */}
+          <div className="filtros-panel card mb-3">
+            <div className="card-header">
+              <span>🔍 Filtrar por Tiempo Pendiente</span>
+            </div>
+            <div className="card-body">
+              <div className="filtros-body">
+                {/* Switch */}
+                <div className="filtro-switch-wrapper">
+                  <div className="form-check form-switch mb-0">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="soloPendiente"
+                      checked={filtros.soloPendiente}
+                      onChange={(e) => {
+                        const nuevosFiltros = {
+                          ...filtros,
+                          soloPendiente: e.target.checked,
+                          minPendienteHoras: "",
+                          minPendienteMinutos: "",
+                        };
+                        setFiltros(nuevosFiltros);
+                        // Al ser un toggle binario, aplica inmediatamente sin necesitar "Buscar"
+                        setFiltrosAplicados(nuevosFiltros);
+                        fetchPlays(1, nuevosFiltros);
+                      }}
+                    />
+                    <label className="form-check-label" htmlFor="soloPendiente">
+                      ⏳ Solo con pendiente
+                    </label>
+                  </div>
+                </div>
+
+                {/* Inputs mínimo */}
+                {!filtros.soloPendiente && (
+                  <div className="filtro-minimo-wrapper">
+                    <span className="filtro-label">Pendiente mínimo:</span>
+                    <div className="filtro-inputs-row">
+                      <div className="input-group filtro-input-group">
+                        <input
+                          type="number"
+                          className="form-control"
+                          min="0"
+                          max="12"
+                          placeholder="0"
+                          value={filtros.minPendienteHoras}
+                          onChange={(e) =>
+                            setFiltros((prev) => ({
+                              ...prev,
+                              minPendienteHoras: e.target.value,
+                            }))
+                          }
+                        />
+                        <span className="input-group-text">h</span>
+                      </div>
+                      <div className="input-group filtro-input-group">
+                        <input
+                          type="number"
+                          className="form-control"
+                          min="0"
+                          max="59"
+                          placeholder="0"
+                          value={filtros.minPendienteMinutos}
+                          onChange={(e) =>
+                            setFiltros((prev) => ({
+                              ...prev,
+                              minPendienteMinutos: e.target.value,
+                            }))
+                          }
+                        />
+                        <span className="input-group-text">min</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Botones */}
+                <div className="filtro-botones">
+                  <button
+                    className="btn-filtro-buscar"
+                    onClick={aplicarFiltros}
+                  >
+                    🔍 Buscar
+                  </button>
+                  <button
+                    className="btn-filtro-limpiar"
+                    onClick={limpiarFiltros}
+                    disabled={!hayFiltroActivo && !hayAlgoEscrito}
+                  >
+                    ✕ Limpiar
+                  </button>
+                </div>
+              </div>
+
+              {/* Badge filtro activo */}
+              {hayFiltroActivo && (
+                <div className="filtro-activo-badge">
+                  <span>
+                    ⚠️ Filtro activo —{" "}
+                    {filtrosAplicados.soloPendiente
+                      ? "Solo con tiempo pendiente"
+                      : `Pendiente ≥ ${minutosATexto(
+                          (parseInt(filtrosAplicados.minPendienteHoras) || 0) *
+                            60 +
+                            (parseInt(filtrosAplicados.minPendienteMinutos) ||
+                              0),
+                        )}`}{" "}
+                    · {paginacion.total} resultado(s)
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Tabla */}
           <div className="card tabla-panel shadow-lg">
             <div className="card-header bg-gradient-primary">
               <h5 className="mb-0 text-white">📋 Registros de Plays</h5>
@@ -944,9 +974,15 @@ const PlaysManagement = () => {
                   <div className="mb-3">
                     <i className="fs-1">🎮</i>
                   </div>
-                  <p className="fs-4 mb-2">No hay registros aún</p>
+                  <p className="fs-4 mb-2">
+                    {hayFiltroActivo
+                      ? "No hay registros con ese tiempo pendiente"
+                      : "No hay registros aún"}
+                  </p>
                   <small>
-                    Agrega tu primer registro de play usando el botón superior
+                    {hayFiltroActivo
+                      ? "Prueba con otros valores o limpia el filtro"
+                      : "Agrega tu primer registro usando el botón superior"}
                   </small>
                 </div>
               ) : (
@@ -1004,16 +1040,15 @@ const PlaysManagement = () => {
                             </span>
                           </td>
                           <td className="px-3 py-3">
-                            {play.juegosJugados &&
-                            play.juegosJugados.length > 0 ? (
+                            {play.juegosJugados?.length > 0 ? (
                               <div className="juegos-list">
-                                {play.juegosJugados.map((juego, index) => (
+                                {play.juegosJugados.map((j, i) => (
                                   <small
-                                    key={index}
+                                    key={i}
                                     className="d-block text-truncate"
                                     style={{ maxWidth: "150px" }}
                                   >
-                                    🎮 {juego}
+                                    🎮 {j}
                                   </small>
                                 ))}
                               </div>
@@ -1033,13 +1068,13 @@ const PlaysManagement = () => {
                           </td>
                           <td className="px-3 py-3">
                             <span
-                              className={`badge ${
+                              className={`badge px-3 py-2 ${
                                 play.estadoPago === "Completado"
                                   ? "bg-success"
                                   : play.estadoPago === "En Proceso"
                                     ? "bg-warning text-dark"
                                     : "bg-danger"
-                              } px-3 py-2`}
+                              }`}
                             >
                               {play.estadoPago}
                             </span>
@@ -1073,7 +1108,6 @@ const PlaysManagement = () => {
               )}
             </div>
 
-            {/* Paginación */}
             {paginacion.totalPages > 1 && (
               <div className="card-footer bg-light border-top">
                 <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -1083,8 +1117,12 @@ const PlaysManagement = () => {
                       {" "}
                       (Página {paginacion.page} de {paginacion.totalPages})
                     </span>
+                    {hayFiltroActivo && (
+                      <span className="badge bg-warning text-dark ms-2">
+                        Filtrado
+                      </span>
+                    )}
                   </div>
-
                   <nav aria-label="Paginación de plays">
                     <ul className="pagination pagination-sm mb-0">
                       <li
@@ -1099,39 +1137,35 @@ const PlaysManagement = () => {
                           <span aria-hidden="true">««</span>
                         </button>
                       </li>
-
                       <li
                         className={`page-item ${!paginacion.hasPrevPage ? "disabled" : ""}`}
                       >
                         <button
                           className="page-link"
-                          onClick={paginaAnterior}
+                          onClick={() => irAPagina(paginacion.page - 1)}
                           disabled={!paginacion.hasPrevPage}
                           aria-label="Página anterior"
                         >
                           <span aria-hidden="true">‹</span>
                         </button>
                       </li>
-
                       {Array.from(
                         { length: paginacion.totalPages },
                         (_, i) => i + 1,
                       )
                         .filter((num) => {
-                          const current = paginacion.page;
+                          const c = paginacion.page;
                           return (
                             num === 1 ||
                             num === paginacion.totalPages ||
-                            (num >= current - 1 && num <= current + 1)
+                            (num >= c - 1 && num <= c + 1)
                           );
                         })
                         .map((num, index, array) => {
-                          const prevNum = array[index - 1];
-                          const showSeparator = prevNum && num - prevNum > 1;
-
+                          const prev = array[index - 1];
                           return (
                             <React.Fragment key={num}>
-                              {showSeparator && (
+                              {prev && num - prev > 1 && (
                                 <li className="page-item disabled d-none d-sm-block">
                                   <span className="page-link">...</span>
                                 </li>
@@ -1149,20 +1183,18 @@ const PlaysManagement = () => {
                             </React.Fragment>
                           );
                         })}
-
                       <li
                         className={`page-item ${!paginacion.hasNextPage ? "disabled" : ""}`}
                       >
                         <button
                           className="page-link"
-                          onClick={paginaSiguiente}
+                          onClick={() => irAPagina(paginacion.page + 1)}
                           disabled={!paginacion.hasNextPage}
                           aria-label="Página siguiente"
                         >
                           <span aria-hidden="true">›</span>
                         </button>
                       </li>
-
                       <li
                         className={`page-item ${!paginacion.hasNextPage ? "disabled" : ""}`}
                       >
