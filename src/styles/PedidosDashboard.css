@@ -34,25 +34,34 @@
   text-align: center;
 }
 
-/* Filtros */
+/* ===== FILTROS ===== */
 .filtros-section {
   display: flex;
   justify-content: center;
 }
 
-.btn-group button {
-  font-weight: 600;
-  transition: all 0.3s ease;
+.filtros-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  width: 100%;
 }
 
-/* Grid de pedidos */
+.filtros-btns .btn {
+  font-weight: 600;
+  transition: all 0.3s ease;
+  flex: 0 0 auto;
+}
+
+/* ===== GRID DE PEDIDOS ===== */
 .pedidos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.5rem;
 }
 
-/* Tarjeta de pedido */
+/* ===== TARJETA ===== */
 .pedido-card {
   background: white;
   border-radius: 12px;
@@ -100,6 +109,7 @@
 .info-item {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 0.4rem 0;
   border-bottom: 1px solid #f3f4f6;
 }
@@ -133,7 +143,7 @@
   justify-content: center;
 }
 
-/* Badges de estado */
+/* ===== BADGES ===== */
 .badge-warning {
   background: #fbbf24 !important;
   color: #78350f !important;
@@ -154,7 +164,7 @@
   color: #7f1d1d !important;
 }
 
-/* Modal */
+/* ===== MODAL ===== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -182,14 +192,8 @@
 }
 
 @keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-30px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .modal-header {
@@ -262,7 +266,7 @@
   justify-content: flex-end;
 }
 
-/* Alert */
+/* ===== ALERT ===== */
 .alert-info {
   background: rgba(56, 189, 248, 0.1);
   border: 2px solid #38bdf8;
@@ -273,51 +277,75 @@
   text-align: center;
 }
 
-/* Responsive */
+/* =====================================================
+   RESPONSIVE MÓVIL
+   ===================================================== */
+
 @media (max-width: 768px) {
+  .pedidos-content .container {
+    padding: 1rem;
+  }
+
+  .pedidos-title {
+    font-size: 1.4rem;
+    margin-bottom: 1rem !important;
+  }
+
+  /* Filtros: grilla 2 columnas en móvil */
+  .filtros-section {
+    overflow-x: visible;
+  }
+
+  .filtros-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  /* "Todos" ocupa el ancho completo */
+  .filtros-btns .btn-todos {
+    grid-column: 1 / -1;
+  }
+
+  .filtros-btns .btn {
+    width: 100%;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.4rem;
+  }
+
+  /* Cards de pedidos: 1 columna */
   .pedidos-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
 
-  .filtros-section {
-    overflow-x: auto;
-  }
-
-  .btn-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .pedidos-title {
-    font-size: 1.5rem;
-  }
-
-  .modal-content {
-    max-width: 95%;
-    margin: auto;
-  }
-}
-
-@media (max-width: 576px) {
-  .pedidos-content .container {
-    padding: 1rem;
-  }
-
   .pedido-header {
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.4rem;
   }
 
   .pedido-producto {
     font-size: 1rem;
   }
 
-  .info-item {
-    flex-direction: column;
-    gap: 0.25rem;
-    align-items: flex-start;
+  /* Modal ocupa casi toda la pantalla */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-content {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+    margin: 0;
+  }
+}
+
+@media (max-width: 400px) {
+  .filtros-btns .btn {
+    font-size: 0.78rem;
+    padding: 0.45rem 0.3rem;
   }
 }

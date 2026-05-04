@@ -1,31 +1,19 @@
 /**
  * ManageProducts Component
- *
- * Componente principal para la gestión de productos del inventario.
- * Permite visualizar, buscar, editar y eliminar productos desde una interfaz unificada.
- *
- * Características principales:
- * - Listado completo de productos con paginación
- * - Búsqueda en tiempo real por nombre de producto
- * - **NUEVO**: Formulario modal unificado para agregar y editar
- * - Edición de productos con opción de cambiar imagen
- * - Eliminación de productos con confirmación
- * - Visualización de imágenes con zoom
- * - Control de disponibilidad para venta
- * - Auditoría de cambios (quién modificó)
- * - Interfaz responsive y optimizada
- *
- * @component
- * @author jefernee
- * @version 3.0.0
+ * @version 4.0.0
+ * - Búsqueda en tiempo real con debounce (sin recargar la página completa)
+ * - Paginación con botones anterior/siguiente
+ * - Spinner localizado en la lista (no bloquea el resto de la UI)
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { Helmet } from "react-helmet";
 import "../styles/ManageProducts.css";
 import Navbar from "../components/NavBar2";
 import ProductForm from "../components/ProductForm";
+
+const PRODUCTOS_POR_PAGINA = 10;
 
 const ManageProducts = () => {
   // ===================================
@@ -33,103 +21,147 @@ const ManageProducts = () => {
   // ===================================
 
   const [productos, setProductos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);       // solo para la primera carga
+  const [searching, setSearching] = useState(false);  // spinner localizado en búsquedas
   const [processing, setProcessing] = useState(null);
   const [search, setSearch] = useState("");
-  
-  // ✅ NUEVO: Estado del formulario modal
+
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+
+  // Formulario modal
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
+  const timeoutRef = useRef(null);
+
   // ===================================
-  // FUNCIONES DE CARGA DE DATOS
+  // FETCH DE PRODUCTOS
   // ===================================
 
-  /**
-   * Obtiene la lista de productos del servidor
-   * @async
-   * @param {string} searchTerm - Término de búsqueda opcional
-   */
-  const fetchProductos = async (searchTerm = "") => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/products/list?page=1&limit=100&search=${searchTerm}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      console.log("Productos cargados:", response.data);
-      setProductos(response.data.productos);
-    } catch (error) {
-      console.error("Error al cargar productos:", error);
-      if (error.response?.status === 401) {
-        alert("Sesión expirada. Por favor inicia sesión nuevamente.");
+  const fetchProductos = useCallback(
+    async (searchTerm = "", page = 1, isInitialLoad = false) => {
+      if (isInitialLoad) {
+        setLoading(true);
       } else {
-        alert("Error al cargar productos.");
+        setSearching(true);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      try {
+        const token = localStorage.getItem("token");
+
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/products/list`,
+          {
+            params: {
+              page,
+              limit: PRODUCTOS_POR_PAGINA,
+              search: searchTerm,
+            },
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const { productos: data, pagination } = response.data;
+
+        setProductos(data);
+        setCurrentPage(pagination.currentPage);
+        setTotalPages(pagination.totalPages);
+        setTotalProducts(pagination.totalProducts);
+      } catch (error) {
+        console.error("Error al cargar productos:", error);
+        if (error.response?.status === 401) {
+          alert("Sesión expirada. Por favor inicia sesión nuevamente.");
+        } else {
+          alert("Error al cargar productos.");
+        }
+      } finally {
+        setLoading(false);
+        setSearching(false);
+      }
+    },
+    []
+  );
 
   // ===================================
-  // EFECTOS (LIFECYCLE)
+  // EFECTOS
   // ===================================
 
   useEffect(() => {
-    fetchProductos("");
-  }, []);
+    fetchProductos("", 1, true); // primera carga
+  }, [fetchProductos]);
 
   // ===================================
-  // MANEJADORES DE EVENTOS
+  // BÚSQUEDA EN TIEMPO REAL (DEBOUNCE)
   // ===================================
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchProductos(search);
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearch(value);
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    timeoutRef.current = setTimeout(() => {
+      fetchProductos(value, 1, false);
+    }, 500);
   };
 
-  // ✅ NUEVO: Abrir formulario para agregar
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    fetchProductos(search, 1, false);
+  };
+
+  const limpiarBusqueda = () => {
+    setSearch("");
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    fetchProductos("", 1, false);
+  };
+
+  // ===================================
+  // PAGINACIÓN
+  // ===================================
+
+  const irAPagina = (page) => {
+    if (page < 1 || page > totalPages) return;
+    fetchProductos(search, page, false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // ===================================
+  // FORMULARIO MODAL
+  // ===================================
+
   const handleOpenAddForm = () => {
     setEditingProduct(null);
     setShowForm(true);
   };
 
-  // ✅ NUEVO: Abrir formulario para editar
   const handleOpenEditForm = (producto) => {
     setEditingProduct(producto);
     setShowForm(true);
   };
 
-  // ✅ NUEVO: Cerrar formulario
   const handleCloseForm = () => {
     setShowForm(false);
     setEditingProduct(null);
   };
 
-  // ✅ NUEVO: Callback de éxito al guardar
   const handleFormSuccess = () => {
     handleCloseForm();
-    fetchProductos(search); // Recargar la lista
+    fetchProductos(search, currentPage, false);
   };
 
-  /**
-   * Elimina un producto del inventario
-   * @async
-   * @param {string} id - ID del producto a eliminar
-   * @param {string} nombre - Nombre del producto
-   */
+  // ===================================
+  // ELIMINAR PRODUCTO
+  // ===================================
+
   const handleDelete = async (id, nombre) => {
     const confirmar = window.confirm(
-      `¿Estás seguro de eliminar "${nombre}"?\n\nEsta acción eliminará el producto y todos sus datos relacionados (disponibilidad, auditoría, etc).\n\nEsta acción no se puede deshacer.`
+      `¿Estás seguro de eliminar "${nombre}"?\n\nEsta acción eliminará el producto y todos sus datos relacionados.\n\nEsta acción no se puede deshacer.`
     );
-
     if (!confirmar) return;
 
     setProcessing(id);
@@ -139,19 +171,17 @@ const ManageProducts = () => {
 
       await axios.delete(
         `${import.meta.env.VITE_API_URL}/api/products/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      
-      // Filtra el producto eliminado del estado local
-      setProductos(productos.filter((p) => p._id !== id));
 
-      alert(
-        `"${nombre}" y todos sus datos relacionados fueron eliminados correctamente.`
-      );
+      // Si era el único de la página y hay páginas anteriores, retroceder
+      const nuevaPagina =
+        productos.length === 1 && currentPage > 1
+          ? currentPage - 1
+          : currentPage;
+
+      fetchProductos(search, nuevaPagina, false);
+      alert(`"${nombre}" fue eliminado correctamente.`);
     } catch (error) {
       console.error("Error al eliminar:", error);
       if (error.response?.status === 401) {
@@ -165,14 +195,13 @@ const ManageProducts = () => {
   };
 
   // ===================================
-  // RENDER CONDICIONAL - LOADING
+  // RENDER - PRIMERA CARGA
   // ===================================
 
   if (loading) {
     return (
       <div className="manage-products-container">
         <Navbar />
-
         <div className="loading-container">
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Cargando...</span>
@@ -192,10 +221,9 @@ const ManageProducts = () => {
         <title>Gestionar Productos - Sala de Juegos Ruiz</title>
       </Helmet>
 
-      {/* ============= NAVBAR ============= */}
       <Navbar />
 
-      {/* ✅ FORMULARIO MODAL */}
+      {/* FORMULARIO MODAL */}
       {showForm && (
         <ProductForm
           producto={editingProduct}
@@ -204,7 +232,6 @@ const ManageProducts = () => {
         />
       )}
 
-      {/* ============= CONTENIDO PRINCIPAL ============= */}
       <div className="manage-content">
         <div className="container py-4">
           <div className="text-center mb-4">
@@ -214,10 +241,9 @@ const ManageProducts = () => {
             </p>
           </div>
 
-          {/* ===== BARRA DE BÚSQUEDA Y BOTÓN AGREGAR ===== */}
+          {/* ===== BOTÓN AGREGAR + BARRA DE BÚSQUEDA ===== */}
           <div className="mb-4">
             <div className="d-flex gap-2 mb-3">
-              {/* ✅ BOTÓN AGREGAR PRODUCTO */}
               <button
                 className="btn btn-add-product"
                 onClick={handleOpenAddForm}
@@ -227,28 +253,39 @@ const ManageProducts = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSearch}>
+            <form onSubmit={handleSearchSubmit}>
               <div className="input-group search-bar">
                 <input
                   type="text"
                   className="form-control"
                   placeholder="Buscar producto..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={handleSearchChange}
+                  autoComplete="off"
                 />
 
-                <button className="btn btn-primary" type="submit">
-                  🔍 Buscar
+                <button
+                  className="btn btn-primary"
+                  type="submit"
+                  disabled={searching}
+                >
+                  {searching ? (
+                    <span
+                      className="spinner-border spinner-border-sm"
+                      role="status"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    "🔍 Buscar"
+                  )}
                 </button>
 
                 {search && (
                   <button
                     className="btn btn-secondary"
                     type="button"
-                    onClick={() => {
-                      setSearch("");
-                      fetchProductos("");
-                    }}
+                    onClick={limpiarBusqueda}
+                    disabled={searching}
                   >
                     ✕ Limpiar
                   </button>
@@ -258,141 +295,229 @@ const ManageProducts = () => {
           </div>
 
           {/* ===== CONTADOR DE RESULTADOS ===== */}
-          {productos.length > 0 && (
+          {!searching && (
             <p className="text-muted text-center mb-3">
-              {productos.length} producto{productos.length !== 1 ? "s" : ""}
-              encontrado{productos.length !== 1 ? "s" : ""}
+              {totalProducts} producto{totalProducts !== 1 ? "s" : ""}{" "}
+              encontrado{totalProducts !== 1 ? "s" : ""}
               {search && ` para "${search}"`}
+              {totalPages > 1 && ` · Página ${currentPage} de ${totalPages}`}
             </p>
           )}
 
-          {/* ===== LISTA DE PRODUCTOS ===== */}
-          {productos.length === 0 ? (
+          {/* ===== LISTA DE PRODUCTOS O SPINNER LOCALIZADO ===== */}
+          {searching ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Buscando...</span>
+              </div>
+              <p className="mt-2 text-muted">Buscando productos...</p>
+            </div>
+          ) : productos.length === 0 ? (
             <div className="alert alert-info text-center">
-              📦 No se encontraron productos{" "}
-              {search && `con el término "${search}"`}
+              📦 No se encontraron productos
+              {search && ` con el término "${search}"`}
             </div>
           ) : (
-            <div className="products-list">
-              {productos.map((producto) => (
-                <div key={producto._id} className="product-item">
-                  {/* ===== IMAGEN DEL PRODUCTO ===== */}
-                  <div className="product-image-wrapper">
-                    <img
-                      src={
-                        producto.imagenOptimizada ||
-                        producto.imagen ||
-                        "https://via.placeholder.com/100"
-                      }
-                      alt={producto.nombre}
-                      className="product-thumbnail"
-                      onClick={() =>
-                        window.open(
-                          producto.imagenOriginal || producto.imagen,
-                          "_blank"
-                        )
-                      }
-                      title="Click para ver imagen completa"
-                      style={{ cursor: "pointer" }}
-                    />
-                  </div>
+            <>
+              <div className="products-list">
+                {productos.map((producto) => (
+                  <div key={producto._id} className="product-item">
+                    {/* IMAGEN */}
+                    <div className="product-image-wrapper">
+                      <img
+                        src={
+                          producto.imagenOptimizada ||
+                          producto.imagen ||
+                          "https://via.placeholder.com/100"
+                        }
+                        alt={producto.nombre}
+                        className="product-thumbnail"
+                        onClick={() =>
+                          window.open(
+                            producto.imagenOriginal || producto.imagen,
+                            "_blank"
+                          )
+                        }
+                        title="Click para ver imagen completa"
+                        style={{ cursor: "pointer" }}
+                      />
+                    </div>
 
-                  {/* ===== DETALLES DEL PRODUCTO ===== */}
-                  <div className="product-details">
-                    <h5 className="product-name">
-                      {producto.nombre}
-                      {/* Badge de disponibilidad */}
-                      {producto.seVende ? (
-                        <span
-                          className="badge bg-success ms-2"
-                          style={{ fontSize: "0.7rem" }}
-                        >
-                          ✓ Disponible
-                        </span>
-                      ) : (
-                        <span
-                          className="badge bg-secondary ms-2"
-                          style={{ fontSize: "0.7rem" }}
-                        >
-                          ✕ No disponible
-                        </span>
-                      )}
-                    </h5>
-
-                    <div className="product-meta">
-                      <span className="meta-item">
-                        <strong>Cantidad:</strong> {producto.cantidad}
-                      </span>
-                      <span className="meta-item">
-                        <strong>P. Compra:</strong> ₡{producto.precioCompra}
-                      </span>
-                      <span className="meta-item">
-                        <strong>P. Venta:</strong> ₡{producto.precioVenta}
-                      </span>
-                      <span className="meta-item">
-                        <strong>Fecha:</strong>{" "}
-                        {new Date(producto.fechaCompra).toLocaleDateString(
-                          "es-ES"
+                    {/* DETALLES */}
+                    <div className="product-details">
+                      <h5 className="product-name">
+                        {producto.nombre}
+                        {producto.seVende ? (
+                          <span
+                            className="badge bg-success ms-2"
+                            style={{ fontSize: "0.7rem" }}
+                          >
+                            ✓ Disponible
+                          </span>
+                        ) : (
+                          <span
+                            className="badge bg-secondary ms-2"
+                            style={{ fontSize: "0.7rem" }}
+                          >
+                            ✕ No disponible
+                          </span>
                         )}
-                      </span>
-                      {/* Información de auditoría */}
-                      {producto.createdBy && (
-                        <span
-                          className="meta-item text-muted"
-                          style={{ fontSize: "0.85em" }}
-                        >
-                          <strong>Creado por:</strong>{" "}
-                          {producto.createdBy.nombre ||
-                            producto.createdBy.email}
+                      </h5>
+
+                      <div className="product-meta">
+                        <span className="meta-item">
+                          <strong>Cantidad:</strong> {producto.cantidad}
                         </span>
-                      )}
-                      {producto.updatedAt && (
-                        <span
-                          className="meta-item text-muted"
-                          style={{ fontSize: "0.85em" }}
-                        >
-                          <strong>Última edición:</strong>{" "}
-                          {new Date(producto.updatedAt).toLocaleDateString(
-                            "es-ES"
-                          )}{" "}
-                          {new Date(producto.updatedAt).toLocaleTimeString(
+                        <span className="meta-item">
+                          <strong>P. Compra:</strong> ₡{producto.precioCompra}
+                        </span>
+                        <span className="meta-item">
+                          <strong>P. Venta:</strong> ₡{producto.precioVenta}
+                        </span>
+                        <span className="meta-item">
+                          <strong>Fecha:</strong>{" "}
+                          {new Date(producto.fechaCompra).toLocaleDateString(
                             "es-ES"
                           )}
                         </span>
-                      )}
+                        {producto.createdBy && (
+                          <span
+                            className="meta-item text-muted"
+                            style={{ fontSize: "0.85em" }}
+                          >
+                            <strong>Creado por:</strong>{" "}
+                            {producto.createdBy.nombre ||
+                              producto.createdBy.email}
+                          </span>
+                        )}
+                        {producto.updatedAt && (
+                          <span
+                            className="meta-item text-muted"
+                            style={{ fontSize: "0.85em" }}
+                          >
+                            <strong>Última edición:</strong>{" "}
+                            {new Date(producto.updatedAt).toLocaleDateString(
+                              "es-ES"
+                            )}{" "}
+                            {new Date(producto.updatedAt).toLocaleTimeString(
+                              "es-ES"
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* BOTONES */}
+                    <div className="product-actions">
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => handleOpenEditForm(producto)}
+                        disabled={processing === producto._id}
+                      >
+                        ✏️ Editar
+                      </button>
+
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() =>
+                          handleDelete(producto._id, producto.nombre)
+                        }
+                        disabled={processing === producto._id}
+                      >
+                        {processing === producto._id ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm me-1" />
+                            Eliminando...
+                          </>
+                        ) : (
+                          <>🗑️ Eliminar</>
+                        )}
+                      </button>
                     </div>
                   </div>
+                ))}
+              </div>
 
-                  {/* ===== BOTONES DE ACCIÓN ===== */}
-                  <div className="product-actions">
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => handleOpenEditForm(producto)}
-                      disabled={processing === producto._id}
-                    >
-                      ✏️ Editar
-                    </button>
+              {/* ===== PAGINACIÓN ===== */}
+              {totalPages > 1 && (
+                <nav className="d-flex justify-content-center align-items-center gap-2 mt-4 flex-wrap">
+                  {/* Botón primera página */}
+                  <button
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={() => irAPagina(1)}
+                    disabled={currentPage === 1}
+                    title="Primera página"
+                  >
+                    «
+                  </button>
 
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() =>
-                        handleDelete(producto._id, producto.nombre)
+                  {/* Botón anterior */}
+                  <button
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={() => irAPagina(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    ‹ Anterior
+                  </button>
+
+                  {/* Números de página */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(
+                      (page) =>
+                        page === 1 ||
+                        page === totalPages ||
+                        Math.abs(page - currentPage) <= 2
+                    )
+                    .reduce((acc, page, idx, arr) => {
+                      // Insertar "..." cuando hay saltos
+                      if (idx > 0 && page - arr[idx - 1] > 1) {
+                        acc.push("...");
                       }
-                      disabled={processing === producto._id}
-                    >
-                      {processing === producto._id ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-1"></span>
-                          Eliminando...
-                        </>
+                      acc.push(page);
+                      return acc;
+                    }, [])
+                    .map((item, idx) =>
+                      item === "..." ? (
+                        <span key={`dots-${idx}`} className="px-1 text-muted">
+                          …
+                        </span>
                       ) : (
-                        <>🗑️ Eliminar</>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                        <button
+                          key={item}
+                          className={`btn btn-sm ${
+                            item === currentPage
+                              ? "btn-primary"
+                              : "btn-outline-secondary"
+                          }`}
+                          onClick={() => irAPagina(item)}
+                          style={{ minWidth: "36px" }}
+                        >
+                          {item}
+                        </button>
+                      )
+                    )}
+
+                  {/* Botón siguiente */}
+                  <button
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={() => irAPagina(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Siguiente ›
+                  </button>
+
+                  {/* Botón última página */}
+                  <button
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={() => irAPagina(totalPages)}
+                    disabled={currentPage === totalPages}
+                    title="Última página"
+                  >
+                    »
+                  </button>
+                </nav>
+              )}
+            </>
           )}
         </div>
       </div>

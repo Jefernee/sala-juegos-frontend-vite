@@ -17,7 +17,6 @@ const PedidosDashboard = () => {
       const url = filtroEstado
         ? `${import.meta.env.VITE_API_URL}/api/pedidos?estado=${filtroEstado}`
         : `${import.meta.env.VITE_API_URL}/api/pedidos`;
-
       const response = await axios.get(url);
       setPedidos(response.data.pedidos);
     } catch (error) {
@@ -28,7 +27,6 @@ const PedidosDashboard = () => {
     }
   }, [filtroEstado]);
 
-  // useEffect al nivel superior
   useEffect(() => {
     fetchPedidos();
   }, [fetchPedidos]);
@@ -42,11 +40,8 @@ const PedidosDashboard = () => {
     try {
       await axios.patch(
         `${import.meta.env.VITE_API_URL}/api/pedidos/${pedidoId}`,
-        {
-          estado: nuevoEstado,
-        }
+        { estado: nuevoEstado }
       );
-
       alert("Estado actualizado correctamente");
       fetchPedidos();
       setShowModal(false);
@@ -97,19 +92,18 @@ const PedidosDashboard = () => {
 
   return (
     <div className="pedidos-dashboard">
-      {/* Navbar */}
       <Navbar />
 
-      {/* Contenido */}
       <div className="pedidos-content">
         <div className="container py-4">
           <h2 className="pedidos-title mb-4">📦 Gestión de Pedidos</h2>
 
-          {/* Filtros */}
+          {/* ===== FILTROS ===== */}
           <div className="filtros-section mb-4">
-            <div className="btn-group" role="group">
+            {/* filtros-btns reemplaza btn-group para tener control total en móvil */}
+            <div className="filtros-btns">
               <button
-                className={`btn ${filtroEstado === "" ? "btn-primary" : "btn-outline-primary"}`}
+                className={`btn btn-todos ${filtroEstado === "" ? "btn-primary" : "btn-outline-primary"}`}
                 onClick={() => setFiltroEstado("")}
               >
                 Todos
@@ -141,7 +135,7 @@ const PedidosDashboard = () => {
             </div>
           </div>
 
-          {/* Lista de pedidos */}
+          {/* ===== LISTA DE PEDIDOS ===== */}
           {pedidos.length === 0 ? (
             <div className="alert alert-info">
               📭 No hay pedidos {filtroEstado && `con estado "${filtroEstado}"`}
@@ -152,8 +146,7 @@ const PedidosDashboard = () => {
                 <div key={pedido._id} className="pedido-card">
                   <div className="pedido-header">
                     <span className={`badge ${getEstadoBadge(pedido.estado)}`}>
-                      {getEstadoEmoji(pedido.estado)}{" "}
-                      {pedido.estado.toUpperCase()}
+                      {getEstadoEmoji(pedido.estado)} {pedido.estado.toUpperCase()}
                     </span>
                     <span className="pedido-fecha">
                       {new Date(pedido.createdAt).toLocaleDateString("es-ES")}
@@ -162,7 +155,6 @@ const PedidosDashboard = () => {
 
                   <div className="pedido-body">
                     <h5 className="pedido-producto">{pedido.productoNombre}</h5>
-
                     <div className="pedido-info">
                       <div className="info-item">
                         <span className="label">Cliente:</span>
@@ -174,9 +166,7 @@ const PedidosDashboard = () => {
                       </div>
                       <div className="info-item">
                         <span className="label">Cantidad:</span>
-                        <span className="value">
-                          {pedido.cantidad} unidades
-                        </span>
+                        <span className="value">{pedido.cantidad} unidades</span>
                       </div>
                       <div className="info-item">
                         <span className="label">Total:</span>
@@ -202,49 +192,31 @@ const PedidosDashboard = () => {
         </div>
       </div>
 
-      {/* Modal de detalle */}
+      {/* ===== MODAL DETALLE ===== */}
       {showModal && selectedPedido && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>📦 Detalle del Pedido</h3>
-              <button className="btn-close" onClick={() => setShowModal(false)}>
-                ×
-              </button>
+              <button className="btn-close" onClick={() => setShowModal(false)}>×</button>
             </div>
 
             <div className="modal-body">
               <div className="detalle-section">
                 <h5>Cliente</h5>
-                <p>
-                  <strong>Nombre:</strong> {selectedPedido.nombreCliente}
-                </p>
-                <p>
-                  <strong>Teléfono:</strong> {selectedPedido.telefono}
-                </p>
+                <p><strong>Nombre:</strong> {selectedPedido.nombreCliente}</p>
+                <p><strong>Teléfono:</strong> {selectedPedido.telefono}</p>
                 {selectedPedido.email && (
-                  <p>
-                    <strong>Email:</strong> {selectedPedido.email}
-                  </p>
+                  <p><strong>Email:</strong> {selectedPedido.email}</p>
                 )}
               </div>
 
               <div className="detalle-section">
                 <h5>Producto</h5>
-                <p>
-                  <strong>Nombre:</strong> {selectedPedido.productoNombre}
-                </p>
-                <p>
-                  <strong>Cantidad:</strong> {selectedPedido.cantidad} unidades
-                </p>
-                <p>
-                  <strong>Precio unitario:</strong> ₡
-                  {selectedPedido.precioVenta.toLocaleString("es-CR")}
-                </p>
-                <p>
-                  <strong>Total:</strong> ₡
-                  {selectedPedido.total.toLocaleString("es-CR")}
-                </p>
+                <p><strong>Nombre:</strong> {selectedPedido.productoNombre}</p>
+                <p><strong>Cantidad:</strong> {selectedPedido.cantidad} unidades</p>
+                <p><strong>Precio unitario:</strong> ₡{selectedPedido.precioVenta.toLocaleString("es-CR")}</p>
+                <p><strong>Total:</strong> ₡{selectedPedido.total.toLocaleString("es-CR")}</p>
               </div>
 
               {selectedPedido.notas && (
@@ -256,52 +228,42 @@ const PedidosDashboard = () => {
 
               <div className="detalle-section">
                 <h5>Estado Actual</h5>
-                <span
-                  className={`badge ${getEstadoBadge(selectedPedido.estado)}`}
-                >
+                <span className={`badge ${getEstadoBadge(selectedPedido.estado)}`}>
                   {selectedPedido.estado.toUpperCase()}
                 </span>
               </div>
 
               <div className="detalle-section">
                 <h5>Cambiar Estado</h5>
-                <div className="btn-group-vertical w-100">
+                <div className="d-flex flex-column gap-2">
                   {selectedPedido.estado !== "pendiente" && (
                     <button
-                      className="btn btn-warning mb-2"
-                      onClick={() =>
-                        handleCambiarEstado(selectedPedido._id, "pendiente")
-                      }
+                      className="btn btn-warning"
+                      onClick={() => handleCambiarEstado(selectedPedido._id, "pendiente")}
                     >
                       ⏳ Marcar como Pendiente
                     </button>
                   )}
                   {selectedPedido.estado !== "confirmado" && (
                     <button
-                      className="btn btn-info mb-2"
-                      onClick={() =>
-                        handleCambiarEstado(selectedPedido._id, "confirmado")
-                      }
+                      className="btn btn-info"
+                      onClick={() => handleCambiarEstado(selectedPedido._id, "confirmado")}
                     >
                       ✅ Marcar como Confirmado
                     </button>
                   )}
                   {selectedPedido.estado !== "completado" && (
                     <button
-                      className="btn btn-success mb-2"
-                      onClick={() =>
-                        handleCambiarEstado(selectedPedido._id, "completado")
-                      }
+                      className="btn btn-success"
+                      onClick={() => handleCambiarEstado(selectedPedido._id, "completado")}
                     >
                       🎉 Marcar como Completado
                     </button>
                   )}
                   {selectedPedido.estado !== "cancelado" && (
                     <button
-                      className="btn btn-danger mb-2"
-                      onClick={() =>
-                        handleCambiarEstado(selectedPedido._id, "cancelado")
-                      }
+                      className="btn btn-danger"
+                      onClick={() => handleCambiarEstado(selectedPedido._id, "cancelado")}
                     >
                       ❌ Cancelar Pedido
                     </button>
@@ -311,10 +273,7 @@ const PedidosDashboard = () => {
             </div>
 
             <div className="modal-footer">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowModal(false)}
-              >
+              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
                 Cerrar
               </button>
             </div>
