@@ -4,25 +4,28 @@ import axios from "axios";
 import ImageUploadWithCompression from "./ImageUploadWithCompression";
 import "../styles/ProductForm.css";
 
-/**
- * Formulario unificado para agregar y editar productos y recetas.
- * La fecha de compra se asigna automáticamente en el backend
- * usando la zona horaria de Costa Rica (igual que en plays).
- */
 const ProductForm = ({ producto = null, onClose, onSuccess }) => {
   const isEditing = !!producto;
 
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     nombre: "",
-    cantidad: "",         // solo modo crear, solo productos simples
-    cantidadAAgregar: "", // solo modo editar, solo productos simples
+    cantidad: "",
+    cantidadAAgregar: "",
     precioCompra: "",
     precioVenta: "",
-    imagen: null,         // { file, base64 }
+    imagen: null,
     seVende: true,
-    tipo: "producto",     // 'producto' | 'receta'
+    tipo: "producto",
+    unidad: "unidades",
+    cantidadPorEnvase: "",
+    nombreEnvase: "",
   });
+  const [mostrarConfigEnvase, setMostrarConfigEnvase] = useState(false);
+  const [modoReposicion, setModoReposicion] = useState("unidades"); // "envases" | "unidades"
+  const [envasesAAgregar, setEnvasesAAgregar] = useState("");
+  const [modoCreacion, setModoCreacion] = useState("unidades"); // para cantidad inicial
+  const [cantidadEnvasesCrear, setCantidadEnvasesCrear] = useState("");
   const [toast, setToast] = useState({ show: false, text: "", type: "" });
   const imageUploadRef = useRef(null);
 
@@ -46,15 +49,21 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
         imagen: null,
         seVende: producto.seVende ?? true,
         tipo: producto.tipo || "producto",
+        unidad: producto.unidad || "unidades",
+        cantidadPorEnvase: producto.cantidadPorEnvase ?? "",
+        nombreEnvase: producto.nombreEnvase || "",
       });
+      if (producto.cantidadPorEnvase) {
+        setMostrarConfigEnvase(true);
+      }
       if (producto.tipo === "receta" && Array.isArray(producto.receta)) {
         setReceta(
           producto.receta.map((ing) => {
-            // ingredienteId puede venir poblado como objeto o como string ID
             const esObjeto = ing.ingredienteId && typeof ing.ingredienteId === "object";
             return {
               ingredienteId: esObjeto ? ing.ingredienteId._id : ing.ingredienteId,
               nombre: ing.nombre || (esObjeto ? ing.ingredienteId.nombre : ""),
+              unidad: ing.unidad || (esObjeto ? ing.ingredienteId.unidad : "") || "",
               cantidad: ing.cantidad,
             };
           })
@@ -72,7 +81,6 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
     const { name, value, type, checked } = e.target;
     setForm((prev) => {
       const next = { ...prev, [name]: type === "checkbox" ? checked : value };
-      // Si se desmarca seVende, limpiar el precio de venta
       if (name === "seVende" && !checked) {
         next.precioVenta = "";
       }
@@ -105,7 +113,6 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const todos = response.data.ingredientes || [];
-      // Filtrar los que ya están en la receta
       const agregadosIds = new Set(receta.map((r) => r.ingredienteId));
       setIngredientesResultados(todos.filter((i) => !agregadosIds.has(i._id)));
       setMostrarDropdown(true);
@@ -132,7 +139,7 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
     if (receta.find((r) => r.ingredienteId === ing._id)) return;
     setReceta((prev) => [
       ...prev,
-      { ingredienteId: ing._id, nombre: ing.nombre, cantidad: 1 },
+      { ingredienteId: ing._id, nombre: ing.nombre, unidad: ing.unidad || "", cantidad: 1 },
     ]);
     setIngredienteSearch("");
     setIngredientesResultados([]);
@@ -144,8 +151,8 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
   };
 
   const actualizarCantidadIngrediente = (ingredienteId, value) => {
-    const num = parseInt(value, 10);
-    if (isNaN(num) || num < 1) return;
+    const num = parseFloat(value);
+    if (isNaN(num) || num <= 0) return;
     setReceta((prev) =>
       prev.map((r) =>
         r.ingredienteId === ingredienteId ? { ...r, cantidad: num } : r
@@ -162,13 +169,26 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
     if (!form.nombre.trim()) errors.push("El nombre es obligatorio.");
 
     if (!esReceta) {
+      if (!form.unidad.trim()) errors.push("La unidad es obligatoria.");
+
       if (!isEditing) {
-        if (!form.cantidad || Number(form.cantidad) <= 0)
-          errors.push("La cantidad debe ser mayor a 0.");
+        if (modoCreacion === "envases") {
+          if (!cantidadEnvasesCrear || Number(cantidadEnvasesCrear) <= 0)
+            errors.push("La cantidad de envases debe ser mayor a 0.");
+        } else {
+          if (!form.cantidad || Number(form.cantidad) <= 0)
+            errors.push("La cantidad debe ser mayor a 0.");
+        }
       } else {
-        const aAgregar = Number(form.cantidadAAgregar);
-        if (form.cantidadAAgregar !== "" && (isNaN(aAgregar) || aAgregar < 0))
-          errors.push("Las unidades a agregar no pueden ser negativas.");
+        if (modoReposicion === "envases") {
+          const env = Number(envasesAAgregar);
+          if (envasesAAgregar !== "" && (isNaN(env) || env < 0))
+            errors.push("Los envases a agregar no pueden ser negativos.");
+        } else {
+          const aAgregar = Number(form.cantidadAAgregar);
+          if (form.cantidadAAgregar !== "" && (isNaN(aAgregar) || aAgregar < 0))
+            errors.push("La cantidad a agregar no puede ser negativa.");
+        }
       }
       if (form.precioCompra === "")
         errors.push("El precio de compra es obligatorio.");
@@ -190,7 +210,6 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
       if (receta.length === 0)
         errors.push("La receta debe tener al menos 1 ingrediente.");
     } else {
-      // Imagen obligatoria solo para productos simples nuevos
       if (!isEditing) {
         if (!form.imagen?.base64) {
           errors.push("Debes seleccionar una imagen.");
@@ -206,7 +225,6 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
       }
     }
 
-    // Validar imagen de receta si se sube una
     if (esReceta && form.imagen?.file && form.imagen.file.size > 5 * 1024 * 1024) {
       const mb = (form.imagen.file.size / (1024 * 1024)).toFixed(2);
       errors.push(`La imagen es demasiado grande (${mb} MB). El límite es 5 MB.`);
@@ -262,10 +280,26 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
         }));
       } else {
         payload.precioCompra = form.precioCompra;
-        if (!isEditing) {
-          payload.cantidad = form.cantidad;
+        payload.unidad = form.unidad || "unidades";
+        if (form.cantidadPorEnvase !== "" && form.cantidadPorEnvase !== null) {
+          payload.cantidadPorEnvase = Number(form.cantidadPorEnvase);
         } else {
-          payload.cantidadAAgregar = Number(form.cantidadAAgregar) || 0;
+          payload.cantidadPorEnvase = null;
+        }
+        payload.nombreEnvase = form.nombreEnvase || "";
+
+        if (!isEditing) {
+          if (modoCreacion === "envases" && form.cantidadPorEnvase) {
+            payload.cantidad = Number(cantidadEnvasesCrear) * Number(form.cantidadPorEnvase);
+          } else {
+            payload.cantidad = form.cantidad;
+          }
+        } else {
+          if (modoReposicion === "envases" && envasesAAgregar !== "") {
+            payload.envasesAAgregar = Number(envasesAAgregar) || 0;
+          } else {
+            payload.cantidadAAgregar = Number(form.cantidadAAgregar) || 0;
+          }
         }
       }
 
@@ -304,6 +338,15 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
 
   const esReceta = form.tipo === "receta";
 
+  // Equivalencia en tiempo real para reposición por envases
+  const equivalenciaEnvases =
+    modoReposicion === "envases" &&
+    envasesAAgregar !== "" &&
+    Number(envasesAAgregar) > 0 &&
+    form.cantidadPorEnvase
+      ? Number(envasesAAgregar) * Number(form.cantidadPorEnvase)
+      : null;
+
   return (
     <div className="product-form-overlay">
       <div className="product-form-modal">
@@ -330,32 +373,10 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
               <div className="col-12">
                 <label className="form-label">Tipo de producto</label>
                 <div className="btn-group w-100" role="group" aria-label="Tipo de producto">
-                  <input
-                    type="radio"
-                    className="btn-check"
-                    name="tipo"
-                    id="tipo-producto"
-                    value="producto"
-                    checked={form.tipo === "producto"}
-                    onChange={handleChange}
-                    disabled={uploading}
-                  />
-                  <label className="btn btn-outline-primary" htmlFor="tipo-producto">
-                    📦 Producto simple
-                  </label>
-                  <input
-                    type="radio"
-                    className="btn-check"
-                    name="tipo"
-                    id="tipo-receta"
-                    value="receta"
-                    checked={form.tipo === "receta"}
-                    onChange={handleChange}
-                    disabled={uploading}
-                  />
-                  <label className="btn btn-outline-warning" htmlFor="tipo-receta">
-                    🍽️ Receta
-                  </label>
+                  <input type="radio" className="btn-check" name="tipo" id="tipo-producto" value="producto" checked={form.tipo === "producto"} onChange={handleChange} disabled={uploading} />
+                  <label className="btn btn-outline-primary" htmlFor="tipo-producto">📦 Producto simple</label>
+                  <input type="radio" className="btn-check" name="tipo" id="tipo-receta" value="receta" checked={form.tipo === "receta"} onChange={handleChange} disabled={uploading} />
+                  <label className="btn btn-outline-warning" htmlFor="tipo-receta">🍽️ Receta</label>
                 </div>
               </div>
             )}
@@ -374,27 +395,223 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
               <input id="nombre" name="nombre" type="text" className="form-control" value={form.nombre} onChange={handleChange} required disabled={uploading} placeholder={esReceta ? "Ej: Cono de vainilla" : "Ej: Coca Cola 600ml"} />
             </div>
 
-            {/* Cantidad: solo para productos simples */}
+            {/* Unidad — solo para productos simples */}
+            {!esReceta && (
+              <div className="col-md-6">
+                <label htmlFor="unidad" className="form-label">Unidad <span className="text-danger">*</span></label>
+                <input id="unidad" name="unidad" type="text" className="form-control" value={form.unidad} onChange={handleChange} disabled={uploading} placeholder="unidades" />
+                <small className="text-muted">En qué unidad se mide este ingrediente. Ejemplos: ml, bolas, gr, unidades.</small>
+              </div>
+            )}
+
+            {/* Cantidad / Reposición — solo para productos simples */}
             {!esReceta && (
               !isEditing ? (
                 <div className="col-md-6">
-                  <label htmlFor="cantidad" className="form-label">Cantidad inicial <span className="text-danger">*</span></label>
-                  <input id="cantidad" name="cantidad" type="number" min="1" className="form-control" value={form.cantidad} onChange={handleChange} disabled={uploading} placeholder="1" />
+                  <label htmlFor="cantidad" className="form-label">
+                    Cantidad inicial <span className="text-danger">*</span>
+                  </label>
+
+                  {/* Si ya configuró envase, mostrar toggle igual que en edición */}
+                  {mostrarConfigEnvase && form.cantidadPorEnvase ? (
+                    <>
+                      <div className="btn-group w-100 mb-2" role="group">
+                        <input type="radio" className="btn-check" id="crear-modo-envases" checked={modoCreacion === "envases"} onChange={() => { setModoCreacion("envases"); setForm(p => ({ ...p, cantidad: "" })); }} disabled={uploading} />
+                        <label className="btn btn-outline-primary btn-sm" htmlFor="crear-modo-envases">
+                          Por {form.nombreEnvase || "envases"}
+                        </label>
+                        <input type="radio" className="btn-check" id="crear-modo-unidades" checked={modoCreacion === "unidades"} onChange={() => { setModoCreacion("unidades"); setCantidadEnvasesCrear(""); }} disabled={uploading} />
+                        <label className="btn btn-outline-primary btn-sm" htmlFor="crear-modo-unidades">
+                          Por {form.unidad || "unidades"}
+                        </label>
+                      </div>
+
+                      {modoCreacion === "envases" ? (
+                        <>
+                          <div className="input-group">
+                            <input
+                              type="number"
+                              min="1"
+                              step="any"
+                              className="form-control"
+                              value={cantidadEnvasesCrear}
+                              onChange={(e) => setCantidadEnvasesCrear(e.target.value)}
+                              disabled={uploading}
+                              placeholder="1"
+                            />
+                            <span className="input-group-text">{form.nombreEnvase || "envases"}</span>
+                          </div>
+                          {cantidadEnvasesCrear && Number(cantidadEnvasesCrear) > 0 && (
+                            <small className="text-success fw-semibold">
+                              = {Number(cantidadEnvasesCrear) * Number(form.cantidadPorEnvase)} {form.unidad}
+                            </small>
+                          )}
+                        </>
+                      ) : (
+                        <div className="input-group">
+                          <input id="cantidad" name="cantidad" type="number" min="1" step="any" className="form-control" value={form.cantidad} onChange={handleChange} disabled={uploading} placeholder="1" />
+                          <span className="input-group-text">{form.unidad}</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="input-group">
+                      <input id="cantidad" name="cantidad" type="number" min="1" step="any" className="form-control" value={form.cantidad} onChange={handleChange} disabled={uploading} placeholder="1" />
+                      {form.unidad && <span className="input-group-text">{form.unidad}</span>}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
+                  {/* Stock actual */}
                   <div className="col-md-3">
                     <label className="form-label">Stock actual</label>
-                    <input type="number" className="form-control" value={producto.cantidad} disabled style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed" }} />
+                    <div className="input-group">
+                      <input type="number" className="form-control" value={producto.cantidad} disabled style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed" }} />
+                      {form.unidad && <span className="input-group-text" style={{ backgroundColor: "#f3f4f6" }}>{form.unidad}</span>}
+                    </div>
                     <small className="text-muted">Solo lectura</small>
                   </div>
-                  <div className="col-md-3">
-                    <label htmlFor="cantidadAAgregar" className="form-label">Agregar unidades</label>
-                    <input id="cantidadAAgregar" name="cantidadAAgregar" type="number" min="0" className="form-control" value={form.cantidadAAgregar} onChange={handleChange} disabled={uploading} placeholder="0" />
-                    <small className="text-muted">0 = sin reposición</small>
-                  </div>
+
+                  {/* Reposición: modo envases vs. unidades */}
+                  {form.cantidadPorEnvase ? (
+                    <div className="col-md-9">
+                      <label className="form-label">Reposición de stock</label>
+                      <div className="btn-group w-100 mb-2" role="group">
+                        <input type="radio" className="btn-check" id="modo-envases" checked={modoReposicion === "envases"} onChange={() => { setModoReposicion("envases"); setForm(p => ({ ...p, cantidadAAgregar: "" })); }} disabled={uploading} />
+                        <label className="btn btn-outline-primary btn-sm" htmlFor="modo-envases">
+                          Por {form.nombreEnvase || "envases"}
+                        </label>
+                        <input type="radio" className="btn-check" id="modo-unidades" checked={modoReposicion === "unidades"} onChange={() => { setModoReposicion("unidades"); setEnvasesAAgregar(""); }} disabled={uploading} />
+                        <label className="btn btn-outline-primary btn-sm" htmlFor="modo-unidades">
+                          Por {form.unidad || "unidades"}
+                        </label>
+                      </div>
+
+                      {modoReposicion === "envases" ? (
+                        <>
+                          <div className="input-group">
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              className="form-control"
+                              value={envasesAAgregar}
+                              onChange={(e) => setEnvasesAAgregar(e.target.value)}
+                              disabled={uploading}
+                              placeholder="0"
+                            />
+                            <span className="input-group-text">{form.nombreEnvase || "envases"}</span>
+                          </div>
+                          {equivalenciaEnvases !== null && (
+                            <small className="text-success fw-semibold">
+                              = {equivalenciaEnvases} {form.unidad}
+                            </small>
+                          )}
+                          <div><small className="text-muted">0 = sin reposición</small></div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="input-group">
+                            <input id="cantidadAAgregar" name="cantidadAAgregar" type="number" min="0" step="any" className="form-control" value={form.cantidadAAgregar} onChange={handleChange} disabled={uploading} placeholder="0" />
+                            {form.unidad && <span className="input-group-text">{form.unidad}</span>}
+                          </div>
+                          <small className="text-muted">0 = sin reposición</small>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="col-md-3">
+                      <label htmlFor="cantidadAAgregar" className="form-label">
+                        Agregar ({form.unidad || "unidades"})
+                      </label>
+                      <div className="input-group">
+                        <input id="cantidadAAgregar" name="cantidadAAgregar" type="number" min="0" step="any" className="form-control" value={form.cantidadAAgregar} onChange={handleChange} disabled={uploading} placeholder="0" />
+                        {form.unidad && <span className="input-group-text">{form.unidad}</span>}
+                      </div>
+                      <small className="text-muted">0 = sin reposición</small>
+                    </div>
+                  )}
                 </>
               )
+            )}
+
+            {/* Configurar envase — solo para productos simples */}
+            {!esReceta && (
+              <div className="col-12">
+                {!mostrarConfigEnvase ? (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={() => setMostrarConfigEnvase(true)}
+                    disabled={uploading}
+                  >
+                    ⚙️ Configurar envase (opcional)
+                  </button>
+                ) : (
+                  <div className="envase-config-panel">
+                    <div className="row g-2">
+                      <div className="col-12">
+                        <span className="fw-semibold" style={{ fontSize: "0.9rem" }}>Configuración de envase</span>
+                        <small className="text-muted ms-2">Permite reponer por cajas, botellas, baldes, etc.</small>
+                      </div>
+                      <div className="col-md-6">
+                        <label htmlFor="cantidadPorEnvase" className="form-label">Cantidad por envase</label>
+                        <div className="input-group">
+                          <input
+                            id="cantidadPorEnvase"
+                            name="cantidadPorEnvase"
+                            type="number"
+                            min="0"
+                            step="any"
+                            className="form-control"
+                            value={form.cantidadPorEnvase}
+                            onChange={handleChange}
+                            disabled={uploading}
+                            placeholder="Ej: 500"
+                          />
+                          {form.unidad && <span className="input-group-text">{form.unidad}</span>}
+                        </div>
+                        <small className="text-muted">
+                          Cuántas {form.unidad || "unidades"} trae una {form.nombreEnvase || "envase"}.
+                          {" "}Ejemplo: una botella de sirope trae 500 ml.
+                        </small>
+                      </div>
+                      <div className="col-md-6">
+                        <label htmlFor="nombreEnvase" className="form-label">Nombre del envase</label>
+                        <input
+                          id="nombreEnvase"
+                          name="nombreEnvase"
+                          type="text"
+                          className="form-control"
+                          value={form.nombreEnvase}
+                          onChange={handleChange}
+                          disabled={uploading}
+                          placeholder="Ej: botella, balde, paquete"
+                        />
+                        <small className="text-muted">Cómo se llama el envase. Ejemplo: botella, balde, paquete.</small>
+                      </div>
+                      <div className="col-12">
+                        <button
+                          type="button"
+                          className="btn btn-outline-danger btn-sm"
+                          onClick={() => {
+                            setMostrarConfigEnvase(false);
+                            setModoReposicion("unidades");
+                            setEnvasesAAgregar("");
+                            setModoCreacion("unidades");
+                            setCantidadEnvasesCrear("");
+                            setForm((p) => ({ ...p, cantidadPorEnvase: "", nombreEnvase: "" }));
+                          }}
+                          disabled={uploading}
+                        >
+                          Quitar configuración de envase
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Precio Compra: solo para productos simples */}
@@ -477,8 +694,11 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
                           className="ingredient-dropdown-item"
                           onMouseDown={() => agregarIngrediente(ing)}
                         >
-                          <span className="ing-nombre">{ing.nombre}</span>
-                          <span className="ing-stock">Stock: {ing.cantidad}</span>
+                          <span className="ing-nombre">
+                            {ing.nombre}
+                            {ing.unidad && <span className="ing-unidad"> ({ing.unidad})</span>}
+                          </span>
+                          <span className="ing-stock">Stock: {ing.cantidad}{ing.unidad ? ` ${ing.unidad}` : ""}</span>
                         </button>
                       ))}
                     </div>
@@ -502,15 +722,18 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
                       <div key={ing.ingredienteId} className="ingredient-list-item">
                         <span className="ingredient-list-nombre">{ing.nombre}</span>
                         <div className="ingredient-list-controls">
-                          <label className="text-muted" style={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>Cant.</label>
                           <input
                             type="number"
-                            min="1"
+                            min="0.001"
+                            step="any"
                             className="form-control form-control-sm ingredient-qty-input"
                             value={ing.cantidad}
                             onChange={(e) => actualizarCantidadIngrediente(ing.ingredienteId, e.target.value)}
                             disabled={uploading}
                           />
+                          {ing.unidad && (
+                            <span className="ingredient-unidad-label">{ing.unidad}</span>
+                          )}
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-danger"

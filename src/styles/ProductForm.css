@@ -262,6 +262,34 @@
 }
 
 /* ========================================
+   ENVASE CONFIG
+   ======================================== */
+
+.envase-config-panel {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+/* ========================================
+   INGREDIENTE — UNIDAD EN LISTA
+   ======================================== */
+
+.ing-unidad {
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.ingredient-unidad-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
+  padding: 0 4px;
+  align-self: center;
+}
+
+/* ========================================
    RESPONSIVE - TABLETS
    ======================================== */
 @media (max-width: 768px) {

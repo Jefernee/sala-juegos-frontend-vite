@@ -388,11 +388,24 @@ const ManageProducts = () => {
                         {producto.tipo === "receta" ? (
                           <span className="meta-item">
                             <strong>Ingredientes:</strong>{" "}
-                            {Array.isArray(producto.receta) ? producto.receta.length : "—"}
+                            {Array.isArray(producto.receta)
+                              ? producto.receta.map((ing) => {
+                                  const esObjeto = ing.ingredienteId && typeof ing.ingredienteId === "object";
+                                  const nombre = ing.nombre || (esObjeto ? ing.ingredienteId.nombre : "");
+                                  const unidad = ing.unidad || (esObjeto ? ing.ingredienteId.unidad : "") || "";
+                                  return `${nombre}${unidad ? ` — ${ing.cantidad} ${unidad} por unidad` : ` — ${ing.cantidad}`}`;
+                                }).join(", ")
+                              : "—"}
                           </span>
                         ) : (
                           <span className="meta-item">
-                            <strong>Cantidad:</strong> {producto.cantidad}
+                            <strong>Cantidad:</strong>{" "}
+                            {producto.cantidad}{producto.unidad ? ` ${producto.unidad}` : ""}
+                            {producto.cantidadPorEnvase && producto.nombreEnvase && (
+                              <span className="text-muted ms-1" style={{ fontSize: "0.85em" }}>
+                                (≈ {(producto.cantidad / producto.cantidadPorEnvase).toFixed(1)} {producto.nombreEnvase}s)
+                              </span>
+                            )}
                           </span>
                         )}
                         {producto.tipo !== "receta" && (
