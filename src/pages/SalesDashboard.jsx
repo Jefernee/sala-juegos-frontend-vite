@@ -465,6 +465,15 @@ const SalesDashboard = () => {
                             <div className="producto-info">
                               <h6 className="producto-nombre">
                                 {producto.nombre}
+                                {producto.tipo === "receta" && (
+                                  <span
+                                    className="badge bg-warning text-dark ms-1"
+                                    style={{ fontSize: "0.65rem", verticalAlign: "middle" }}
+                                    title="Receta — stock calculado a partir de ingredientes"
+                                  >
+                                    🍽️
+                                  </span>
+                                )}
                               </h6>
                               <p className="producto-detalles">
                                 <span className="precio">

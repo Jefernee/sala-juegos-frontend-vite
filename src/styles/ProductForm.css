@@ -156,6 +156,112 @@
 }
 
 /* ========================================
+   INGREDIENTES (RECETAS)
+   ======================================== */
+
+.ingredient-search-wrapper {
+  position: relative;
+}
+
+.ingredient-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: white;
+  border: 2px solid #38bdf8;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.ingredient-dropdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.55rem 0.9rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.ingredient-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.ingredient-dropdown-item:hover {
+  background: #f0f9ff;
+}
+
+.ingredient-dropdown-item .ing-nombre {
+  font-weight: 500;
+  color: #1f2937;
+  font-size: 0.92rem;
+}
+
+.ingredient-dropdown-item .ing-stock {
+  font-size: 0.8rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.ingredient-dropdown-empty {
+  padding: 0.6rem 0.9rem;
+  color: #9ca3af;
+  font-size: 0.88rem;
+  font-style: italic;
+}
+
+.ingredients-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ingredient-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.ingredient-list-nombre {
+  flex: 1;
+  font-size: 0.92rem;
+  color: #1f2937;
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ingredient-list-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.ingredient-qty-input {
+  width: 70px !important;
+  text-align: center;
+  padding: 0.25rem 0.4rem !important;
+}
+
+/* ========================================
    RESPONSIVE - TABLETS
    ======================================== */
 @media (max-width: 768px) {

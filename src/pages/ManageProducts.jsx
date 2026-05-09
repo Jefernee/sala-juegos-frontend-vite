@@ -139,8 +139,19 @@ const ManageProducts = () => {
     setShowForm(true);
   };
 
-  const handleOpenEditForm = (producto) => {
-    setEditingProduct(producto);
+  const handleOpenEditForm = async (producto) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/products/${producto._id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const productoCompleto = response.data.producto || response.data;
+      setEditingProduct(productoCompleto);
+    } catch (error) {
+      console.error("Error al cargar producto:", error);
+      setEditingProduct(producto);
+    }
     setShowForm(true);
   };
 
@@ -347,6 +358,15 @@ const ManageProducts = () => {
                     <div className="product-details">
                       <h5 className="product-name">
                         {producto.nombre}
+                        {producto.tipo === "receta" && (
+                          <span
+                            className="badge bg-warning text-dark ms-2"
+                            style={{ fontSize: "0.7rem" }}
+                            title="Producto compuesto — el stock se calcula a partir de sus ingredientes"
+                          >
+                            🍽️ Receta
+                          </span>
+                        )}
                         {producto.seVende ? (
                           <span
                             className="badge bg-success ms-2"
@@ -365,12 +385,21 @@ const ManageProducts = () => {
                       </h5>
 
                       <div className="product-meta">
-                        <span className="meta-item">
-                          <strong>Cantidad:</strong> {producto.cantidad}
-                        </span>
-                        <span className="meta-item">
-                          <strong>P. Compra:</strong> ₡{producto.precioCompra}
-                        </span>
+                        {producto.tipo === "receta" ? (
+                          <span className="meta-item">
+                            <strong>Ingredientes:</strong>{" "}
+                            {Array.isArray(producto.receta) ? producto.receta.length : "—"}
+                          </span>
+                        ) : (
+                          <span className="meta-item">
+                            <strong>Cantidad:</strong> {producto.cantidad}
+                          </span>
+                        )}
+                        {producto.tipo !== "receta" && (
+                          <span className="meta-item">
+                            <strong>P. Compra:</strong> ₡{producto.precioCompra}
+                          </span>
+                        )}
                         <span className="meta-item">
                           <strong>P. Venta:</strong> ₡{producto.precioVenta}
                         </span>
