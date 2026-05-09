@@ -35,6 +35,16 @@ const ManageProducts = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
+  // Guía de uso
+  const [mostrarGuia, setMostrarGuia] = useState(
+    () => localStorage.getItem("guia-productos-cerrada") !== "1"
+  );
+
+  const cerrarGuia = () => {
+    setMostrarGuia(false);
+    localStorage.setItem("guia-productos-cerrada", "1");
+  };
+
   const timeoutRef = useRef(null);
 
   // ===================================
@@ -251,6 +261,77 @@ const ManageProducts = () => {
               Ver, editar y eliminar productos desde un solo lugar
             </p>
           </div>
+
+          {/* ===== GUÍA DE USO ===== */}
+          {mostrarGuia ? (
+            <div className="guia-card mb-4">
+              <div className="guia-header">
+                <span className="guia-titulo">📖 ¿Cómo funciona el inventario?</span>
+                <button
+                  className="guia-cerrar"
+                  onClick={cerrarGuia}
+                  title="Cerrar guía"
+                >
+                  ✕ Entendido, no mostrar más
+                </button>
+              </div>
+              <div className="guia-body">
+                <div className="guia-paso">
+                  <div className="guia-paso-icono guia-icono-1">1</div>
+                  <div>
+                    <strong>Creá los ingredientes primero</strong>
+                    <p>
+                      Son las cosas que comprás físicamente: helado, conos, sirope, etc.
+                      Elegí la unidad en que los medís (bolas, ml, gr) y configurá el envase
+                      si lo comprás en balde, botella o caja. El sistema calcula el precio
+                      por unidad automáticamente.
+                    </p>
+                    <span className="guia-tip">
+                      💡 Ejemplo: "Helado de vainilla" — unidad: bolas — 1 balde trae 40 bolas — pagaste ₡5 000 por balde → ₡125 por bola
+                    </span>
+                  </div>
+                </div>
+
+                <div className="guia-paso">
+                  <div className="guia-paso-icono guia-icono-2">2</div>
+                  <div>
+                    <strong>Creá las recetas</strong>
+                    <p>
+                      Una receta combina ingredientes para formar un producto vendible.
+                      Buscás los ingredientes, indicás cuánto usa cada unidad vendida,
+                      y el sistema calcula cuántas podés vender según el stock disponible.
+                    </p>
+                    <span className="guia-tip">
+                      💡 Ejemplo: "Cono de vainilla" = 2 bolas de helado + 1 cono wafer.
+                      Si tenés 40 bolas y 50 conos, podés vender 20 conos de vainilla.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="guia-paso">
+                  <div className="guia-paso-icono guia-icono-3">3</div>
+                  <div>
+                    <strong>Al vender, el stock se descuenta solo</strong>
+                    <p>
+                      Cuando registrás una venta, el sistema descuenta los ingredientes
+                      usados automáticamente. Para reponer, editá el ingrediente y
+                      decile cuántos envases o unidades compraste.
+                    </p>
+                    <span className="guia-tip">
+                      💡 Para reponer: Editar → "¿Compraste más?" → ingresá cuántos baldes compraste.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <button
+              className="guia-reabrir mb-3"
+              onClick={() => setMostrarGuia(true)}
+            >
+              📖 Ver guía de uso
+            </button>
+          )}
 
           {/* ===== BOTÓN AGREGAR + BARRA DE BÚSQUEDA ===== */}
           <div className="mb-4">
