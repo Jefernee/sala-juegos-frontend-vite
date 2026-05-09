@@ -26,6 +26,7 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
   const [envasesAAgregar, setEnvasesAAgregar] = useState("");
   const [modoCreacion, setModoCreacion] = useState("unidades"); // para cantidad inicial
   const [cantidadEnvasesCrear, setCantidadEnvasesCrear] = useState("");
+  const [precioEnvase, setPrecioEnvase] = useState("");
   const [toast, setToast] = useState({ show: false, text: "", type: "" });
   const imageUploadRef = useRef(null);
 
@@ -55,6 +56,12 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
       });
       if (producto.cantidadPorEnvase) {
         setMostrarConfigEnvase(true);
+        // Pre-llenar precio del envase = precioCompra × cantidadPorEnvase
+        if (producto.precioCompra && producto.cantidadPorEnvase) {
+          setPrecioEnvase(
+            (Number(producto.precioCompra) * Number(producto.cantidadPorEnvase)).toFixed(2)
+          );
+        }
       }
       if (producto.tipo === "receta" && Array.isArray(producto.receta)) {
         setReceta(
@@ -190,10 +197,17 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
             errors.push("La cantidad a agregar no puede ser negativa.");
         }
       }
-      if (form.precioCompra === "")
-        errors.push("El precio de compra es obligatorio.");
-      else if (Number(form.precioCompra) < 0)
-        errors.push("El precio de compra no puede ser negativo.");
+      if (form.cantidadPorEnvase) {
+        if (precioEnvase === "")
+          errors.push("El precio del envase es obligatorio.");
+        else if (Number(precioEnvase) < 0)
+          errors.push("El precio del envase no puede ser negativo.");
+      } else {
+        if (form.precioCompra === "")
+          errors.push("El precio de compra es obligatorio.");
+        else if (Number(form.precioCompra) < 0)
+          errors.push("El precio de compra no puede ser negativo.");
+      }
     }
 
     if (form.seVende) {
@@ -279,7 +293,11 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
           cantidad,
         }));
       } else {
-        payload.precioCompra = form.precioCompra;
+        if (form.cantidadPorEnvase && precioEnvase !== "") {
+          payload.precioCompra = Math.round(Number(precioEnvase) / Number(form.cantidadPorEnvase));
+        } else {
+          payload.precioCompra = form.precioCompra;
+        }
         payload.unidad = form.unidad || "unidades";
         if (form.cantidadPorEnvase !== "" && form.cantidadPorEnvase !== null) {
           payload.cantidadPorEnvase = Number(form.cantidadPorEnvase);
@@ -400,8 +418,85 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
               <div className="col-md-6">
                 <label htmlFor="unidad" className="form-label">Unidad <span className="text-danger">*</span></label>
                 <input id="unidad" name="unidad" type="text" className="form-control" value={form.unidad} onChange={handleChange} disabled={uploading} placeholder="unidades" />
-                <small className="text-muted">En qué unidad se mide este ingrediente. Ejemplos: ml, bolas, gr, unidades.</small>
+                <small className="text-muted">¿En qué unidad medís este ingrediente? Ej: ml, bolas, gr, kg, unidades.</small>
               </div>
+            )}
+
+            {/* Envase — checkbox justo después de unidad */}
+            {!esReceta && (
+              <>
+                <div className="col-12">
+                  <div className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="tieneEnvase"
+                      checked={mostrarConfigEnvase}
+                      onChange={(e) => {
+                        if (!e.target.checked) {
+                          setModoReposicion("unidades");
+                          setEnvasesAAgregar("");
+                          setModoCreacion("unidades");
+                          setCantidadEnvasesCrear("");
+                          setPrecioEnvase("");
+                          setForm((p) => ({ ...p, cantidadPorEnvase: "", nombreEnvase: "" }));
+                        }
+                        setMostrarConfigEnvase(e.target.checked);
+                      }}
+                      disabled={uploading}
+                    />
+                    <label className="form-check-label fw-semibold" htmlFor="tieneEnvase">
+                      Lo comprás en caja, balde, botella u otro envase
+                    </label>
+                  </div>
+                  <small className="text-muted d-block" style={{ paddingLeft: "1.5rem" }}>
+                    Activá esto si comprás el ingrediente por envase completo.
+                    Ej: un balde de helado de 40 bolas, una botella de sirope de 500 ml.
+                    El sistema calculará el precio por {form.unidad || "unidad"} automáticamente.
+                  </small>
+                </div>
+
+                {mostrarConfigEnvase && (
+                  <>
+                    <div className="col-md-6">
+                      <label htmlFor="nombreEnvase" className="form-label">
+                        ¿Cómo se llama el envase? <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        id="nombreEnvase"
+                        name="nombreEnvase"
+                        type="text"
+                        className="form-control"
+                        value={form.nombreEnvase}
+                        onChange={handleChange}
+                        disabled={uploading}
+                        placeholder="Ej: balde, botella, paquete, caja"
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label htmlFor="cantidadPorEnvase" className="form-label">
+                        ¿Cuántas {form.unidad || "unidades"} trae {form.nombreEnvase ? `cada ${form.nombreEnvase}` : "cada envase"}?
+                        <span className="text-danger"> *</span>
+                      </label>
+                      <div className="input-group">
+                        <input
+                          id="cantidadPorEnvase"
+                          name="cantidadPorEnvase"
+                          type="number"
+                          min="1"
+                          step="any"
+                          className="form-control"
+                          value={form.cantidadPorEnvase}
+                          onChange={handleChange}
+                          disabled={uploading}
+                          placeholder="Ej: 40"
+                        />
+                        <span className="input-group-text">{form.unidad || "unidades"}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </>
             )}
 
             {/* Cantidad / Reposición — solo para productos simples */}
@@ -416,13 +511,13 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
                   {mostrarConfigEnvase && form.cantidadPorEnvase ? (
                     <>
                       <div className="btn-group w-100 mb-2" role="group">
-                        <input type="radio" className="btn-check" id="crear-modo-envases" checked={modoCreacion === "envases"} onChange={() => { setModoCreacion("envases"); setForm(p => ({ ...p, cantidad: "" })); }} disabled={uploading} />
+                        <input type="radio" className="btn-check" name="modoCreacion" id="crear-modo-envases" checked={modoCreacion === "envases"} onChange={() => { setModoCreacion("envases"); setForm(p => ({ ...p, cantidad: "" })); }} disabled={uploading} />
                         <label className="btn btn-outline-primary btn-sm" htmlFor="crear-modo-envases">
-                          Por {form.nombreEnvase || "envases"}
+                          Por {form.nombreEnvase || "envase"}
                         </label>
-                        <input type="radio" className="btn-check" id="crear-modo-unidades" checked={modoCreacion === "unidades"} onChange={() => { setModoCreacion("unidades"); setCantidadEnvasesCrear(""); }} disabled={uploading} />
+                        <input type="radio" className="btn-check" name="modoCreacion" id="crear-modo-unidades" checked={modoCreacion === "unidades"} onChange={() => { setModoCreacion("unidades"); setCantidadEnvasesCrear(""); }} disabled={uploading} />
                         <label className="btn btn-outline-primary btn-sm" htmlFor="crear-modo-unidades">
-                          Por {form.unidad || "unidades"}
+                          Por {form.unidad || "unidad"} exacta
                         </label>
                       </div>
 
@@ -465,7 +560,7 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
                 <>
                   {/* Stock actual */}
                   <div className="col-md-3">
-                    <label className="form-label">Stock actual</label>
+                    <label className="form-label">Tenés actualmente</label>
                     <div className="input-group">
                       <input type="number" className="form-control" value={producto.cantidad} disabled style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed" }} />
                       {form.unidad && <span className="input-group-text" style={{ backgroundColor: "#f3f4f6" }}>{form.unidad}</span>}
@@ -473,18 +568,18 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
                     <small className="text-muted">Solo lectura</small>
                   </div>
 
-                  {/* Reposición: modo envases vs. unidades */}
+                  {/* ¿Compraste más? */}
                   {form.cantidadPorEnvase ? (
                     <div className="col-md-9">
-                      <label className="form-label">Reposición de stock</label>
+                      <label className="form-label">¿Compraste más?</label>
                       <div className="btn-group w-100 mb-2" role="group">
-                        <input type="radio" className="btn-check" id="modo-envases" checked={modoReposicion === "envases"} onChange={() => { setModoReposicion("envases"); setForm(p => ({ ...p, cantidadAAgregar: "" })); }} disabled={uploading} />
+                        <input type="radio" className="btn-check" name="modoReposicion" id="modo-envases" checked={modoReposicion === "envases"} onChange={() => { setModoReposicion("envases"); setForm(p => ({ ...p, cantidadAAgregar: "" })); }} disabled={uploading} />
                         <label className="btn btn-outline-primary btn-sm" htmlFor="modo-envases">
-                          Por {form.nombreEnvase || "envases"}
+                          Por {form.nombreEnvase || "envase"}
                         </label>
-                        <input type="radio" className="btn-check" id="modo-unidades" checked={modoReposicion === "unidades"} onChange={() => { setModoReposicion("unidades"); setEnvasesAAgregar(""); }} disabled={uploading} />
+                        <input type="radio" className="btn-check" name="modoReposicion" id="modo-unidades" checked={modoReposicion === "unidades"} onChange={() => { setModoReposicion("unidades"); setEnvasesAAgregar(""); }} disabled={uploading} />
                         <label className="btn btn-outline-primary btn-sm" htmlFor="modo-unidades">
-                          Por {form.unidad || "unidades"}
+                          Por {form.unidad || "unidad"} exacta
                         </label>
                       </div>
 
@@ -503,12 +598,13 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
                             />
                             <span className="input-group-text">{form.nombreEnvase || "envases"}</span>
                           </div>
-                          {equivalenciaEnvases !== null && (
+                          {equivalenciaEnvases !== null ? (
                             <small className="text-success fw-semibold">
-                              = {equivalenciaEnvases} {form.unidad}
+                              {envasesAAgregar} {form.nombreEnvase || "envases"} × {form.cantidadPorEnvase} {form.unidad} = <strong>{equivalenciaEnvases} {form.unidad}</strong> en total
                             </small>
+                          ) : (
+                            <small className="text-muted">Dejá en 0 si no compraste más.</small>
                           )}
-                          <div><small className="text-muted">0 = sin reposición</small></div>
                         </>
                       ) : (
                         <>
@@ -516,110 +612,90 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
                             <input id="cantidadAAgregar" name="cantidadAAgregar" type="number" min="0" step="any" className="form-control" value={form.cantidadAAgregar} onChange={handleChange} disabled={uploading} placeholder="0" />
                             {form.unidad && <span className="input-group-text">{form.unidad}</span>}
                           </div>
-                          <small className="text-muted">0 = sin reposición</small>
+                          <small className="text-muted">Dejá en 0 si no compraste más.</small>
                         </>
                       )}
                     </div>
                   ) : (
-                    <div className="col-md-3">
+                    <div className="col-md-5">
                       <label htmlFor="cantidadAAgregar" className="form-label">
-                        Agregar ({form.unidad || "unidades"})
+                        ¿Compraste más {form.unidad || "unidades"}?
                       </label>
                       <div className="input-group">
                         <input id="cantidadAAgregar" name="cantidadAAgregar" type="number" min="0" step="any" className="form-control" value={form.cantidadAAgregar} onChange={handleChange} disabled={uploading} placeholder="0" />
                         {form.unidad && <span className="input-group-text">{form.unidad}</span>}
                       </div>
-                      <small className="text-muted">0 = sin reposición</small>
+                      <small className="text-muted">Dejá en 0 si no compraste más.</small>
                     </div>
                   )}
                 </>
               )
             )}
 
-            {/* Configurar envase — solo para productos simples */}
-            {!esReceta && (
-              <div className="col-12">
-                {!mostrarConfigEnvase ? (
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary btn-sm"
-                    onClick={() => setMostrarConfigEnvase(true)}
-                    disabled={uploading}
-                  >
-                    ⚙️ Configurar envase (opcional)
-                  </button>
-                ) : (
-                  <div className="envase-config-panel">
-                    <div className="row g-2">
-                      <div className="col-12">
-                        <span className="fw-semibold" style={{ fontSize: "0.9rem" }}>Configuración de envase</span>
-                        <small className="text-muted ms-2">Permite reponer por cajas, botellas, baldes, etc.</small>
-                      </div>
-                      <div className="col-md-6">
-                        <label htmlFor="cantidadPorEnvase" className="form-label">Cantidad por envase</label>
-                        <div className="input-group">
-                          <input
-                            id="cantidadPorEnvase"
-                            name="cantidadPorEnvase"
-                            type="number"
-                            min="0"
-                            step="any"
-                            className="form-control"
-                            value={form.cantidadPorEnvase}
-                            onChange={handleChange}
-                            disabled={uploading}
-                            placeholder="Ej: 500"
-                          />
-                          {form.unidad && <span className="input-group-text">{form.unidad}</span>}
-                        </div>
-                        <small className="text-muted">
-                          Cuántas {form.unidad || "unidades"} trae una {form.nombreEnvase || "envase"}.
-                          {" "}Ejemplo: una botella de sirope trae 500 ml.
-                        </small>
-                      </div>
-                      <div className="col-md-6">
-                        <label htmlFor="nombreEnvase" className="form-label">Nombre del envase</label>
-                        <input
-                          id="nombreEnvase"
-                          name="nombreEnvase"
-                          type="text"
-                          className="form-control"
-                          value={form.nombreEnvase}
-                          onChange={handleChange}
-                          disabled={uploading}
-                          placeholder="Ej: botella, balde, paquete"
-                        />
-                        <small className="text-muted">Cómo se llama el envase. Ejemplo: botella, balde, paquete.</small>
-                      </div>
-                      <div className="col-12">
-                        <button
-                          type="button"
-                          className="btn btn-outline-danger btn-sm"
-                          onClick={() => {
-                            setMostrarConfigEnvase(false);
-                            setModoReposicion("unidades");
-                            setEnvasesAAgregar("");
-                            setModoCreacion("unidades");
-                            setCantidadEnvasesCrear("");
-                            setForm((p) => ({ ...p, cantidadPorEnvase: "", nombreEnvase: "" }));
-                          }}
-                          disabled={uploading}
-                        >
-                          Quitar configuración de envase
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Precio Compra: solo para productos simples */}
             {!esReceta && (
-              <div className="col-md-4">
-                <label htmlFor="precioCompra" className="form-label">Precio Compra <span className="text-danger">*</span></label>
-                <input id="precioCompra" name="precioCompra" type="number" min="0" step="0.01" className="form-control" value={form.precioCompra} onChange={handleChange} disabled={uploading} placeholder="0.00" />
-              </div>
+              form.cantidadPorEnvase ? (
+                <>
+                  {/* Modo envase: precio del envase + precio por unidad calculado */}
+                  <div className="col-md-5">
+                    <label htmlFor="precioEnvase" className="form-label">
+                      ¿Cuánto pagaste por {form.nombreEnvase ? `el ${form.nombreEnvase}` : "el envase"}? <span className="text-danger">*</span>
+                    </label>
+                    <div className="input-group">
+                      <span className="input-group-text">₡</span>
+                      <input
+                        id="precioEnvase"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="form-control"
+                        value={precioEnvase}
+                        onChange={(e) => setPrecioEnvase(e.target.value)}
+                        disabled={uploading}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label">
+                      Precio por {form.unidad || "unidad"}
+                      <span className="text-muted fw-normal"> (automático)</span>
+                    </label>
+                    <div className="input-group">
+                      <span className="input-group-text">₡</span>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={
+                          precioEnvase !== "" && Number(form.cantidadPorEnvase) > 0
+                            ? Math.round(Number(precioEnvase) / Number(form.cantidadPorEnvase)).toLocaleString("es-CR")
+                            : "0"
+                        }
+                        disabled
+                        style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed" }}
+                        readOnly
+                      />
+                    </div>
+                    {precioEnvase !== "" && Number(form.cantidadPorEnvase) > 0 && (
+                      <small className="text-muted">
+                        ₡{Number(precioEnvase).toLocaleString("es-CR")} ÷ {form.cantidadPorEnvase} {form.unidad} = ₡{Math.round(Number(precioEnvase) / Number(form.cantidadPorEnvase)).toLocaleString("es-CR")} por {form.unidad}
+                      </small>
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* Modo simple: precio unitario directo */
+                <div className="col-md-4">
+                  <label htmlFor="precioCompra" className="form-label">
+                    Precio de compra <span className="text-danger">*</span>
+                  </label>
+                  <div className="input-group">
+                    <span className="input-group-text">₡</span>
+                    <input id="precioCompra" name="precioCompra" type="number" min="0" step="0.01" className="form-control" value={form.precioCompra} onChange={handleChange} disabled={uploading} placeholder="0" />
+                  </div>
+                </div>
+              )
             )}
 
             {/* Precio Venta */}

@@ -386,35 +386,57 @@ const ManageProducts = () => {
 
                       <div className="product-meta">
                         {producto.tipo === "receta" ? (
-                          <span className="meta-item">
-                            <strong>Ingredientes:</strong>{" "}
-                            {Array.isArray(producto.receta)
-                              ? producto.receta.map((ing) => {
+                          <>
+                            <span className="meta-item">
+                              <strong>Ingredientes:</strong>{" "}
+                              {Array.isArray(producto.receta) ? producto.receta.length : "—"}
+                            </span>
+                            {Array.isArray(producto.receta) && producto.receta.length > 0 && (
+                              <span className="meta-item text-muted" style={{ fontSize: "0.85em" }}>
+                                {producto.receta.map((ing) => {
                                   const esObjeto = ing.ingredienteId && typeof ing.ingredienteId === "object";
                                   const nombre = ing.nombre || (esObjeto ? ing.ingredienteId.nombre : "");
                                   const unidad = ing.unidad || (esObjeto ? ing.ingredienteId.unidad : "") || "";
-                                  return `${nombre}${unidad ? ` — ${ing.cantidad} ${unidad} por unidad` : ` — ${ing.cantidad}`}`;
-                                }).join(", ")
-                              : "—"}
-                          </span>
-                        ) : (
-                          <span className="meta-item">
-                            <strong>Cantidad:</strong>{" "}
-                            {producto.cantidad}{producto.unidad ? ` ${producto.unidad}` : ""}
-                            {producto.cantidadPorEnvase && producto.nombreEnvase && (
-                              <span className="text-muted ms-1" style={{ fontSize: "0.85em" }}>
-                                (≈ {(producto.cantidad / producto.cantidadPorEnvase).toFixed(1)} {producto.nombreEnvase}s)
+                                  return `${nombre} (${ing.cantidad}${unidad ? ` ${unidad}` : ""})`;
+                                }).join(" · ")}
                               </span>
                             )}
-                          </span>
-                        )}
-                        {producto.tipo !== "receta" && (
-                          <span className="meta-item">
-                            <strong>P. Compra:</strong> ₡{producto.precioCompra}
-                          </span>
+                          </>
+                        ) : (
+                          <>
+                            {/* Stock */}
+                            <span className="meta-item">
+                              <strong>Stock:</strong>{" "}
+                              {producto.cantidad}{producto.unidad ? ` ${producto.unidad}` : ""}
+                              {producto.cantidadPorEnvase && producto.nombreEnvase && (
+                                <span className="text-muted ms-1" style={{ fontSize: "0.85em" }}>
+                                  (≈ {(producto.cantidad / producto.cantidadPorEnvase).toFixed(1)} {producto.nombreEnvase}s)
+                                </span>
+                              )}
+                            </span>
+
+                            {/* Envase */}
+                            {producto.cantidadPorEnvase && producto.nombreEnvase && (
+                              <span className="meta-item">
+                                <strong>Envase:</strong>{" "}
+                                1 {producto.nombreEnvase} = {producto.cantidadPorEnvase} {producto.unidad}
+                              </span>
+                            )}
+
+                            {/* Precio compra */}
+                            <span className="meta-item">
+                              <strong>P. Compra:</strong>{" "}
+                              ₡{Number(producto.precioCompra).toLocaleString("es-CR")}{producto.unidad ? ` por ${producto.unidad}` : ""}
+                              {producto.cantidadPorEnvase && producto.nombreEnvase && (
+                                <span className="text-muted ms-1" style={{ fontSize: "0.85em" }}>
+                                  (₡{Math.round(producto.precioCompra * producto.cantidadPorEnvase).toLocaleString("es-CR")} por {producto.nombreEnvase})
+                                </span>
+                              )}
+                            </span>
+                          </>
                         )}
                         <span className="meta-item">
-                          <strong>P. Venta:</strong> ₡{producto.precioVenta}
+                          <strong>P. Venta:</strong> ₡{Number(producto.precioVenta).toLocaleString("es-CR")}
                         </span>
                         <span className="meta-item">
                           <strong>Fecha:</strong>{" "}
