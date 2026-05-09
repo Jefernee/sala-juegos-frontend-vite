@@ -158,14 +158,84 @@
 .product-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  font-size: 0.875rem;
-  color: #6b7280;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  white-space: nowrap;
 }
 
 .meta-item strong {
-  color: #374151;
-  margin-right: 0.25rem;
+  font-weight: 600;
+  margin-right: 0.1rem;
+}
+
+/* Stock — azul */
+.meta-stock {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+.meta-stock strong { color: #1d4ed8; }
+
+/* Envase — verde */
+.meta-envase {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+.meta-envase strong { color: #16a34a; }
+
+/* Precio compra — ámbar */
+.meta-compra {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+.meta-compra strong { color: #b45309; }
+
+/* Precio venta — violeta */
+.meta-venta {
+  background: #faf5ff;
+  border-color: #e9d5ff;
+  color: #6b21a8;
+}
+.meta-venta strong { color: #7e22ce; }
+
+/* Ingredientes — naranja */
+.meta-ingredientes {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+.meta-ingredientes strong { color: #c2410c; }
+
+/* Metadata (fecha, autor) — gris neutro */
+.meta-info {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+.meta-info strong { color: #475569; }
+
+/* Lista de ingredientes de receta — span secundario */
+.meta-ingredientes-lista {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #7c3409;
+  font-size: 0.75rem;
+  flex-basis: 100%;
+  white-space: normal;
 }
 
 /* Botones de acción */
