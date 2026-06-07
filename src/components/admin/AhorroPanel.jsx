@@ -107,22 +107,24 @@ const AhorroPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
         </div>
         <div className="admin-panel__body">
           <label className="admin-label" htmlFor="ahorro-monto">Monto a agregar *</label>
-          <div className="input-group input-group-lg">
-            <span className="input-group-text admin-input-prefix">₡</span>
-            <input
-              id="ahorro-monto"
-              type="number"
-              inputMode="numeric"
-              className={`form-control admin-input ${errorMonto ? "admin-input--error" : ""}`}
-              placeholder="Ingresa el monto"
-              value={monto}
-              min="1"
-              disabled={guardando}
-              onChange={(e) => { setMonto(e.target.value); setErrorMonto(""); }}
-              onKeyDown={(e) => e.key === "Enter" && !guardando && handleAgregar()}
-            />
+          <div className="ahorro-form">
+            <div className="input-group input-group-lg ahorro-form__grupo">
+              <span className="input-group-text admin-input-prefix">₡</span>
+              <input
+                id="ahorro-monto"
+                type="number"
+                inputMode="numeric"
+                className={`form-control admin-input ${errorMonto ? "admin-input--error" : ""}`}
+                placeholder="Ingresa el monto"
+                value={monto}
+                min="1"
+                disabled={guardando}
+                onChange={(e) => { setMonto(e.target.value); setErrorMonto(""); }}
+                onKeyDown={(e) => e.key === "Enter" && !guardando && handleAgregar()}
+              />
+            </div>
             <button
-              className="btn admin-btn admin-btn--green px-4 fw-bold"
+              className="btn admin-btn admin-btn--green px-4 fw-bold ahorro-form__btn"
               onClick={handleAgregar}
               disabled={guardando}
             >

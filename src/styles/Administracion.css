@@ -938,6 +938,31 @@
   margin: 0;
 }
 
+/* Formulario de ahorro: campo y botón en fila en desktop,
+   apilados en móvil para que el input no quede diminuto */
+.ahorro-form {
+  display: flex;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+.ahorro-form__grupo {
+  flex: 1;
+  min-width: 0;
+}
+
+.ahorro-form__btn { white-space: nowrap; }
+
+@media (max-width: 576px) {
+  .ahorro-form { flex-direction: column; }
+
+  .ahorro-form__btn {
+    width: 100%;
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
+  }
+}
+
 /* ─── ACTIVOS: ENCABEZADO Y FILTROS ────────────────────────────────────────── */
 
 .activos-header {
