@@ -1462,12 +1462,33 @@
 
 /* ─── RESPONSIVE ───────────────────────────────────────────────────────────── */
 
+@media (max-width: 640px) {
+  /* Las 5 pestañas siempre visibles: ícono arriba, nombre abajo,
+     sin necesidad de deslizar hacia los lados */
+  .admin-tabs {
+    overflow-x: visible;
+    gap: 0.2rem;
+    padding: 0.3rem;
+  }
+
+  .admin-tab {
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.45rem 0.1rem;
+    min-width: 0;
+  }
+
+  .admin-tab__icono { font-size: 1.15rem; line-height: 1; }
+
+  .admin-tab__label {
+    font-size: 0.64rem;
+    letter-spacing: 0.2px;
+  }
+}
+
 @media (max-width: 576px) {
   .admin-page-content { padding: 1.25rem 0.75rem 3rem; }
   .admin-page-title { font-size: 1.4rem; }
-
-  .admin-tab { padding: 0.55rem 0.7rem; }
-  .admin-tab__label { font-size: 0.8rem; }
 
   .ahorro-hero__content { padding: 2.5rem 1.25rem; }
   .admin-panel__body { padding: 1rem; }
