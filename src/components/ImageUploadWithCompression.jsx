@@ -17,7 +17,7 @@ const ImageUploadWithCompression = forwardRef(
       onChange,
       required = false,
       disabled = false,
-      accept = "image/jpeg,image/jpg,image/png,image/webp",
+      accept = "image/*",
       showPreview = true,
       onError = null,
       // Si es true, siempre comprime/redimensiona (no solo cuando supera 5MB)
@@ -47,19 +47,28 @@ const ImageUploadWithCompression = forwardRef(
       setCompressedSize(null);
 
       try {
-        // Validar formato
-        const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-        if (!allowedTypes.includes(file.type)) {
-          throw new Error("Formato no válido. Solo JPG, PNG o WebP.");
+        // Validar que sea una imagen. En móvil el navegador a veces NO envía
+        // file.type (queda vacío) — en ese caso validamos por la extensión.
+        const tipo = (file.type || "").toLowerCase();
+        const extImagen = /\.(jpe?g|png|webp|heic|heif|gif|bmp|avif)$/i.test(file.name || "");
+        const esImagen = tipo ? tipo.startsWith("image/") : extImagen;
+        if (!esImagen) {
+          throw new Error("Formato no válido. Seleccioná una imagen (foto o captura).");
         }
 
         setOriginalSize(file.size);
-        console.log("📷 Imagen original:", formatFileSize(file.size));
+        console.log("📷 Imagen original:", formatFileSize(file.size), tipo || "(sin tipo)");
 
         let finalFile = file;
 
-        // Comprimir si supera 5MB, o siempre si alwaysCompress está activo
-        if (alwaysCompress || file.size > 5 * 1024 * 1024) {
+        // Formatos que el backend/los <img> muestran directo. Cualquier otro
+        // (HEIC/HEIF de iPhone, tipo vacío, etc.) hay que reconvertirlo a JPEG.
+        const formatosWeb = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+        const necesitaConversion = !formatosWeb.includes(tipo);
+
+        // Comprimir si supera 5MB, si alwaysCompress está activo, o si el
+        // formato no es web-seguro (lo pasa a JPEG vía canvas)
+        if (alwaysCompress || necesitaConversion || file.size > 5 * 1024 * 1024) {
           console.log("🔄 Comprimiendo imagen...");
 
           const options = {
@@ -223,7 +232,7 @@ const ImageUploadWithCompression = forwardRef(
               <p className="mb-1 fw-medium text-secondary">
                 Arrastra una imagen aquí o haz clic para seleccionar
               </p>
-              <small className="text-muted">JPG, PNG, WebP · Máximo 5MB</small>
+              <small className="text-muted">Foto del celular o imagen (JPG, PNG, HEIC…) · Máximo 5MB</small>
             </div>
           )}
         </div>

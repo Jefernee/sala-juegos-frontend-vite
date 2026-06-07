@@ -54,7 +54,7 @@ const Lightbox = ({ url, alt, onCerrar }) => (
 );
 
 // ─── BLOQUE DE IMAGEN EN EL FORMULARIO (crear/editar) ───────────────────────
-const CampoImagen = ({ etiqueta, urlActual, imagenData, onChange, uploadRef, disabled }) => {
+const CampoImagen = ({ etiqueta, urlActual, imagenData, quitar, onChange, onQuitar, uploadRef, disabled }) => {
   // En edición con imagen existente: mostrarla hasta que se pida cambiarla
   const [cambiando, setCambiando] = useState(!urlActual);
 
@@ -63,20 +63,45 @@ const CampoImagen = ({ etiqueta, urlActual, imagenData, onChange, uploadRef, dis
     onChange(null);
   };
 
+  // Se marcó quitar la imagen guardada: se eliminará (también de Cloudinary) al guardar
+  if (quitar) {
+    return (
+      <div>
+        <label className="admin-label">{etiqueta}</label>
+        <div className="aviso-quitar fade-in">
+          <p className="mb-2">🗑️ La imagen se eliminará al guardar.</p>
+          <button type="button" className="admin-btn-ghost" onClick={() => onQuitar(false)} disabled={disabled}>
+            ↩ Deshacer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <label className="admin-label">{etiqueta}</label>
       {!cambiando && urlActual ? (
         <div className="imagen-actual">
           <img src={urlActual} alt={etiqueta} className="imagen-actual__img" />
-          <button
-            type="button"
-            className="admin-btn-ghost mt-2"
-            onClick={() => setCambiando(true)}
-            disabled={disabled}
-          >
-            🔄 Cambiar imagen
-          </button>
+          <div className="d-flex gap-2 mt-2 flex-wrap">
+            <button
+              type="button"
+              className="admin-btn-ghost"
+              onClick={() => setCambiando(true)}
+              disabled={disabled}
+            >
+              🔄 Cambiar imagen
+            </button>
+            <button
+              type="button"
+              className="admin-btn-ghost admin-btn-ghost--rojo"
+              onClick={() => onQuitar(true)}
+              disabled={disabled}
+            >
+              🗑️ Quitar imagen
+            </button>
+          </div>
         </div>
       ) : (
         <>
@@ -145,6 +170,9 @@ const ActivoFormModal = ({ activo, reparacionDe, getAuthHeaders, mostrarNotif, m
   const [errores, setErrores] = useState({});
   const [imagenData, setImagenData] = useState(null);
   const [facturaData, setFacturaData] = useState(null);
+  // Marcar para eliminar la imagen guardada (producto / factura) al guardar
+  const [quitarImagen, setQuitarImagen] = useState(false);
+  const [quitarFactura, setQuitarFactura] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [confirmandoQuitar, setConfirmandoQuitar] = useState(false);
   const imageRef = useRef(null);
@@ -198,10 +226,11 @@ const ActivoFormModal = ({ activo, reparacionDe, getAuthHeaders, mostrarNotif, m
         tipoRegistro: "Reparación",
         ...(!yaReparado && { estado: "En reparación" }),
         costoReparacion: Number(form.costoReparacion),
+        // La factura de la reparación va a su PROPIO campo: NO pisa la de compra
         ...(facturaData?.base64 && {
-          imagenFacturaBase64: facturaData.base64,
-          imagenFacturaNombre: facturaData.file.name,
-          imagenFacturaMimeType: facturaData.file.type,
+          imagenFacturaReparacionBase64: facturaData.base64,
+          imagenFacturaReparacionNombre: facturaData.file.name,
+          imagenFacturaReparacionMimeType: facturaData.file.type,
         }),
       };
       ["problemaTecnico", "reparadoPor"].forEach((k) => {
@@ -210,6 +239,8 @@ const ActivoFormModal = ({ activo, reparacionDe, getAuthHeaders, mostrarNotif, m
       if (form.fechaCompraReparacion && form.fechaCompraReparacion !== original.fechaCompraReparacion) {
         payload.fechaCompraReparacion = form.fechaCompraReparacion;
       }
+      // Eliminar la factura de reparación guardada (también de Cloudinary)
+      if (quitarFactura && !facturaData) payload.eliminarImagenFacturaReparacion = true;
       return payload;
     }
 
@@ -241,6 +272,9 @@ const ActivoFormModal = ({ activo, reparacionDe, getAuthHeaders, mostrarNotif, m
     if (form.fechaCompraReparacion !== original.fechaCompraReparacion && form.fechaCompraReparacion) {
       payload.fechaCompraReparacion = form.fechaCompraReparacion;
     }
+    // Eliminar imágenes guardadas (también de Cloudinary)
+    if (quitarImagen && !imagenData) payload.eliminarImagen = true;
+    if (quitarFactura && !facturaData) payload.eliminarImagenFactura = true;
     return payload;
   };
 
@@ -496,7 +530,9 @@ const ActivoFormModal = ({ activo, reparacionDe, getAuthHeaders, mostrarNotif, m
                 etiqueta="📷 Foto del artículo"
                 urlActual={esEdicion ? activo.imagenUrl : null}
                 imagenData={imagenData}
-                onChange={setImagenData}
+                quitar={quitarImagen}
+                onChange={(d) => { setImagenData(d); if (d) setQuitarImagen(false); }}
+                onQuitar={(v) => { setQuitarImagen(v); if (v) { imageRef.current?.reset(); setImagenData(null); } }}
                 uploadRef={imageRef}
                 disabled={guardando}
               />
@@ -505,14 +541,16 @@ const ActivoFormModal = ({ activo, reparacionDe, getAuthHeaders, mostrarNotif, m
 
           <div className="col-12 col-md-6">
             <CampoImagen
-              etiqueta={esModoReparacion ? "🧾 Factura de la reparación" : "🧾 Foto de la factura"}
+              etiqueta={esModoReparacion ? "🧾 Factura de la reparación" : "🧾 Factura de compra"}
               urlActual={
                 esModoReparacion
-                  ? (yaReparado ? reparacionDe.imagenFacturaUrl : null)
+                  ? (yaReparado ? reparacionDe.imagenFacturaReparacionUrl : null)
                   : esEdicion ? activo.imagenFacturaUrl : null
               }
               imagenData={facturaData}
-              onChange={setFacturaData}
+              quitar={quitarFactura}
+              onChange={(d) => { setFacturaData(d); if (d) setQuitarFactura(false); }}
+              onQuitar={(v) => { setQuitarFactura(v); if (v) { facturaRef.current?.reset(); setFacturaData(null); } }}
               uploadRef={facturaRef}
               disabled={guardando}
             />
@@ -592,35 +630,41 @@ const ActivoDetalleModal = ({ activo, cargando, onCerrar, onVerImagen }) => {
           </div>
         )}
 
-        {/* Imágenes */}
-        {(activo.imagenUrl || activo.imagenFacturaUrl) && (
-          <div className="row g-3 mb-3">
-            {activo.imagenUrl && (
-              <div className={activo.imagenFacturaUrl ? "col-12 col-sm-6" : "col-12"}>
-                <button
-                  type="button"
-                  className="detalle-img-btn"
-                  onClick={() => onVerImagen(activo.imagenUrl, activo.nombre)}
-                >
-                  <img src={activo.imagenUrl} alt={activo.nombre} className="detalle-img" />
-                  <span className="detalle-img__etiqueta">📷 Artículo · tocá para ampliar</span>
-                </button>
-              </div>
-            )}
-            {activo.imagenFacturaUrl && (
-              <div className={activo.imagenUrl ? "col-12 col-sm-6" : "col-12"}>
-                <button
-                  type="button"
-                  className="detalle-img-btn"
-                  onClick={() => onVerImagen(activo.imagenFacturaUrl, `Factura de ${activo.nombre}`)}
-                >
-                  <img src={activo.imagenFacturaUrl} alt={`Factura de ${activo.nombre}`} className="detalle-img" />
-                  <span className="detalle-img__etiqueta">🧾 Factura · tocá para ampliar</span>
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Imágenes: foto del artículo + factura de compra + factura de reparación */}
+        {(() => {
+          const imagenes = [
+            activo.imagenUrl && {
+              url: activo.imagenUrl, alt: activo.nombre,
+              etiqueta: "📷 Artículo · tocá para ampliar",
+            },
+            activo.imagenFacturaUrl && {
+              url: activo.imagenFacturaUrl, alt: `Factura de compra de ${activo.nombre}`,
+              etiqueta: "🧾 Factura de compra · tocá para ampliar",
+            },
+            activo.imagenFacturaReparacionUrl && {
+              url: activo.imagenFacturaReparacionUrl, alt: `Factura de reparación de ${activo.nombre}`,
+              etiqueta: "🧾 Factura de reparación · tocá para ampliar",
+            },
+          ].filter(Boolean);
+          if (!imagenes.length) return null;
+          const colClase = imagenes.length === 1 ? "col-12" : "col-12 col-sm-6";
+          return (
+            <div className="row g-3 mb-3">
+              {imagenes.map((img, i) => (
+                <div key={i} className={colClase}>
+                  <button
+                    type="button"
+                    className="detalle-img-btn"
+                    onClick={() => onVerImagen(img.url, img.alt)}
+                  >
+                    <img src={img.url} alt={img.alt} className="detalle-img" />
+                    <span className="detalle-img__etiqueta">{img.etiqueta}</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Badges */}
         <div className="d-flex gap-2 flex-wrap mb-3">
