@@ -1,0 +1,81 @@
+// Utilidades compartidas del Módulo de Administración
+
+export const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+
+let axiosInstance = null;
+export const getAxios = async () => {
+  if (!axiosInstance) axiosInstance = (await import("axios")).default;
+  return axiosInstance;
+};
+
+export const MESES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+// Registros por página en Ganancias, Pagos y Activos
+export const LIMITE_PAGINA = 6;
+
+const formatoCRC = new Intl.NumberFormat("es-CR", {
+  style: "currency",
+  currency: "CRC",
+  maximumFractionDigits: 0,
+});
+
+// ₡45 000
+export const formatCRC = (monto) => formatoCRC.format(Number(monto) || 0);
+
+// "6 de junio de 2026"
+export const formatFecha = (fecha) =>
+  new Date(fecha).toLocaleDateString("es-CR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "America/Costa_Rica",
+  });
+
+// "YYYY-MM-DD" (zona de Costa Rica) para precargar inputs type=date
+export const fechaParaInput = (fecha) => {
+  if (!fecha) return "";
+  const d = new Date(fecha);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-CA", { timeZone: "America/Costa_Rica" });
+};
+
+// "junio 2026" (para chips y avisos)
+export const nombreMes = (mes, anio) => `${MESES[mes - 1].toLowerCase()} ${anio}`;
+
+// "Junio 2026" (para títulos)
+export const nombreMesCapital = (mes, anio) => `${MESES[mes - 1]} ${anio}`;
+
+// "YYYY-MM-DD" local de hoy (para inputs date)
+export const getLocalDateString = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+export const ICONOS_GANANCIA = {
+  "Maquinas Chinos": "🎰",
+  "Maquinas Zapata": "🕹️",
+  Futbolin: "⚽",
+};
+
+export const ICONOS_SERVICIO = {
+  Luz: "💡",
+  Agua: "💧",
+  Internet: "🌐",
+  Patente: "📋",
+  "PlayStation Plus": "🎮",
+  "Mantenimiento General": "🔧",
+};
+
+export const ESTADOS_ACTIVO = ["En uso", "En reparación", "Reparado", "Fuera de servicio", "Almacenado"];
+
+// Clase de color por estado del activo
+export const ESTADO_CLASE = {
+  "En uso": "verde",
+  "En reparación": "amarillo",
+  Reparado: "azul",
+  "Fuera de servicio": "rojo",
+  Almacenado: "gris",
+};

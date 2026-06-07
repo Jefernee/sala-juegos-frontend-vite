@@ -30,7 +30,7 @@
   );
   display: flex;
   align-items: center;
-  justifycontent: center;
+  justify-content: center;
 }
 
 /* Loading pequeño para componentes internos */

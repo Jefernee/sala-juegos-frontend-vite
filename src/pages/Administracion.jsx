@@ -1,172 +1,110 @@
-import React, { useState, useEffect, useCallback } from "react";
+// Módulo de Administración: Resumen | Ahorro | Ganancias | Pagos | Activos
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/NavBar2";
+import DashboardPanel from "../components/admin/DashboardPanel";
+import AhorroPanel from "../components/admin/AhorroPanel";
+import MovimientosPanel from "../components/admin/MovimientosPanel";
+import ActivosPanel from "../components/admin/ActivosPanel";
 import "../styles/Administracion.css";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-let axiosModule = null;
-const getAxios = async () => {
-  if (!axiosModule) axiosModule = await import("axios");
-  return axiosModule.default;
-};
+const TABS = [
+  { id: "resumen", icono: "📊", label: "Resumen" },
+  { id: "ahorro", icono: "🏦", label: "Ahorro" },
+  { id: "ganancias", icono: "💰", label: "Ganancias" },
+  { id: "pagos", icono: "🧾", label: "Pagos" },
+  { id: "activos", icono: "🕹️", label: "Activos" },
+];
 
 const Administracion = () => {
-  const [ahorro, setAhorro] = useState(null);
-  const [monto, setMonto] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [guardando, setGuardando] = useState(false);
+  const [vista, setVista] = useState("resumen");
   const [notificacion, setNotificacion] = useState(null);
+  const toastTimer = useRef(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Administración - Sala de Juegos Ruiz";
+    if (!localStorage.getItem("token")) navigate("/login");
+  }, [navigate]);
+
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
 
   const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem("token");
     return { headers: { Authorization: `Bearer ${token}` } };
   }, []);
 
-  const mostrarNotif = (mensaje, tipo = "success") => {
+  const mostrarNotif = useCallback((mensaje, tipo = "success") => {
     setNotificacion({ mensaje, tipo });
-    setTimeout(() => setNotificacion(null), 4000);
-  };
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setNotificacion(null), 4000);
+  }, []);
 
-  const fetchAhorro = useCallback(async () => {
-    setLoading(true);
-    try {
-      const axios = await getAxios();
-      const response = await axios.get(
-        `${API_URL}/api/ahorro`,
-        getAuthHeaders(),
+  // Manejo centralizado de errores: 401 → limpiar sesión y redirigir al login;
+  // resto → toast con el message del backend (o mensaje genérico de conexión)
+  const manejarError = useCallback(
+    (error) => {
+      if (error?.response?.status === 401) {
+        localStorage.clear();
+        sessionStorage.clear();
+        navigate("/login");
+        return;
+      }
+      mostrarNotif(
+        error?.response?.data?.message || "Error de conexión, intenta nuevamente",
+        "error",
       );
-      setAhorro(response.data.data);
-    } catch (error) {
-      mostrarNotif("Error al cargar el ahorro", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [getAuthHeaders]);
+    },
+    [navigate, mostrarNotif],
+  );
 
-  useEffect(() => {
-    fetchAhorro();
-    document.title = "Administración - Sala de Juegos Ruiz";
-  }, [fetchAhorro]);
-
-  const handleAgregar = async () => {
-    if (!monto || Number(monto) <= 0) {
-      mostrarNotif("Ingresa un monto válido mayor a 0", "warning");
-      return;
-    }
-
-    setGuardando(true);
-    try {
-      const axios = await getAxios();
-      await axios.post(
-        `${API_URL}/api/ahorro`,
-        { monto: Number(monto) },
-        getAuthHeaders(),
-      );
-      setMonto("");
-      mostrarNotif("Ahorro agregado exitosamente ✅");
-      fetchAhorro();
-    } catch (error) {
-      mostrarNotif("Error al agregar el ahorro", "error");
-    } finally {
-      setGuardando(false);
-    }
-  };
+  const propsComunes = { getAuthHeaders, mostrarNotif, manejarError };
 
   return (
     <div className="admin-container">
       <Navbar />
 
-      <div className="container py-5">
-        <h2 className="fw-bold mb-4">🏦 Administración</h2>
+      <div className="admin-page-content">
+        <div className="admin-page-header">
+          <h2 className="admin-page-title">🏦 Administración</h2>
+        </div>
 
-        {loading ? (
-          <div className="text-center py-5">
-            <div className="spinner-border text-success" role="status" />
-          </div>
-        ) : (
-          <>
-            {/* Total acumulado */}
-            <div className="card shadow-lg mb-4 border-0">
-              <div
-                className="card-body text-center py-5"
-                style={{
-                  background: "linear-gradient(135deg, #1a1a2e, #16213e)",
-                  borderRadius: "12px",
-                }}
-              >
-                <p className="text-white-50 mb-1 fs-5">Total Ahorrado</p>
-                <h1
-                  className="fw-bold mb-2"
-                  style={{ fontSize: "3.5rem", color: "#4ade80" }}
-                >
-                  ₡{ahorro?.totalAcumulado?.toLocaleString() || "0"}
-                </h1>
-                {ahorro?.ultimaActualizacion && (
-                  <small className="text-white-50">
-                    Última actualización:{" "}
-                    {new Date(ahorro.ultimaActualizacion).toLocaleDateString(
-                      "es-CR",
-                      {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        timeZone: "America/Costa_Rica",
-                      },
-                    )}
-                  </small>
-                )}
-              </div>
-            </div>
+        {/* Navegación interna del módulo */}
+        <nav className="admin-tabs mb-4" aria-label="Secciones de administración">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              className={`admin-tab ${vista === t.id ? "admin-tab--activo" : ""}`}
+              onClick={() => setVista(t.id)}
+              aria-current={vista === t.id ? "page" : undefined}
+            >
+              <span className="admin-tab__icono">{t.icono}</span>
+              <span className="admin-tab__label">{t.label}</span>
+            </button>
+          ))}
+        </nav>
 
-            {/* Agregar monto */}
-            <div className="card shadow border-0 mb-4">
-              <div className="card-body p-4">
-                <h5 className="fw-bold mb-3">➕ Agregar Ahorro</h5>
-                <div className="input-group input-group-lg">
-                  <span className="input-group-text fw-bold">₡</span>
-                  <input
-                    type="number"
-                    className="form-control"
-                    placeholder="Ingresa el monto"
-                    value={monto}
-                    min="1"
-                    onChange={(e) => setMonto(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAgregar()}
-                  />
-                  <button
-                    className="btn btn-success px-4 fw-bold"
-                    onClick={handleAgregar}
-                    disabled={guardando}
-                  >
-                    {guardando ? "Guardando..." : "Agregar"}
-                  </button>
-                </div>
-                <small className="text-muted mt-2 d-block">
-                  💡 También puedes presionar Enter para agregar
-                </small>
-              </div>
-            </div>
-          </>
+        {vista === "resumen" && (
+          <DashboardPanel
+            getAuthHeaders={getAuthHeaders}
+            manejarError={manejarError}
+            irAVista={setVista}
+          />
         )}
+        {vista === "ahorro" && <AhorroPanel {...propsComunes} />}
+        {vista === "ganancias" && <MovimientosPanel key="ganancias" tipo="ganancias" {...propsComunes} />}
+        {vista === "pagos" && <MovimientosPanel key="pagos" tipo="pagos" {...propsComunes} />}
+        {vista === "activos" && <ActivosPanel {...propsComunes} />}
       </div>
 
-      {/* Notificación */}
+      {/* Toast global */}
       {notificacion && (
         <div
-          className={`position-fixed bottom-0 end-0 m-4 alert ${
-            notificacion.tipo === "error"
-              ? "alert-danger"
-              : notificacion.tipo === "warning"
-                ? "alert-warning"
-                : "alert-success"
-          } shadow-lg`}
-          style={{ zIndex: 9999, minWidth: "300px" }}
+          className={`admin-toast admin-toast--${notificacion.tipo}`}
+          role="status"
+          aria-live="polite"
         >
-          {notificacion.tipo === "error"
-            ? "❌"
-            : notificacion.tipo === "warning"
-              ? "⚠️"
-              : "✅"}{" "}
+          {notificacion.tipo === "error" ? "❌" : notificacion.tipo === "warning" ? "⚠️" : "✅"}{" "}
           {notificacion.mensaje}
         </div>
       )}

@@ -20,6 +20,9 @@ const ImageUploadWithCompression = forwardRef(
       accept = "image/jpeg,image/jpg,image/png,image/webp",
       showPreview = true,
       onError = null,
+      // Si es true, siempre comprime/redimensiona (no solo cuando supera 5MB)
+      alwaysCompress = false,
+      maxWidthOrHeight = 1200,
     },
     ref,
   ) => {
@@ -55,13 +58,13 @@ const ImageUploadWithCompression = forwardRef(
 
         let finalFile = file;
 
-        // Solo comprimir si supera 5MB
-        if (file.size > 5 * 1024 * 1024) {
-          console.log("🔄 Imagen >5MB, comprimiendo...");
+        // Comprimir si supera 5MB, o siempre si alwaysCompress está activo
+        if (alwaysCompress || file.size > 5 * 1024 * 1024) {
+          console.log("🔄 Comprimiendo imagen...");
 
           const options = {
             maxSizeMB: 4.5,
-            maxWidthOrHeight: 1200,
+            maxWidthOrHeight,
             useWebWorker: true,
             fileType: "image/jpeg",
             initialQuality: 0.8,
@@ -115,7 +118,7 @@ const ImageUploadWithCompression = forwardRef(
       } finally {
         setIsCompressing(false);
       }
-    }, [preview, showPreview, onChange, onError]);
+    }, [preview, showPreview, onChange, onError, alwaysCompress, maxWidthOrHeight]);
 
     const handleFileChange = (e) => {
       const file = e.target.files?.[0];
