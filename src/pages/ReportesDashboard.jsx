@@ -1,54 +1,48 @@
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import "../styles/ReportesDashboard.css";
 import Navbar from "../components/NavBar2";
-import { BarChart3, Gamepad2, FileText } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { BarChart3, Gamepad2, Boxes } from "lucide-react";
 
 // Lazy load de los componentes de reportes
-const ReportesVentas = lazy(() => import("../components/ReportesVentas"));
-const ReportesPlays = lazy(() => import("../components/ReportesPlays"));
-const ReportesGeneral = lazy(() => import("../components/ReportesGeneral"));
+const ReportesVentas  = lazy(() => import("../components/ReportesVentas"));
+const ReportesPlays   = lazy(() => import("../components/ReportesPlays"));
+const ReportesActivos = lazy(() => import("../components/ReportesActivos"));
 
+// Lista escalable de reportes: para sumar uno nuevo basta con agregar un ítem
+// (id, título, ícono, descripción, color y su componente). El layout no cambia.
+const REPORTES = [
+  {
+    id: "ventas",
+    titulo: "Reporte de Ventas",
+    icono: BarChart3,
+    descripcion: "Análisis financiero de ventas",
+    color: "verde",
+    Componente: ReportesVentas,
+  },
+  {
+    id: "plays",
+    titulo: "Reporte de Plays",
+    icono: Gamepad2,
+    descripcion: "Sesiones de juego e ingresos",
+    color: "morado",
+    Componente: ReportesPlays,
+  },
+  {
+    id: "activos",
+    titulo: "Reporte de Activos",
+    icono: Boxes,
+    descripcion: "Inversión en equipo y reparaciones",
+    color: "azul",
+    Componente: ReportesActivos,
+  },
+];
 
 export default function ReportesDashboard() {
-  const [vistaActual, setVistaActual] = useState("ventas");
+  const [vistaActual, setVistaActual] = useState(REPORTES[0].id);
 
-  const botones = [
-    {
-      id: "ventas",
-      titulo: "Reportes de Ventas",
-      icono: <BarChart3 size={24} />,
-      descripcion: "Análisis financiero de ventas mensual",
-      color: "verde",
-    },
-    {
-      id: "plays",
-      titulo: "Reportes de Plays",
-      icono: <Gamepad2 size={24} />,
-      descripcion: "Sesiones de juego e ingresos",
-      color: "morado",
-    },
-    {
-      id: "general",
-      titulo: "Reporte General",
-      icono: <FileText size={24} />,
-      descripcion: "Resumen completo del negocio",
-      color: "azul",
-    },
-  ];
-
-  const renderContenido = () => {
-    switch (vistaActual) {
-      case "ventas":
-        return <ReportesVentas />;
-      case "plays":
-        return <ReportesPlays />;
-      case "general":
-        return <ReportesGeneral />;
-      default:
-        return <ReportesVentas />;
-    }
-  };
+  const reporteActivo =
+    REPORTES.find((r) => r.id === vistaActual) || REPORTES[0];
+  const Contenido = reporteActivo.Componente;
 
   return (
     <div className="reportes-dashboard">
@@ -63,41 +57,27 @@ export default function ReportesDashboard() {
           </p>
         </div>
 
-        {/* Botones de Navegación */}
-        <div className="reportes-nav-buttons">
-          {botones.map((boton) => (
-            <button
-              key={boton.id}
-              className={`reportes-nav-btn ${boton.color} ${
-                vistaActual === boton.id ? "active" : ""
-              }`}
-              onClick={() => setVistaActual(boton.id)}
-            >
-              <div className="reportes-nav-btn-icon">{boton.icono}</div>
-              <div className="reportes-nav-btn-content">
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <h3>{boton.titulo}</h3>
-                  {boton.badge && (
-                    <span style={{
-                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                      color: "white",
-                      padding: "2px 8px",
-                      borderRadius: "12px",
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      letterSpacing: "0.5px"
-                    }}>
-                      {boton.badge}
-                    </span>
-                  )}
-                </div>
-                <p>{boton.descripcion}</p>
-              </div>
-              {vistaActual === boton.id && (
-                <div className="reportes-nav-btn-indicator"></div>
-              )}
-            </button>
-          ))}
+        {/* Grilla de botones (mismo estilo que Administración) */}
+        <div className="reportes-nav-grid">
+          {REPORTES.map((rep) => {
+            const Icono = rep.icono;
+            return (
+              <button
+                key={rep.id}
+                className={`reportes-nav-card ${rep.color} ${vistaActual === rep.id ? "active" : ""}`}
+                onClick={() => setVistaActual(rep.id)}
+                aria-current={vistaActual === rep.id ? "page" : undefined}
+              >
+                <span className="reportes-nav-card__icono">
+                  <Icono size={22} />
+                </span>
+                <span className="reportes-nav-card__texto">
+                  <span className="reportes-nav-card__titulo">{rep.titulo}</span>
+                  <span className="reportes-nav-card__desc">{rep.descripcion}</span>
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Contenido del Reporte Seleccionado */}
@@ -112,7 +92,7 @@ export default function ReportesDashboard() {
               </div>
             }
           >
-            {renderContenido()}
+            <Contenido />
           </Suspense>
         </div>
       </div>

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
 /* ========================================
    REPORTES PLAYS — Reportesplays.css
    Prefijo: rp-
@@ -6,6 +8,9 @@
 .reportes-plays-contenido {
   padding: 0;
 }
+/* Cifras parejas: misma altura y ancho en todos los números */
+.reportes-plays-contenido,
+.reportes-plays-contenido * { font-variant-numeric: tabular-nums lining-nums; }
 
 /* ── Controles superiores ─────────────────────────────────────────────────── */
 .rp-controles {
@@ -44,7 +49,7 @@
 }
 .rp-select:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: #1e3a8a;
 }
 .rp-btn-volver {
   display: flex;
@@ -62,8 +67,20 @@
 
 .reportes-plays-contenido {
   background: white;
-  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
   padding: 1.5rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+}
+
+/* Fila de mes clicable en el detalle anual */
+.rp-tipo-row--activo {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.rp-tipo-row--activo:hover {
+  background: #f8fafc;
 }
 
 .rp-btn-volver:hover {
@@ -120,8 +137,8 @@
 /* ── KPI cards ────────────────────────────────────────────────────────────── */
 .rp-kpis {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
   margin-bottom: 1.25rem;
 }
 @media (max-width: 700px) {
@@ -136,41 +153,53 @@
 }
 
 .rp-kpi-card {
-  background: white;
-  border-radius: 10px;
-  padding: 14px 16px;
-  border: 2px solid #e5e7eb;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
+  background: linear-gradient(160deg, #f8fafc 0%, #ffffff 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px 18px 15px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 .rp-kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.12);
-  border-color: #c7d2fe;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(30, 58, 138, 0.1);
+  border-color: #d1d5db;
 }
-.rp-kpi-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
+.rp-kpi-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0.85;
+}
+.rp-kpi-icon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  opacity: 0.18;
 }
 .rp-kpi-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.9px;
   color: #6b7280;
+  margin-bottom: 8px;
 }
 .rp-kpi-value {
+  font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 20px;
   font-weight: 700;
   color: #1f2937;
-  line-height: 1.15;
+  line-height: 1;
 }
 .rp-kpi-sub {
-  font-size: 11px;
+  font-size: 10.5px;
   color: #9ca3af;
-  margin-top: 3px;
+  margin-top: 6px;
 }
 
 /* ── Secciones y cards ────────────────────────────────────────────────────── */
@@ -194,7 +223,7 @@
   transition: border-color 0.3s;
 }
 .rp-card:hover {
-  border-color: #c7d2fe;
+  border-color: #cbd5e1;
 }
 
 /* ── Dos columnas ─────────────────────────────────────────────────────────── */
@@ -329,6 +358,34 @@
   width: 62px;
   text-align: right;
   flex-shrink: 0;
+}
+
+/* ── Controles extra por empleado ─────────────────────────────────────────── */
+.rp-empleado-bloque {
+  padding: 6px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+.rp-empleado-bloque:last-child {
+  border-bottom: none;
+}
+.rp-empleado-bloque .rp-bar-row {
+  padding: 0;
+  border-bottom: none;
+}
+.rp-empleado-controles {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 3px;
+  padding-left: 138px;
+}
+.rp-empleado-controles strong {
+  color: #b45309;
+  font-weight: 700;
+}
+@media (max-width: 768px) {
+  .rp-empleado-controles {
+    padding-left: 68px;
+  }
 }
 
 /* ── Juegos más jugados ───────────────────────────────────────────────────── */

@@ -127,85 +127,44 @@
 }
 
 /* ========================================
-   BOTONES DE NAVEGACIÓN
+   GRILLA DE NAVEGACIÓN (mismo estilo que Administración)
    ======================================== */
-.reportes-nav-buttons {
+.reportes-nav-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
   margin-bottom: 2.5rem;
 }
 
-@media (min-width: 768px) {
-  .reportes-nav-buttons {
+@media (min-width: 640px) {
+  .reportes-nav-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .reportes-nav-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-.reportes-nav-btn {
-  position: relative;
+.reportes-nav-card {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1.5rem;
-  background: white;
-  border: 3px solid transparent;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 16px;
+  padding: 1.25rem 1.4rem;
   cursor: pointer;
-  transition: all 0.3s ease;
   text-align: left;
-  overflow: hidden;
+  transition: transform 0.2s ease, border-color 0.2s, box-shadow 0.2s;
 }
 
-.reportes-nav-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 0;
-}
+.reportes-nav-card:hover { transform: translateY(-3px); }
+.reportes-nav-card:active { transform: translateY(-1px); }
 
-.reportes-nav-btn.verde::before {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-}
-
-.reportes-nav-btn.morado::before {
-  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-}
-
-.reportes-nav-btn.azul::before {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-}
-
-.reportes-nav-btn:hover::before {
-  opacity: 0.5;
-}
-
-.reportes-nav-btn:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.reportes-nav-btn.active {
-  border-color: currentColor;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-
-.reportes-nav-btn.active::before {
-  opacity: 1;
-}
-
-.reportes-nav-btn.verde.active { border-color: #10b981; }
-.reportes-nav-btn.morado.active { border-color: #6366f1; }
-.reportes-nav-btn.azul.active { border-color: #38bdf8; }
-
-.reportes-nav-btn-icon {
-  position: relative;
-  z-index: 1;
+.reportes-nav-card__icono {
   width: 48px;
   height: 48px;
   display: flex;
@@ -213,82 +172,88 @@
   justify-content: center;
   border-radius: 12px;
   flex-shrink: 0;
-  transition: all 0.3s ease;
+  color: #fff;
 }
 
-.reportes-nav-btn.verde .reportes-nav-btn-icon {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
+.reportes-nav-card__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
 }
 
-.reportes-nav-btn.morado .reportes-nav-btn-icon {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
-}
-
-.reportes-nav-btn.azul .reportes-nav-btn-icon {
-  background: linear-gradient(135deg, #38bdf8, #0284c7);
-  color: white;
-}
-
-.reportes-nav-btn:hover .reportes-nav-btn-icon {
-  transform: scale(1.1) rotate(5deg);
-}
-
-.reportes-nav-btn-content {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-}
-
-.reportes-nav-btn-content h3 {
-  font-size: 1.125rem;
+.reportes-nav-card__titulo {
+  font-size: 1.05rem;
   font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 0.25rem 0;
-  transition: color 0.3s ease;
+  color: #e2e8f0;
+  line-height: 1.2;
 }
 
-.reportes-nav-btn-content p {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
-  transition: color 0.3s ease;
+.reportes-nav-card__desc {
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.35;
 }
 
-.reportes-nav-btn.active .reportes-nav-btn-content h3 {
-  color: #111827;
+/* Acentos de color por reporte */
+.reportes-nav-card.verde {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: linear-gradient(160deg, #0d2118 0%, #0f172a 100%);
+}
+.reportes-nav-card.verde .reportes-nav-card__icono {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+.reportes-nav-card.verde:hover,
+.reportes-nav-card.verde.active {
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.15);
 }
 
-.reportes-nav-btn.active .reportes-nav-btn-content p {
-  color: #374151;
-  font-weight: 500;
+.reportes-nav-card.morado {
+  border-color: rgba(99, 102, 241, 0.3);
+  background: linear-gradient(160deg, #15132e 0%, #0f172a 100%);
+}
+.reportes-nav-card.morado .reportes-nav-card__icono {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+}
+.reportes-nav-card.morado:hover,
+.reportes-nav-card.morado.active {
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.15);
 }
 
-.reportes-nav-btn-indicator {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  z-index: 1;
+.reportes-nav-card.azul {
+  border-color: rgba(56, 189, 248, 0.3);
+  background: linear-gradient(160deg, #0d1a2e 0%, #0f172a 100%);
+}
+.reportes-nav-card.azul .reportes-nav-card__icono {
+  background: linear-gradient(135deg, #38bdf8, #0284c7);
+}
+.reportes-nav-card.azul:hover,
+.reportes-nav-card.azul.active {
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 10px 30px rgba(56, 189, 248, 0.15);
 }
 
-.reportes-nav-btn.verde .reportes-nav-btn-indicator {
-  background: #10b981;
-  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+.reportes-nav-card.amarillo {
+  border-color: rgba(251, 191, 36, 0.3);
+  background: linear-gradient(160deg, #1f1408 0%, #0f172a 100%);
+}
+.reportes-nav-card.amarillo .reportes-nav-card__icono {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+.reportes-nav-card.amarillo:hover,
+.reportes-nav-card.amarillo.active {
+  border-color: rgba(251, 191, 36, 0.6);
+  box-shadow: 0 10px 30px rgba(251, 191, 36, 0.15);
 }
 
-.reportes-nav-btn.morado .reportes-nav-btn-indicator {
-  background: #6366f1;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
-}
+/* La tarjeta activa se resalta con un anillo del color de su acento */
+.reportes-nav-card.active { border-width: 2px; }
 
-.reportes-nav-btn.azul .reportes-nav-btn-indicator {
-  background: #38bdf8;
-  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
+@media (hover: none) {
+  .reportes-nav-card:hover,
+  .reportes-nav-card:active { transform: none; }
 }
 
 /* ========================================

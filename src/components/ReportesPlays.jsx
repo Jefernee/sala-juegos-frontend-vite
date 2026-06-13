@@ -7,23 +7,24 @@ const API_URL = import.meta.env.VITE_API_URL + "/api/monthly-reports";
 const MESES       = ["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const MESES_SHORT = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const DIAS_SHORT  = ["Do","Lu","Ma","Mi","Ju","Vi","Sá"];
-const COLORS      = ["#534AB7","#1D9E75","#D85A30","#D4537E","#378ADD","#BA7517","#639922"];
-const COL_PLAY4   = "#534AB7";
-const COL_PLAY5   = "#1D9E75";
-const COL_PING    = "#D85A30";
+const COLORS      = ["#1e3a8a","#047857","#b45309","#be185d","#1d4ed8","#4338ca","#6b7280"];
+const COL_PLAY4   = "#1e3a8a";
+const COL_PLAY5   = "#047857";
+const COL_PING    = "#b45309";
 
-const fmt  = (n) => "₡" + Math.round(n || 0).toLocaleString("es-CR");
-const fmtN = (n) => Math.round(n || 0).toLocaleString("es-CR");
+// Punto como separador de miles (estándar de Costa Rica): ₡1.234.567
+const milesPunto = (n) => Math.round(n || 0).toLocaleString("es-CR").replace(/\s/g, ".");
+const fmt  = (n) => "₡" + milesPunto(n);
+const fmtN = (n) => milesPunto(n);
 const fmtH = (mins) => { const h = Math.floor((mins||0)/60); const m = (mins||0)%60; return h > 0 ? `${h}h ${m}m` : `${m}m`; };
 const pct  = (a, b) => (b > 0 ? Math.round((a/b)*100) : 0);
 
-function KPICard({ label, value, sub, icon: Icon, color = "#534AB7" }) {
+function KPICard({ label, value, sub, icon: Icon, color = "#1e3a8a" }) {
   return (
     <div className="rp-kpi-card">
-      <div className="rp-kpi-header">
-        <span className="rp-kpi-label">{label}</span>
-        {Icon && <Icon size={15} style={{ color, opacity: 0.65 }} />}
-      </div>
+      <div className="rp-kpi-accent" style={{ background: color }} />
+      {Icon && <div className="rp-kpi-icon"><Icon size={22} color={color} /></div>}
+      <div className="rp-kpi-label">{label}</div>
       <div className="rp-kpi-value">{value}</div>
       {sub && <div className="rp-kpi-sub">{sub}</div>}
     </div>
@@ -112,7 +113,7 @@ function CalendarioHeatmap({ dias = [], periodoInicio, año, mes }) {
           const alpha = c.rec > 0 ? Math.max(0.15, Math.min(0.9, (c.rec / maxRec) * 0.85 + 0.1)) : 0;
           return (
             <div key={c.dia} className="rp-cal-cell"
-              style={{ background: c.rec > 0 ? `rgba(83,74,183,${alpha})` : "#f3f4f6", color: alpha > 0.5 ? "#fff" : "#6b7280" }}
+              style={{ background: c.rec > 0 ? `rgba(30,58,138,${alpha})` : "#f3f4f6", color: alpha > 0.5 ? "#fff" : "#6b7280" }}
               onMouseEnter={() => setTooltip(c)}
               onMouseLeave={() => setTooltip(null)}
             >
@@ -131,7 +132,7 @@ function CalendarioHeatmap({ dias = [], periodoInicio, año, mes }) {
       <div className="rp-cal-legend">
         <span>Menos</span>
         {[0.15, 0.3, 0.5, 0.7, 0.9].map((o) => (
-          <div key={o} style={{ width: 11, height: 11, borderRadius: 2, background: `rgba(83,74,183,${o})` }} />
+          <div key={o} style={{ width: 11, height: 11, borderRadius: 2, background: `rgba(30,58,138,${o})` }} />
         ))}
         <span>Más</span>
       </div>
@@ -151,9 +152,9 @@ function VistaAnual({ data, onSelectMes }) {
     <>
       <div className="rp-kpis">
         <KPICard label="Total recaudado"  value={fmt(totRec)}                  sub={`Año ${data?.año}`} icon={DollarSign} />
-        <KPICard label="Total sesiones"   value={fmtN(totSes)}                 sub="Todo el año"        icon={Gamepad2}   color="#1D9E75" />
-        <KPICard label="Promedio mensual" value={fmt(totRec / 12)}             sub="Por mes"            icon={TrendingUp} color="#D85A30" />
-        <KPICard label="Sesiones / mes"   value={fmtN(Math.round(totSes/12))} sub="Promedio"           icon={Users}      color="#378ADD" />
+        <KPICard label="Total sesiones"   value={fmtN(totSes)}                 sub="Todo el año"        icon={Gamepad2}   color="#047857" />
+        <KPICard label="Promedio mensual" value={fmt(totRec / 12)}             sub="Por mes"            icon={TrendingUp} color="#b45309" />
+        <KPICard label="Sesiones / mes"   value={fmtN(Math.round(totSes/12))} sub="Promedio"           icon={Users}      color="#1d4ed8" />
       </div>
       <div className="rp-seccion">
         <p className="rp-seccion-titulo">Ingresos mensuales — clic para ver el detalle</p>
@@ -166,7 +167,7 @@ function VistaAnual({ data, onSelectMes }) {
                 title={m.totalSesiones ? `Ver ${m.nombreMes || MESES[m.mes]}` : "Sin datos"}
               >
                 <div className="rp-mes-barra-outer">
-                  <div className="rp-mes-barra-inner" style={{ height: `${pct(m.totalRecaudado||0, maxRec)}%`, background: m.totalSesiones ? COL_PLAY4 : "#e5e7eb" }} />
+                  <div className="rp-mes-barra-inner" style={{ height: `${pct(m.totalRecaudado||0, maxRec)}%`, background: m.totalSesiones ? "#1e3a8a" : "#e5e7eb" }} />
                 </div>
                 <span className="rp-mes-lbl">{MESES_SHORT[m.mes]}</span>
                 <span className="rp-mes-ses">{m.totalSesiones || 0}</span>
@@ -188,16 +189,20 @@ function VistaAnual({ data, onSelectMes }) {
         </div>
       </div>
       <div className="rp-seccion">
-        <p className="rp-seccion-titulo">Detalle por mes</p>
+        <p className="rp-seccion-titulo">Detalle por mes — clic en una fila para ver el detalle</p>
         <div className="rp-card">
           {meses.map((m) => (
-            <div key={m.mes} className="rp-tipo-row">
+            <div
+              key={m.mes}
+              className={`rp-tipo-row${m.totalSesiones ? " rp-tipo-row--activo" : ""}`}
+              onClick={() => m.totalSesiones && onSelectMes(m.mes)}
+            >
               <div className="rp-tipo-left" style={{ gap: 10 }}>
                 <span style={{ width: 90, flexShrink: 0, fontSize: 13, color: "#374151" }}>
                   {m.nombreMes || MESES[m.mes]}
                 </span>
                 <div className="rp-bar-track" style={{ flex: 1 }}>
-                  <div className="rp-bar-fill" style={{ width: `${pct(m.totalRecaudado||0, maxRec)}%`, background: COL_PLAY4 }} />
+                  <div className="rp-bar-fill" style={{ width: `${pct(m.totalRecaudado||0, maxRec)}%`, background: "#1e3a8a" }} />
                 </div>
               </div>
               <div className="rp-tipo-right">
@@ -224,9 +229,10 @@ function VistaMensual({ reporte: r }) {
     <>
       <div className="rp-kpis">
         <KPICard label="Total recaudado"  value={fmt(totRec)}                       sub={`${r.nombreMes} ${r.año}`}                   icon={DollarSign} />
-        <KPICard label="Total sesiones"   value={fmtN(r.totalSesiones)}             sub={`${fmtN(r.sesionesCompletadas)} completadas`}  icon={Gamepad2}   color="#1D9E75" />
-        <KPICard label="Tiempo jugado"    value={fmtH(r.tiempoTotalPagadoMinutos)}  sub="Tiempo pagado"                               icon={Clock}      color="#D85A30" />
-        <KPICard label="Controles extra"  value={fmtN(r.totalControlesAdicionales)} sub="Adicionales cobrados"                        icon={TrendingUp} color="#378ADD" />
+        <KPICard label="Total sesiones"   value={fmtN(r.totalSesiones)}             sub={`${fmtN(r.sesionesCompletadas)} completadas`}  icon={Gamepad2}   color="#047857" />
+        <KPICard label="Tiempo jugado"    value={fmtH(r.tiempoTotalPagadoMinutos)}  sub="Tiempo pagado"                               icon={Clock}      color="#b45309" />
+        <KPICard label="Controles extra"  value={fmtN(r.totalControlesAdicionales)} sub="Adicionales cobrados"                        icon={TrendingUp} color="#1d4ed8" />
+        <KPICard label="Monto controles"  value={fmt(r.totalCostosControles)}       sub="Cobrado por controles extra"                 icon={DollarSign} color="#b45309" />
       </div>
       <div className="rp-dos-col">
         <div className="rp-seccion">
@@ -237,11 +243,11 @@ function VistaMensual({ reporte: r }) {
             <TipoRow nombre="Ping Pong" value={r.totalPingPong || 0} total={totRec} color={COL_PING}  />
             <div className="rp-estados">
               <div className="rp-estado">
-                <div className="rp-estado-val" style={{ color: "#059669" }}>{fmtN(r.sesionesCompletadas)}</div>
+                <div className="rp-estado-val" style={{ color: "#047857" }}>{fmtN(r.sesionesCompletadas)}</div>
                 <div className="rp-estado-lbl">Completadas</div>
               </div>
               <div className="rp-estado">
-                <div className="rp-estado-val" style={{ color: "#d97706" }}>{fmtN(r.sesionesPendientes)}</div>
+                <div className="rp-estado-val" style={{ color: "#b45309" }}>{fmtN(r.sesionesPendientes)}</div>
                 <div className="rp-estado-lbl">Pendientes</div>
               </div>
               <div className="rp-estado">
@@ -274,7 +280,12 @@ function VistaMensual({ reporte: r }) {
           <p className="rp-seccion-titulo">Por empleado</p>
           <div className="rp-card">
             {empleados.map((e, i) => (
-              <BarRow key={e.nombre} label={e.nombre} value={e.totalRecaudado||0} maxValue={maxEmp} color={COLORS[i % COLORS.length]} right={`${fmtN(e.totalSesiones)} ses. · ${fmtH(e.tiempoTotalMinutos)}`} />
+              <div key={e.nombre} className="rp-empleado-bloque">
+                <BarRow label={e.nombre} value={e.totalRecaudado||0} maxValue={maxEmp} color={COLORS[i % COLORS.length]} right={`${fmtN(e.totalSesiones)} ses. · ${fmtH(e.tiempoTotalMinutos)}`} />
+                <div className="rp-empleado-controles">
+                  🎮 {fmtN(e.totalControlesAdicionales || 0)} controles extra · <strong>{fmt(e.totalCostosControles || 0)}</strong>
+                </div>
+              </div>
             ))}
           </div>
         </div>

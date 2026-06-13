@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import ImageUploadWithCompression from "../ImageUploadWithCompression";
 import {
-  API_URL, getAxios, formatCRC, formatFecha, getLocalDateString, fechaParaInput,
+  API_URL, getAxios, formatCRC, formatFecha, formatPlaca, getLocalDateString, fechaParaInput,
   ESTADOS_ACTIVO, ESTADO_CLASE, LIMITE_PAGINA,
 } from "./adminUtils";
 import { ModalOverlay, ConfirmarEliminar, Paginacion, ErrorRecarga, EstadoVacio, Cargando } from "./Comunes";
@@ -149,6 +149,8 @@ const ActivoFormModal = ({ activo, reparacionDe, getAuthHeaders, mostrarNotif, m
   const esEdicion = !!activo;
   const esModoReparacion = !esEdicion && !!reparacionDe;
   const yaReparado = esModoReparacion && reparacionDe.tipoRegistro === "Reparación";
+  // Solo al registrar un producto nuevo mostramos la vista previa de la placa
+  const esCrearNuevo = !esEdicion && !esModoReparacion;
 
   const [form, setForm] = useState(() => {
     if (esEdicion) return formDesdeActivo(activo);
@@ -175,6 +177,8 @@ const ActivoFormModal = ({ activo, reparacionDe, getAuthHeaders, mostrarNotif, m
   const [quitarFactura, setQuitarFactura] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [confirmandoQuitar, setConfirmandoQuitar] = useState(false);
+  // Vista previa de la placa que asignaría el backend (solo al crear)
+  const [proximaPlaca, setProximaPlaca] = useState(null);
   const imageRef = useRef(null);
   const facturaRef = useRef(null);
 
@@ -184,6 +188,44 @@ const ActivoFormModal = ({ activo, reparacionDe, getAuthHeaders, mostrarNotif, m
     setForm((f) => ({ ...f, [field]: valor }));
     setErrores((er) => ({ ...er, [field]: "" }));
   };
+
+  // Al abrir el formulario de crear, mostramos una VISTA PREVIA de la placa que
+  // quedaría — antes de guardar. Es solo preview: el número definitivo lo asigna
+  // el backend al guardar (no se envía desde el front ni bloquea el guardado).
+  // 1º intentamos el endpoint dedicado; si no está, estimamos con el listado
+  //    (mayor numeroPlaca + 1, o total de activos + 1) para que SIEMPRE se vea algo.
+  useEffect(() => {
+    if (!esCrearNuevo) return undefined;
+    let cancelado = false;
+    (async () => {
+      const axios = await getAxios();
+      // 1) Endpoint dedicado (fuente de verdad)
+      try {
+        const res = await axios.get(`${API_URL}/api/activos-sala/proxima-placa`, getAuthHeaders());
+        if (res.data?.proximaPlaca != null) {
+          if (!cancelado) setProximaPlaca(res.data.proximaPlaca);
+          return;
+        }
+      } catch {
+        /* sin endpoint todavía: pasamos a la estimación */
+      }
+      // 2) Estimación a partir de los activos existentes
+      try {
+        const res = await axios.get(`${API_URL}/api/activos-sala`, {
+          params: { page: 1, limit: 200 },
+          ...getAuthHeaders(),
+        });
+        const data = res.data?.data || [];
+        const maxPlaca = data.reduce((m, a) => Math.max(m, Number(a.numeroPlaca) || 0), 0);
+        const total = res.data?.pagination?.totalItems ?? data.length;
+        const estimada = maxPlaca > 0 ? maxPlaca + 1 : (total || 0) + 1;
+        if (!cancelado) setProximaPlaca(estimada);
+      } catch {
+        /* La vista previa es opcional: si falla todo, queda sin número */
+      }
+    })();
+    return () => { cancelado = true; };
+  }, [esCrearNuevo, getAuthHeaders]);
 
   const validar = () => {
     const e = {};
@@ -363,6 +405,19 @@ const ActivoFormModal = ({ activo, reparacionDe, getAuthHeaders, mostrarNotif, m
         ) : null}
 
         <div className="row g-3">
+          {esCrearNuevo && (
+            <div className="col-12">
+              <label className="admin-label">Número de placa (vista previa)</label>
+              <div className="placa-preview">
+                <span className="placa-preview__label">Así va a quedar</span>
+                <span className="placa-preview__chip">
+                  {proximaPlaca != null ? formatPlaca(proximaPlaca) : "Calculando…"}
+                </span>
+                <small className="admin-hint">El número final se asigna automáticamente al guardar</small>
+              </div>
+            </div>
+          )}
+
           {!esModoReparacion && (
             <>
               <div className="col-12 col-sm-6">
@@ -667,7 +722,8 @@ const ActivoDetalleModal = ({ activo, cargando, onCerrar, onVerImagen }) => {
         })()}
 
         {/* Badges */}
-        <div className="d-flex gap-2 flex-wrap mb-3">
+        <div className="d-flex gap-2 flex-wrap mb-3 align-items-center">
+          <span className="activo-card__placa activo-card__placa--detalle">{formatPlaca(activo)}</span>
           <span className={`estado-badge estado-badge--${ESTADO_CLASE[activo.estado] || "gris"}`}>
             {activo.estado}
           </span>
@@ -907,7 +963,10 @@ const ActivosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
                       </div>
                     )}
                     <div className="activo-card__body">
-                      <h6 className="fw-bold text-white mb-1 text-start">{a.nombre}</h6>
+                      <div className="activo-card__placa-row">
+                        <span className="activo-card__placa">{formatPlaca(a)}</span>
+                        <h6 className="activo-card__nombre">{a.nombre}</h6>
+                      </div>
                       {a.descripcion && (
                         <small className="text-white-50 d-block mb-2 text-start activo-card__desc">
                           {a.descripcion}

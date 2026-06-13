@@ -16,14 +16,10 @@ export const MESES = [
 // Registros por página en Ganancias, Pagos y Activos
 export const LIMITE_PAGINA = 6;
 
-const formatoCRC = new Intl.NumberFormat("es-CR", {
-  style: "currency",
-  currency: "CRC",
-  maximumFractionDigits: 0,
-});
-
-// ₡45 000
-export const formatCRC = (monto) => formatoCRC.format(Number(monto) || 0);
+// ₡45.000 — punto como separador de miles (estándar de Costa Rica).
+// es-CR por defecto usa espacios; \s los captura todos y los pasa a punto.
+export const formatCRC = (monto) =>
+  "₡" + (Math.round(Number(monto) || 0)).toLocaleString("es-CR").replace(/\s/g, ".");
 
 // "6 de junio de 2026"
 export const formatFecha = (fecha) =>
@@ -40,6 +36,18 @@ export const fechaParaInput = (fecha) => {
   const d = new Date(fecha);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleDateString("en-CA", { timeZone: "America/Costa_Rica" });
+};
+
+// "PLACA-0007" — número de placa relleno a 4 dígitos. Es de solo lectura
+// (lo asigna el backend); si no viniera ninguno mostramos "—".
+// Acepta el número directo o el activo completo, y tolera nombres alternos
+// del campo (numeroPlaca / placa / numero_placa) por si el backend cambia.
+export const formatPlaca = (valor) => {
+  const n =
+    valor != null && typeof valor === "object"
+      ? valor.numeroPlaca ?? valor.placa ?? valor.numeroDePlaca ?? valor.numero_placa
+      : valor;
+  return n != null && n !== "" ? `PLACA-${String(n).padStart(4, "0")}` : "—";
 };
 
 // "junio 2026" (para chips y avisos)

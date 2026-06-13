@@ -2,31 +2,36 @@
    ReportesVentas.css  —  Dark editorial · Acento ámbar
    ═══════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
 /* ── Variables ────────────────────────────────────────────────── */
-:root {
-  --rv-bg:        #111113;
-  --rv-surface:   #1A1A1D;
-  --rv-surface2:  #222226;
-  --rv-surface3:  #2A2A2F;
-  --rv-border:    rgba(255,255,255,0.06);
-  --rv-border2:   rgba(255,255,255,0.1);
-  --rv-text1:     #F0EFE8;
-  --rv-text2:     #8A8A85;
-  --rv-text3:     #5A5A58;
-  --rv-accent:    #E8A020;
-  --rv-green:     #2CB67D;
-  --rv-red:       #E84040;
-  --rv-purple:    #9B6DFF;
-  --rv-blue:      #38BDF8;
-  --rv-radius:    12px;
-  --rv-radius-sm: 8px;
+/* Paleta CLARA formal (estilo documento), uniforme con Activos y Plays.
+   Acotada a .rv-page para no afectar el resto de la app.
+   Acento azul marino sobrio; verde/rojo apagados estilo contable. */
+.rv-page {
+  --rv-bg:        #f8fafc;
+  --rv-surface:   #ffffff;
+  --rv-surface2:  #f8fafc;
+  --rv-surface3:  #e5e7eb;
+  --rv-border:    #e5e7eb;
+  --rv-border2:   #d1d5db;
+  --rv-text1:     #1f2937;
+  --rv-text2:     #6b7280;
+  --rv-text3:     #9ca3af;
+  --rv-accent:    #1e3a8a;
+  --rv-green:     #047857;
+  --rv-red:       #b91c1c;
+  --rv-purple:    #4338ca;
+  --rv-blue:      #1d4ed8;
+  --rv-radius:    14px;
+  --rv-radius-sm: 9px;
 }
 
 /* Base: evita overflow horizontal en movil */
 .rv-page * { box-sizing: border-box; }
 .rv-page   { overflow-x: hidden; }
+/* Cifras parejas: misma altura y ancho en todos los números */
+.rv-page, .rv-page * { font-variant-numeric: tabular-nums lining-nums; }
 
 /* ── Animaciones ──────────────────────────────────────────────── */
 @keyframes rv-spin    { to { transform: rotate(360deg); } }
@@ -36,27 +41,27 @@
 /* ── Layout principal ─────────────────────────────────────────── */
 .rv-page {
   background: var(--rv-bg);
-  min-height: 100vh;
+  min-height: 50vh;
   font-family: 'DM Sans', sans-serif;
   color: var(--rv-text1);
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--rv-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
 }
 
 /* ── Header ───────────────────────────────────────────────────── */
 .rv-header {
   background: var(--rv-surface);
   border-bottom: 1px solid var(--rv-border);
-  padding: 16px 24px;
+  padding: 18px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  backdrop-filter: blur(12px);
 }
 
 .rv-header-left {
@@ -68,7 +73,7 @@
 .rv-header-badge {
   display: inline-block;
   background: var(--rv-accent);
-  color: #000;
+  color: #ffffff;
   font-family: 'Syne', sans-serif;
   font-size: 9px;
   font-weight: 800;
@@ -132,7 +137,7 @@
 
 .rv-btn-generar {
   background: var(--rv-accent);
-  color: #000;
+  color: #1f2937;
   border: none;
   border-radius: var(--rv-radius-sm);
   padding: 6px 14px;
@@ -194,7 +199,7 @@
 .rv-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(17,17,19,.6);
+  background: rgba(248,250,252,.7);
   border-radius: var(--rv-radius);
   display: flex;
   align-items: center;
@@ -220,25 +225,29 @@
 }
 
 .rv-kpi-card {
-  background: var(--rv-surface);
+  background: linear-gradient(160deg, var(--rv-surface2) 0%, var(--rv-surface) 100%);
   border: 1px solid var(--rv-border);
   border-radius: var(--rv-radius);
-  padding: 15px 16px 14px;
+  padding: 16px 18px 15px;
   position: relative;
   overflow: hidden;
   animation: rv-fadeIn .4s ease both;
-  transition: border-color .2s;
+  transition: transform .2s, border-color .2s, box-shadow .2s;
 }
-.rv-kpi-card:hover { border-color: var(--rv-border2); }
+.rv-kpi-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--rv-border2);
+  box-shadow: 0 8px 20px rgba(30, 58, 138, 0.1);
+}
 
 .rv-kpi-accent {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  border-radius: 0 0 var(--rv-radius) var(--rv-radius);
-  opacity: 0.7;
+  height: 3px;
+  border-radius: var(--rv-radius) var(--rv-radius) 0 0;
+  opacity: 0.85;
 }
 
 .rv-kpi-icon {
@@ -258,10 +267,11 @@
 }
 
 .rv-kpi-value {
-  font-family: 'Syne', sans-serif;
-  font-size: 21px;
-  font-weight: 800;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
   line-height: 1;
+  color: var(--rv-text1);
 }
 
 .rv-kpi-sub {
@@ -448,9 +458,9 @@
 }
 
 .rv-pago-value {
-  font-family: 'Syne', sans-serif;
+  font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 /* ── Calendario ───────────────────────────────────────────────── */
@@ -489,8 +499,8 @@
   bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  background: #18181B;
-  border: 1px solid rgba(232,160,32,.3);
+  background: #ffffff;
+  border: 1px solid var(--rv-border2);
   border-radius: 8px;
   padding: 8px 11px;
   font-size: 11px;
@@ -498,7 +508,7 @@
   white-space: nowrap;
   z-index: 99;
   pointer-events: none;
-  box-shadow: 0 8px 24px rgba(0,0,0,.6);
+  box-shadow: 0 8px 24px rgba(0,0,0,.15);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -631,7 +641,7 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--rv-text1);
-  font-family: 'Syne', sans-serif;
+  font-family: 'DM Sans', system-ui, sans-serif;
 }
 
 .rv-tabla-mes-nombre {

@@ -11,38 +11,40 @@ const API_URL = import.meta.env.VITE_API_URL + "/api/ventas-reports";
 const MESES       = ["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const MESES_SHORT = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const DIAS_SHORT  = ["Do","Lu","Ma","Mi","Ju","Vi","Sa"];
-const COLORS      = ["#E8A020","#2CB67D","#E84040","#9B6DFF","#38BDF8","#F97316","#EC4899"];
+const COLORS      = ["#b45309","#047857","#b91c1c","#4338ca","#1d4ed8","#b45309","#be185d"];
 
-const fmt    = (n) => String.fromCodePoint(0x20a1) + Math.round(n || 0).toLocaleString("es-CR");
-const fmtN   = (n) => Math.round(n || 0).toLocaleString("es-CR");
+// Punto como separador de miles (estándar de Costa Rica): ₡1.234.567
+const milesPunto = (n) => Math.round(n || 0).toLocaleString("es-CR").replace(/\s/g, ".");
+const fmt    = (n) => String.fromCodePoint(0x20a1) + milesPunto(n);
+const fmtN   = (n) => milesPunto(n);
 const pct    = (a, b) => (b > 0 ? Math.round((a / b) * 100) : 0);
 const fmtPct = (n) => `${(n || 0).toFixed(1)}%`;
 const clamp  = (v, mn, mx) => Math.min(mx, Math.max(mn, v));
 
 function getDiagnostico(margen, productosConMargenBajo = 0) {
   let emoji, texto, color;
-  if (margen < 20)      { emoji = "\u{1F534}"; texto = "Margen muy bajo \u00b7 Revisar precios urgente"; color = "#E84040"; }
-  else if (margen < 35) { emoji = "\u{1F7E1}"; texto = "Margen ajustado \u00b7 Hay espacio para mejorar"; color = "#E8A020"; }
-  else if (margen < 50) { emoji = "\u{1F7E2}"; texto = "Margen saludable \u00b7 Buen desempe\u00f1o"; color = "#2CB67D"; }
-  else if (margen < 70) { emoji = "\u{1F7E2}"; texto = "Margen muy bueno \u00b7 Sigue as\u00ed"; color = "#2CB67D"; }
-  else                  { emoji = "\u2705";     texto = "Margen excelente"; color = "#2CB67D"; }
+  if (margen < 20)      { emoji = "\u{1F534}"; texto = "Margen muy bajo \u00b7 Revisar precios urgente"; color = "#b91c1c"; }
+  else if (margen < 35) { emoji = "\u{1F7E1}"; texto = "Margen ajustado \u00b7 Hay espacio para mejorar"; color = "#b45309"; }
+  else if (margen < 50) { emoji = "\u{1F7E2}"; texto = "Margen saludable \u00b7 Buen desempe\u00f1o"; color = "#047857"; }
+  else if (margen < 70) { emoji = "\u{1F7E2}"; texto = "Margen muy bueno \u00b7 Sigue as\u00ed"; color = "#047857"; }
+  else                  { emoji = "\u2705";     texto = "Margen excelente"; color = "#047857"; }
   if (productosConMargenBajo > 0) texto += " \u00b7 " + productosConMargenBajo + " producto" + (productosConMargenBajo > 1 ? "s" : "") + " bajo 20%";
   return { emoji, texto, color };
 }
 
-function KPICard({ label, value, sub, icon: Icon, color = "#E8A020", trend, diagnostico }) {
+function KPICard({ label, value, sub, icon: Icon, color = "#b45309", trend, diagnostico }) {
   return (
     <div className="rv-kpi-card">
       <div className="rv-kpi-accent" style={{ background: color }} />
       {Icon && <div className="rv-kpi-icon"><Icon size={26} color={color} /></div>}
       <div className="rv-kpi-label">{label}</div>
-      <div className="rv-kpi-value" style={{ color }}>{value}</div>
+      <div className="rv-kpi-value">{value}</div>
       {sub && <div className="rv-kpi-sub">{sub}</div>}
       {diagnostico && <div className="rv-kpi-diagnostico" style={{ color: diagnostico.color }}><span>{diagnostico.emoji}</span><span>{diagnostico.texto}</span></div>}
       {trend !== undefined && (
         <div className="rv-kpi-trend">
-          {trend >= 0 ? <ArrowUp size={11} color="#2CB67D" /> : <ArrowDown size={11} color="#E84040" />}
-          <span style={{ color: trend >= 0 ? "#2CB67D" : "#E84040" }}>{Math.abs(trend)}%</span>
+          {trend >= 0 ? <ArrowUp size={11} color="#047857" /> : <ArrowDown size={11} color="#b91c1c" />}
+          <span style={{ color: trend >= 0 ? "#047857" : "#b91c1c" }}>{Math.abs(trend)}%</span>
           <span className="rv-kpi-trend-label">vs mes ant.</span>
         </div>
       )}
@@ -62,7 +64,7 @@ function BarRow({ label, value, maxValue, color, right }) {
 }
 
 function GananciaChip({ ganancia, margen }) {
-  const color = ganancia > 0 ? "#2CB67D" : ganancia < 0 ? "#E84040" : "#8A8A85";
+  const color = ganancia > 0 ? "#047857" : ganancia < 0 ? "#b91c1c" : "#6b7280";
   return (
     <span className="rv-ganancia-chip" style={{ color, borderColor: `${color}40`, background: `${color}12` }}>
       {ganancia >= 0 ? "+" : ""}{fmt(ganancia)}
@@ -118,14 +120,14 @@ function CalendarioHeatmap({ dias = [], año, mes }) {
           const isHot = tooltip?.dia === c.dia;
           return (
             <div key={c.dia} className="rv-cal-cell"
-              style={{ background: c.rec > 0 ? `rgba(232,160,32,${alpha})` : "rgba(255,255,255,0.04)", color: alpha > 0.5 ? "#000" : "rgba(255,255,255,0.4)", outline: isHot ? "2px solid #E8A020" : "none" }}
+              style={{ background: c.rec > 0 ? `rgba(30,58,138,${alpha})` : "#f1f5f9", color: alpha > 0.5 ? "#fff" : "#94a3b8", outline: isHot ? "2px solid #1e3a8a" : "none" }}
               onMouseEnter={() => setTooltip(c)} onMouseLeave={() => setTooltip(null)}>
               {c.dia}
               {isHot && (
                 <div className="rv-cal-tooltip">
                   <strong>Día {c.dia}</strong>
                   <span>{fmt(c.rec)}</span>
-                  <span style={{ color: "#2CB67D" }}>Gan: {fmt(c.gan)}</span>
+                  <span style={{ color: "#047857" }}>Gan: {fmt(c.gan)}</span>
                   <span className="rv-cal-tooltip-sub">{c.ventas} venta{c.ventas !== 1 ? "s" : ""}</span>
                 </div>
               )}
@@ -135,7 +137,7 @@ function CalendarioHeatmap({ dias = [], año, mes }) {
       </div>
       <div className="rv-cal-legend">
         <span>Menos</span>
-        {[0.12, 0.3, 0.5, 0.7, 0.9].map((o) => <div key={o} className="rv-cal-legend-dot" style={{ background: `rgba(232,160,32,${o})` }} />)}
+        {[0.12, 0.3, 0.5, 0.7, 0.9].map((o) => <div key={o} className="rv-cal-legend-dot" style={{ background: `rgba(30,58,138,${o})` }} />)}
         <span>Más</span>
       </div>
     </div>
@@ -155,12 +157,12 @@ function VistaAnual({ data, onSelectMes }) {
   return (
     <>
       <div className="rv-kpis">
-        <KPICard label="Total recaudado"   value={fmt(totRec)}   sub={`Año ${data?.año}`}            icon={DollarSign}       color="#E8A020" />
-        <KPICard label="Ganancia total"    value={fmt(totGan)}   sub={fmtPct(margenAno)+" margen"}   icon={TrendingUp}       color="#2CB67D" />
-        <KPICard label="Costo productos"   value={fmt(totCosto)} sub="Total invertido"               icon={CircleDollarSign} color="#E84040" />
-        <KPICard label="Total ventas"      value={fmtN(totVen)}  sub="Transacciones"                 icon={ShoppingCart}     color="#9B6DFF" />
-        <KPICard label="Ticket promedio"   value={fmt(ticket)}   sub="Por transacción"               icon={ReceiptText}      color="#38BDF8" />
-        <KPICard label="Unidades vendidas" value={fmtN(totUds)}  sub="Productos despachados"         icon={Package}          color="#F97316" />
+        <KPICard label="Total recaudado"   value={fmt(totRec)}   sub={`Año ${data?.año}`}            icon={DollarSign}       color="#b45309" />
+        <KPICard label="Ganancia total"    value={fmt(totGan)}   sub={fmtPct(margenAno)+" margen"}   icon={TrendingUp}       color="#047857" />
+        <KPICard label="Costo productos"   value={fmt(totCosto)} sub="Total invertido"               icon={CircleDollarSign} color="#b91c1c" />
+        <KPICard label="Total ventas"      value={fmtN(totVen)}  sub="Transacciones"                 icon={ShoppingCart}     color="#4338ca" />
+        <KPICard label="Ticket promedio"   value={fmt(ticket)}   sub="Por transacción"               icon={ReceiptText}      color="#1d4ed8" />
+        <KPICard label="Unidades vendidas" value={fmtN(totUds)}  sub="Productos despachados"         icon={Package}          color="#b45309" />
       </div>
       <div className="rv-seccion">
         <p className="rv-seccion-titulo"><BarChart2 size={12} style={{ display:"inline", marginRight:6, verticalAlign:"middle" }} />Ingresos por mes — clic para ver detalle</p>
@@ -170,8 +172,8 @@ function VistaAnual({ data, onSelectMes }) {
               <button key={m.mes} className={`rv-mes-btn${m.totalVentas ? " rv-mes-activo" : ""}`} onClick={() => m.totalVentas && onSelectMes(m.mes)} title={m.totalVentas ? `Ver ${m.nombreMes || MESES[m.mes]}` : "Sin datos"}>
                 <div className="rv-mes-barra-outer">
                   <div className="rv-mes-barra-doble">
-                    <div className="rv-mes-barra-inner" style={{ height:`${pct(m.totalCosto||0,maxRec)}%`, background: m.totalVentas?"rgba(232,64,64,0.55)":"rgba(255,255,255,0.04)" }} />
-                    <div className="rv-mes-barra-inner" style={{ height:`${pct(m.gananciaTotal||0,maxRec)}%`, background: m.totalVentas?"#2CB67D":"rgba(255,255,255,0.04)" }} />
+                    <div className="rv-mes-barra-inner" style={{ height:`${pct(m.totalCosto||0,maxRec)}%`, background: m.totalVentas?"rgba(185,28,28,0.6)":"#e5e7eb" }} />
+                    <div className="rv-mes-barra-inner" style={{ height:`${pct(m.gananciaTotal||0,maxRec)}%`, background: m.totalVentas?"#047857":"#e5e7eb" }} />
                   </div>
                 </div>
                 <span className="rv-mes-lbl">{MESES_SHORT[m.mes]}</span>
@@ -180,8 +182,8 @@ function VistaAnual({ data, onSelectMes }) {
             ))}
           </div>
           <div className="rv-leyenda-barras">
-            <span className="rv-ley-item"><span className="rv-ley-dot" style={{ background:"#2CB67D" }} />Ganancia</span>
-            <span className="rv-ley-item"><span className="rv-ley-dot" style={{ background:"rgba(232,64,64,0.6)" }} />Costo</span>
+            <span className="rv-ley-item"><span className="rv-ley-dot" style={{ background:"#047857" }} />Ganancia</span>
+            <span className="rv-ley-item"><span className="rv-ley-dot" style={{ background:"rgba(185,28,28,0.6)" }} />Costo</span>
           </div>
         </div>
       </div>
@@ -197,10 +199,10 @@ function VistaAnual({ data, onSelectMes }) {
                 <span className="rv-tabla-mes-nombre">{m.nombreMes || MESES[m.mes]}</span>
                 <span className="rv-tabla-cell">{fmtN(m.totalVentas)}</span>
                 <span className="rv-tabla-cell rv-tabla-cell--accent">{fmt(m.totalRecaudado)}</span>
-                <span className="rv-tabla-cell" style={{ color:"#E84040" }}>{fmt(m.totalCosto)}</span>
-                <span className="rv-tabla-cell" style={{ color:"#2CB67D", fontWeight:600 }}>{fmt(m.gananciaTotal)}</span>
+                <span className="rv-tabla-cell" style={{ color:"#b91c1c" }}>{fmt(m.totalCosto)}</span>
+                <span className="rv-tabla-cell" style={{ color:"#047857", fontWeight:600 }}>{fmt(m.gananciaTotal)}</span>
                 <span className="rv-tabla-cell rv-tabla-cell--right">
-                  <span className="rv-margen-badge" style={{ background:mg>20?"rgba(44,182,125,0.12)":mg>0?"rgba(232,160,32,0.12)":"rgba(232,64,64,0.12)", color:mg>20?"#2CB67D":mg>0?"#E8A020":"#E84040" }}>{fmtPct(mg)}</span>
+                  <span className="rv-margen-badge" style={{ background:mg>20?"rgba(4,120,87,0.12)":mg>0?"rgba(180,83,9,0.12)":"rgba(185,28,28,0.12)", color:mg>20?"#047857":mg>0?"#b45309":"#b91c1c" }}>{fmtPct(mg)}</span>
                 </span>
               </div>
             );
@@ -208,11 +210,11 @@ function VistaAnual({ data, onSelectMes }) {
           <div className="rv-tabla-anual-divider" />
           <div className="rv-tabla-anual-total rv-tabla-6col">
             <span>Total año</span><span>{fmtN(totVen)}</span>
-            <span style={{ color:"#E8A020" }}>{fmt(totRec)}</span>
-            <span style={{ color:"#E84040" }}>{fmt(totCosto)}</span>
-            <span style={{ color:"#2CB67D" }}>{fmt(totGan)}</span>
+            <span style={{ color:"#b45309" }}>{fmt(totRec)}</span>
+            <span style={{ color:"#b91c1c" }}>{fmt(totCosto)}</span>
+            <span style={{ color:"#047857" }}>{fmt(totGan)}</span>
             <span style={{ textAlign:"right" }}>
-              <span className="rv-margen-badge" style={{ background:margenAno>20?"rgba(44,182,125,0.15)":"rgba(232,160,32,0.15)", color:margenAno>20?"#2CB67D":"#E8A020" }}>{fmtPct(margenAno)}</span>
+              <span className="rv-margen-badge" style={{ background:margenAno>20?"rgba(4,120,87,0.15)":"rgba(180,83,9,0.15)", color:margenAno>20?"#047857":"#b45309" }}>{fmtPct(margenAno)}</span>
             </span>
           </div>
         </div>
@@ -235,21 +237,21 @@ function VistaMensual({ reporte: r }) {
   return (
     <>
       <div className="rv-kpis">
-        <KPICard label="Total recaudado"   value={fmt(totRec)}                   sub={`${r.nombreMes} ${r.año}`}   icon={DollarSign}       color="#E8A020" />
-        <KPICard label="Ganancia neta"     value={fmt(ganancia)}                 sub={`Margen ${fmtPct(margen)}`}  icon={TrendingUp}       color="#2CB67D" diagnostico={diagnostico} />
-        <KPICard label="Costo productos"   value={fmt(costo)}                    sub="Total invertido"             icon={CircleDollarSign} color="#E84040" />
-        <KPICard label="Total ventas"      value={fmtN(r.totalVentas)}           sub="Transacciones"               icon={ShoppingCart}     color="#9B6DFF" />
-        <KPICard label="Ticket promedio"   value={fmt(r.ticketPromedio)}         sub="Por transacción"             icon={ReceiptText}      color="#38BDF8" />
-        <KPICard label="Unidades vendidas" value={fmtN(r.totalUnidadesVendidas)} sub="Productos despachados"       icon={Package}          color="#F97316" />
+        <KPICard label="Total recaudado"   value={fmt(totRec)}                   sub={`${r.nombreMes} ${r.año}`}   icon={DollarSign}       color="#b45309" />
+        <KPICard label="Ganancia neta"     value={fmt(ganancia)}                 sub={`Margen ${fmtPct(margen)}`}  icon={TrendingUp}       color="#047857" diagnostico={diagnostico} />
+        <KPICard label="Costo productos"   value={fmt(costo)}                    sub="Total invertido"             icon={CircleDollarSign} color="#b91c1c" />
+        <KPICard label="Total ventas"      value={fmtN(r.totalVentas)}           sub="Transacciones"               icon={ShoppingCart}     color="#4338ca" />
+        <KPICard label="Ticket promedio"   value={fmt(r.ticketPromedio)}         sub="Por transacción"             icon={ReceiptText}      color="#1d4ed8" />
+        <KPICard label="Unidades vendidas" value={fmtN(r.totalUnidadesVendidas)} sub="Productos despachados"       icon={Package}          color="#b45309" />
       </div>
       <div className="rv-seccion">
         <p className="rv-seccion-titulo"><Percent size={12} style={{ display:"inline", marginRight:6, verticalAlign:"middle" }} />Desglose financiero del mes</p>
         <div className="rv-card rv-desglose-card">
-          <div className="rv-desglose-barra-wrap"><div className="rv-desglose-barra"><div className="rv-desglose-seg" style={{ width:`${pct(costo,totRec)}%`, background:"#E84040", opacity:0.7 }} /><div className="rv-desglose-seg" style={{ width:`${pct(ganancia,totRec)}%`, background:"#2CB67D" }} /></div></div>
+          <div className="rv-desglose-barra-wrap"><div className="rv-desglose-barra"><div className="rv-desglose-seg" style={{ width:`${pct(costo,totRec)}%`, background:"#b91c1c", opacity:0.7 }} /><div className="rv-desglose-seg" style={{ width:`${pct(ganancia,totRec)}%`, background:"#047857" }} /></div></div>
           <div className="rv-desglose-items">
-            <div className="rv-desglose-item"><span className="rv-desglose-dot" style={{ background:"#E8A020" }} /><span className="rv-desglose-lbl">Recaudado</span><span className="rv-desglose-val" style={{ color:"#E8A020" }}>{fmt(totRec)}</span><span className="rv-desglose-pct">100%</span></div>
-            <div className="rv-desglose-item"><span className="rv-desglose-dot" style={{ background:"#E84040" }} /><span className="rv-desglose-lbl">Costo</span><span className="rv-desglose-val" style={{ color:"#E84040" }}>{fmt(costo)}</span><span className="rv-desglose-pct">{fmtPct(pct(costo,totRec))}</span></div>
-            <div className="rv-desglose-item"><span className="rv-desglose-dot" style={{ background:"#2CB67D" }} /><span className="rv-desglose-lbl">Ganancia</span><span className="rv-desglose-val" style={{ color:"#2CB67D" }}>{fmt(ganancia)}</span><span className="rv-desglose-pct">{fmtPct(margen)}</span></div>
+            <div className="rv-desglose-item"><span className="rv-desglose-dot" style={{ background:"#b45309" }} /><span className="rv-desglose-lbl">Recaudado</span><span className="rv-desglose-val" style={{ color:"#b45309" }}>{fmt(totRec)}</span><span className="rv-desglose-pct">100%</span></div>
+            <div className="rv-desglose-item"><span className="rv-desglose-dot" style={{ background:"#b91c1c" }} /><span className="rv-desglose-lbl">Costo</span><span className="rv-desglose-val" style={{ color:"#b91c1c" }}>{fmt(costo)}</span><span className="rv-desglose-pct">{fmtPct(pct(costo,totRec))}</span></div>
+            <div className="rv-desglose-item"><span className="rv-desglose-dot" style={{ background:"#047857" }} /><span className="rv-desglose-lbl">Ganancia</span><span className="rv-desglose-val" style={{ color:"#047857" }}>{fmt(ganancia)}</span><span className="rv-desglose-pct">{fmtPct(margen)}</span></div>
           </div>
         </div>
       </div>
@@ -269,12 +271,12 @@ function VistaMensual({ reporte: r }) {
       <div className="rv-seccion">
         <p className="rv-seccion-titulo"><TrendingUp size={12} style={{ display:"inline", marginRight:6, verticalAlign:"middle" }} />Resumen de pagos</p>
         <div className="rv-card rv-pagos-grid">
-          <div className="rv-pago-item"><span className="rv-pago-label">Monto cobrado</span><span className="rv-pago-value" style={{ color:"#E8A020" }}>{fmt(r.totalRecaudado)}</span></div>
-          <div className="rv-pago-item"><span className="rv-pago-label">Costo productos</span><span className="rv-pago-value" style={{ color:"#E84040" }}>{fmt(r.totalCosto)}</span></div>
-          <div className="rv-pago-item"><span className="rv-pago-label">Ganancia neta</span><span className="rv-pago-value" style={{ color:"#2CB67D" }}>{fmt(r.gananciaTotal)}</span></div>
-          <div className="rv-pago-item"><span className="rv-pago-label">Margen</span><span className="rv-pago-value" style={{ color:"#9B6DFF" }}>{fmtPct(r.margenPromedio)}</span></div>
-          <div className="rv-pago-item"><span className="rv-pago-label">Monto recibido</span><span className="rv-pago-value" style={{ color:"#38BDF8" }}>{fmt(r.totalMontoPagado)}</span></div>
-          <div className="rv-pago-item"><span className="rv-pago-label">Vuelto devuelto</span><span className="rv-pago-value" style={{ color:"#8A8A85" }}>{fmt(r.totalVuelto)}</span></div>
+          <div className="rv-pago-item"><span className="rv-pago-label">Monto cobrado</span><span className="rv-pago-value" style={{ color:"#b45309" }}>{fmt(r.totalRecaudado)}</span></div>
+          <div className="rv-pago-item"><span className="rv-pago-label">Costo productos</span><span className="rv-pago-value" style={{ color:"#b91c1c" }}>{fmt(r.totalCosto)}</span></div>
+          <div className="rv-pago-item"><span className="rv-pago-label">Ganancia neta</span><span className="rv-pago-value" style={{ color:"#047857" }}>{fmt(r.gananciaTotal)}</span></div>
+          <div className="rv-pago-item"><span className="rv-pago-label">Margen</span><span className="rv-pago-value" style={{ color:"#4338ca" }}>{fmtPct(r.margenPromedio)}</span></div>
+          <div className="rv-pago-item"><span className="rv-pago-label">Monto recibido</span><span className="rv-pago-value" style={{ color:"#1d4ed8" }}>{fmt(r.totalMontoPagado)}</span></div>
+          <div className="rv-pago-item"><span className="rv-pago-label">Vuelto devuelto</span><span className="rv-pago-value" style={{ color:"#6b7280" }}>{fmt(r.totalVuelto)}</span></div>
         </div>
       </div>
       <div className="rv-seccion">
