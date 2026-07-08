@@ -90,16 +90,70 @@ const convertirA12Horas = (hora24) => {
   return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${p}`;
 };
 
+// Convierte texto libre a formato 24h "HH:MM". Devuelve "" si no es válido.
+// Acepta: "2:10 PM", "2:10pm", "2:10 p.m.", "2:10 P. M." y también 24h "14:10".
 const convertir12hA24h = (hora12) => {
   if (!hora12) return "";
-  const match = hora12.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (!match) return "";
-  let h = parseInt(match[1]);
-  const m = match[2];
-  const p = match[3].toUpperCase();
-  if (p === "PM" && h !== 12) h += 12;
-  else if (p === "AM" && h === 12) h = 0;
-  return `${String(h).padStart(2, "0")}:${m}`;
+  const txt = String(hora12).trim();
+  // Formato 12h con meridiano (AM/PM, con o sin puntos/espacios)
+  const m12 = txt.match(/^(\d{1,2}):(\d{2})\s*([ap])\.?\s*m\.?$/i);
+  if (m12) {
+    let h = parseInt(m12[1]);
+    const m = m12[2];
+    const esPM = m12[3].toLowerCase() === "p";
+    if (h < 1 || h > 12 || parseInt(m) > 59) return "";
+    if (esPM && h !== 12) h += 12;
+    else if (!esPM && h === 12) h = 0;
+    return `${String(h).padStart(2, "0")}:${m}`;
+  }
+  // Formato 24h "HH:MM" — solo si es inequívoco (00 o 13-23). Para 1-12 sin
+  // AM/PM es ambiguo, así que se rechaza y se obliga a indicar AM o PM.
+  const m24 = txt.match(/^(\d{1,2}):(\d{2})$/);
+  if (m24) {
+    const h = parseInt(m24[1]);
+    if (h > 23 || parseInt(m24[2]) > 59) return "";
+    if (h === 0 || h >= 13) return `${String(h).padStart(2, "0")}:${m24[2]}`;
+    return "";
+  }
+  return "";
+};
+
+// Distancia en minutos entre dos momentos del día (circular, considera medianoche)
+const distanciaMinutos = (a, b) => {
+  const d = Math.abs(a - b);
+  return Math.min(d, 1440 - d);
+};
+
+// Cuando el usuario escribe una hora ambigua (1-12 sin AM/PM), el sistema
+// decide AM o PM eligiendo la opción MÁS CERCANA a la hora actual.
+const inferirMeridiano = (h12, min) => {
+  const ahora = new Date();
+  const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
+  const versionAM = (h12 % 12) * 60 + min;
+  const versionPM = ((h12 % 12) + 12) * 60 + min;
+  return distanciaMinutos(minutosAhora, versionPM) <=
+    distanciaMinutos(minutosAhora, versionAM)
+    ? "PM"
+    : "AM";
+};
+
+// Resuelve el texto libre del campo a formato canónico "2:10 PM".
+// Si falta AM/PM, el sistema lo decide solo. Devuelve "" solo si es basura.
+const resolverHora12h = (texto) => {
+  const hora24 = convertir12hA24h(texto);
+  if (hora24) return convertirA12Horas(hora24);
+  // Hora ambigua "H:MM" (1-12) sin meridiano → inferir AM/PM
+  const m = String(texto || "")
+    .trim()
+    .match(/^(\d{1,2}):(\d{2})$/);
+  if (m) {
+    const h = parseInt(m[1]);
+    const min = parseInt(m[2]);
+    if (h >= 1 && h <= 12 && min <= 59) {
+      return `${h}:${m[2]} ${inferirMeridiano(h, min)}`;
+    }
+  }
+  return "";
 };
 
 const PlaysManagement = () => {
@@ -109,6 +163,8 @@ const PlaysManagement = () => {
   const [editando, setEditando] = useState(null);
   const [mostrarNotificacion, setMostrarNotificacion] = useState(false);
   const [notificacion, setNotificacion] = useState(null);
+  // ✅ Marca si el usuario escribió la Hora Inicio a mano (para no sobrescribirla)
+  const [horaInicioManual, setHoraInicioManual] = useState(false);
 
   // filtros: lo que el usuario está escribiendo en el panel (NO dispara fetch)
   const [filtros, setFiltros] = useState(FILTROS_VACIOS);
@@ -173,13 +229,15 @@ const PlaysManagement = () => {
 
   useEffect(() => {
     if (formData.horaInicio && formData.tiempoPagado > 0) {
-      const hora24 = convertir12hA24h(formData.horaInicio);
-      setFormData((prev) => ({
-        ...prev,
-        horaFinal: convertirA12Horas(
-          sumarMinutosAHora(hora24, formData.tiempoPagado),
-        ),
-      }));
+      const hora24 = convertir12hA24h(resolverHora12h(formData.horaInicio));
+      if (hora24) {
+        setFormData((prev) => ({
+          ...prev,
+          horaFinal: convertirA12Horas(
+            sumarMinutosAHora(hora24, formData.tiempoPagado),
+          ),
+        }));
+      }
     }
   }, [formData.horaInicio, formData.tiempoPagado]);
 
@@ -197,6 +255,17 @@ const PlaysManagement = () => {
     formData.controlAdicional,
     calcularCostos,
   ]);
+
+  // ✅ Mientras el formulario de NUEVO registro esté abierto, refresca la
+  //    Hora Inicio cada 15s a la hora actual, salvo que el usuario la haya
+  //    escrito a mano. Así nunca queda congelada aunque pase mucho rato.
+  useEffect(() => {
+    if (!mostrarFormulario || editando || horaInicioManual) return;
+    const intervalo = setInterval(() => {
+      setFormData((prev) => ({ ...prev, horaInicio: obtenerHoraActual12h() }));
+    }, 15000);
+    return () => clearInterval(intervalo);
+  }, [mostrarFormulario, editando, horaInicioManual]);
 
   // ✅ fetchPlays NO tiene filtros en sus dependencias
   //    Siempre recibe filtrosActuales como parámetro → tipear en el panel no recarga nada
@@ -289,10 +358,21 @@ const PlaysManagement = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    // Si el usuario escribe la Hora Inicio, dejamos de refrescarla automáticamente
+    if (name === "horaInicio") setHoraInicioManual(true);
     setFormData((prev) => ({
       ...prev,
       [name]: name === "controlAdicional" ? Number(value) : value,
     }));
+  };
+
+  // ✅ Al salir del campo Hora Inicio, lo dejamos en formato canónico "2:10 PM"
+  //    si es interpretable (acepta 24h, con/sin puntos, minúsculas, etc.)
+  const normalizarHoraInicio = () => {
+    const canonica = resolverHora12h(formData.horaInicio);
+    if (canonica) {
+      setFormData((prev) => ({ ...prev, horaInicio: canonica }));
+    }
   };
 
   const handleTiempoPagadoChange = (tipo, valor) => {
@@ -349,6 +429,17 @@ const PlaysManagement = () => {
     setFormData((prev) => ({ ...prev, juegosJugados: sel }));
   };
 
+  // ✅ Abre el formulario de nuevo registro refrescando la hora de inicio
+  //    a la hora ACTUAL (evita que quede congelada si la app estuvo inactiva)
+  const abrirFormularioNuevo = () => {
+    setHoraInicioManual(false);
+    setFormData((prev) => ({
+      ...prev,
+      horaInicio: obtenerHoraActual12h(),
+    }));
+    setMostrarFormulario(true);
+  };
+
   const limpiarFormulario = () => {
     setFormData({
       cliente: "",
@@ -366,6 +457,7 @@ const PlaysManagement = () => {
     setTiempoPendienteInput({ horas: "", minutos: "" });
     setDesgloseCostos({ subtotal: 0, costoControles: 0, total: 0 });
     setEditando(null);
+    setHoraInicioManual(false);
     setMostrarFormulario(false);
   };
 
@@ -386,6 +478,21 @@ const PlaysManagement = () => {
       );
       return;
     }
+    // ✅ Resolver la hora de inicio (el sistema infiere AM/PM si falta) y
+    //    recalcular la hora final desde ahí, por si se guarda sin salir del campo.
+    const horaInicio24 = convertir12hA24h(resolverHora12h(formData.horaInicio));
+    if (!horaInicio24) {
+      mostrarNotif(
+        "La hora de inicio no es válida",
+        "warning",
+        "Escribí una hora como 2:10 (el sistema pone AM/PM) o 2:10 PM.",
+      );
+      return;
+    }
+    const horaFinal24 =
+      formData.tiempoPagado > 0
+        ? sumarMinutosAHora(horaInicio24, formData.tiempoPagado)
+        : convertir12hA24h(formData.horaFinal);
     try {
       const axios = await getAxios();
       const datosAEnviar = {
@@ -393,8 +500,8 @@ const PlaysManagement = () => {
         atendio: formData.atendio,
         tiempoPagado: formData.tiempoPagado,
         tiempoPendiente: formData.tiempoPendiente,
-        horaInicio: convertir12hA24h(formData.horaInicio),
-        horaFinal: convertir12hA24h(formData.horaFinal),
+        horaInicio: horaInicio24,
+        horaFinal: horaFinal24,
         lugarDeJuego: formData.lugarDeJuego,
         juegosJugados: formData.juegosJugados,
         controlAdicional: formData.controlAdicional,
@@ -538,9 +645,7 @@ const PlaysManagement = () => {
             <button
               className="btn btn-success btn-lg"
               onClick={() =>
-                mostrarFormulario
-                  ? limpiarFormulario()
-                  : setMostrarFormulario(true)
+                mostrarFormulario ? limpiarFormulario() : abrirFormularioNuevo()
               }
             >
               {mostrarFormulario ? "❌ Cancelar" : "➕ Nuevo Registro"}
@@ -744,6 +849,7 @@ const PlaysManagement = () => {
                         name="horaInicio"
                         value={formData.horaInicio}
                         onChange={handleInputChange}
+                        onBlur={normalizarHoraInicio}
                         placeholder="2:10 PM"
                         required
                       />
