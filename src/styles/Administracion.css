@@ -995,6 +995,31 @@
 
 .activos-header__nuevo { height: 44px; }
 
+/* Bloque de filtros de Activos: grupos con título ("Reparación", "Categoría") */
+.activos-filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+}
+
+.filtro-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.filtro-grupo__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+}
+
 .filtro-chips {
   display: flex;
   gap: 0.5rem;

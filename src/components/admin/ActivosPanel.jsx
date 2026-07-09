@@ -969,28 +969,36 @@ const ActivosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
         </button>
       </div>
 
-      <div className="filtro-chips mb-2">
-        {FILTROS_TIPO.map((f) => (
-          <button
-            key={f.valor}
-            className={`filtro-chip ${filtroTipo === f.valor ? "filtro-chip--activo" : ""}`}
-            onClick={() => cambiarFiltro(f.valor)}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <div className="activos-filtros mb-4">
+        <div className="filtro-grupo">
+          <span className="filtro-grupo__label">Reparación</span>
+          <div className="filtro-chips">
+            {FILTROS_TIPO.map((f) => (
+              <button
+                key={f.valor}
+                className={`filtro-chip ${filtroTipo === f.valor ? "filtro-chip--activo" : ""}`}
+                onClick={() => cambiarFiltro(f.valor)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      <div className="filtro-chips mb-4">
-        {FILTROS_CATEGORIA.map((f) => (
-          <button
-            key={f.valor}
-            className={`filtro-chip ${filtroCategoria === f.valor ? "filtro-chip--activo" : ""}`}
-            onClick={() => cambiarFiltroCategoria(f.valor)}
-          >
-            {f.label}
-          </button>
-        ))}
+        <div className="filtro-grupo">
+          <span className="filtro-grupo__label">Categoría</span>
+          <div className="filtro-chips">
+            {FILTROS_CATEGORIA.map((f) => (
+              <button
+                key={f.valor}
+                className={`filtro-chip ${filtroCategoria === f.valor ? "filtro-chip--activo" : ""}`}
+                onClick={() => cambiarFiltroCategoria(f.valor)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Grid */}
