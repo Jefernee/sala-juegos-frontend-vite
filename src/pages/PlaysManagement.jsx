@@ -18,6 +18,7 @@ const LUGARES_JUEGO = [
   "Play 4 número 3",
   "Play 5 número 1",
   "Play 5 número 2",
+  "Play 5 número 3",
   "Ping Pong",
 ];
 
@@ -181,7 +182,7 @@ const PlaysManagement = () => {
     horaFinal: "",
     lugarDeJuego: "",
     juegosJugados: [],
-    controlAdicional: 0,
+    totalControles: 1,
     estadoPago: "En Proceso",
   });
 
@@ -213,7 +214,7 @@ const PlaysManagement = () => {
   }, []);
 
   const calcularCostos = useCallback(
-    (lugarDeJuego, tiempoPagado, controlAdicional) => {
+    (lugarDeJuego, tiempoPagado, totalControles) => {
       if (!lugarDeJuego || !tiempoPagado)
         return { subtotal: 0, costoControles: 0, total: 0 };
       let pph = 0;
@@ -221,11 +222,19 @@ const PlaysManagement = () => {
       else if (lugarDeJuego.includes("Play 4")) pph = 800;
       else if (lugarDeJuego === "Ping Pong") pph = 800;
       const subtotal = Math.round((tiempoPagado / 60) * pph);
-      const costoControles = controlAdicional * 200;
+      // Los 2 primeros controles son gratis; del 3.º en adelante ₡200 c/u.
+      const controlesPagados = Math.max(0, (totalControles || 0) - 2);
+      const costoControles = controlesPagados * 200;
       return { subtotal, costoControles, total: subtotal + costoControles };
     },
     [],
   );
+
+  // Controles totales de un play para mostrar en la lista
+  // (compatibilidad con registros viejos que solo tenían controlAdicional)
+  const controlesDe = (play) =>
+    play.totalControles ??
+    ((play.controlAdicional || 0) > 0 ? play.controlAdicional + 2 : 0);
 
   useEffect(() => {
     if (formData.horaInicio && formData.tiempoPagado > 0) {
@@ -246,13 +255,13 @@ const PlaysManagement = () => {
       calcularCostos(
         formData.lugarDeJuego,
         formData.tiempoPagado,
-        formData.controlAdicional,
+        formData.totalControles,
       ),
     );
   }, [
     formData.lugarDeJuego,
     formData.tiempoPagado,
-    formData.controlAdicional,
+    formData.totalControles,
     calcularCostos,
   ]);
 
@@ -362,7 +371,7 @@ const PlaysManagement = () => {
     if (name === "horaInicio") setHoraInicioManual(true);
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "controlAdicional" ? Number(value) : value,
+      [name]: name === "totalControles" ? Number(value) : value,
     }));
   };
 
@@ -450,7 +459,7 @@ const PlaysManagement = () => {
       horaFinal: "",
       lugarDeJuego: "",
       juegosJugados: [],
-      controlAdicional: 0,
+      totalControles: 1,
       estadoPago: "En Proceso",
     });
     setTiempoPagadoInput({ horas: "", minutos: "" });
@@ -495,6 +504,8 @@ const PlaysManagement = () => {
         : convertir12hA24h(formData.horaFinal);
     try {
       const axios = await getAxios();
+      // Los 2 primeros controles son gratis; del 3.º en adelante ₡200 c/u.
+      const controlesPagados = Math.max(0, formData.totalControles - 2);
       const datosAEnviar = {
         cliente: formData.cliente,
         atendio: formData.atendio,
@@ -504,7 +515,8 @@ const PlaysManagement = () => {
         horaFinal: horaFinal24,
         lugarDeJuego: formData.lugarDeJuego,
         juegosJugados: formData.juegosJugados,
-        controlAdicional: formData.controlAdicional,
+        totalControles: formData.totalControles, // total de controles usados (1-4)
+        controlAdicional: controlesPagados,       // controles pagados (compat. costo/reportes)
         estadoPago: formData.estadoPago,
       };
       if (editando) {
@@ -563,7 +575,9 @@ const PlaysManagement = () => {
       horaFinal: convertirA12Horas(play.horaFinal),
       lugarDeJuego: play.lugarDeJuego,
       juegosJugados: play.juegosJugados || [],
-      controlAdicional: play.controlAdicional || 0,
+      totalControles:
+        play.totalControles ??
+        ((play.controlAdicional || 0) > 0 ? play.controlAdicional + 2 : 1),
       estadoPago: play.estadoPago || "En Proceso",
     });
     setEditando(play._id);
@@ -875,18 +889,23 @@ const PlaysManagement = () => {
                     </div>
                     <div className="col-12 col-md-6">
                       <label className="form-label fw-bold">
-                        Controles Adicionales (₡200 c/u)
+                        Controles <span className="text-danger">*</span>
                       </label>
                       <select
                         className="form-select form-select-lg custom-select-mobile"
-                        name="controlAdicional"
-                        value={formData.controlAdicional}
+                        name="totalControles"
+                        value={formData.totalControles}
                         onChange={handleInputChange}
+                        required
                       >
-                        <option value={0}>Sin control adicional</option>
-                        <option value={1}>1 control (+₡200)</option>
-                        <option value={2}>2 controles (+₡400)</option>
+                        <option value={1}>1 control — Gratis</option>
+                        <option value={2}>2 controles — Gratis</option>
+                        <option value={3}>3 controles (+₡200)</option>
+                        <option value={4}>4 controles (+₡400)</option>
                       </select>
+                      <small className="text-muted d-block mt-1">
+                        Los 2 primeros controles son gratis. Del 3.º en adelante ₡200 c/u.
+                      </small>
                     </div>
                     <div className="col-12 col-md-6">
                       <label className="form-label fw-bold">
@@ -918,9 +937,11 @@ const PlaysManagement = () => {
                             </strong>
                           </div>
                           <div className="d-flex justify-content-between mb-2">
-                            <span>Controles extra:</span>
+                            <span>Controles ({formData.totalControles}):</span>
                             <strong>
-                              ₡{desgloseCostos.costoControles.toLocaleString()}
+                              {desgloseCostos.costoControles > 0
+                                ? `₡${desgloseCostos.costoControles.toLocaleString()}`
+                                : "Gratis"}
                             </strong>
                           </div>
                           <hr className="my-2" />
@@ -1166,9 +1187,9 @@ const PlaysManagement = () => {
                             <div className="fw-bold fs-5 text-success">
                               ₡{play.total.toLocaleString()}
                             </div>
-                            {play.controlAdicional > 0 && (
+                            {controlesDe(play) > 0 && (
                               <small className="text-muted d-block">
-                                +{play.controlAdicional} control(es)
+                                🎮 {controlesDe(play)} control(es)
                               </small>
                             )}
                           </td>

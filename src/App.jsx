@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import AppRouter from "./components/AppRouter";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Home2 from "./pages/Home2";
 import Login from "./pages/Login";
 import Inscripcion from "./pages/Inscripcion";
@@ -21,6 +22,7 @@ const PageLoader = () => <div>Cargando...</div>;
 function App() {
   return (
     <AppRouter>
+      <ErrorBoundary>
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Rutas públicas */}
@@ -43,6 +45,7 @@ function App() {
           <Route path="/dashboard/administracion" element={<Administracion />} />
         </Routes>
       </Suspense>
+      </ErrorBoundary>
     </AppRouter>
   );
 }
