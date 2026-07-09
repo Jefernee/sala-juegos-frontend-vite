@@ -277,9 +277,9 @@ const PlaysManagement = () => {
     calcularCostos,
   ]);
 
-  // En modo "monto": calcula el tiempo equivalente a partir del monto recibido.
-  // Resta primero el costo de los controles (los 2 primeros gratis) y convierte
-  // el resto a minutos según ₡/hora del lugar, redondeando a múltiplos de 5 min.
+  // En modo "monto": el monto ingresado es el pago por el TIEMPO. Los controles
+  // se cobran aparte (se suman al total). Convertimos el monto a minutos según
+  // ₡/hora del lugar, redondeando a múltiplos de 5 min.
   useEffect(() => {
     if (modoRegistro !== "monto") return;
     const monto = Number(montoInput) || 0;
@@ -289,13 +289,11 @@ const PlaysManagement = () => {
       setFormData((prev) => ({ ...prev, tiempoPagado: 0 }));
       return;
     }
-    const controlesPagados = Math.max(0, (Number(formData.totalControles) || 0) - 2);
-    const montoTiempo = Math.max(0, monto - controlesPagados * 200);
-    let min = Math.round((montoTiempo / pph) * 60);
+    let min = Math.round((monto / pph) * 60);
     min = Math.round(min / 5) * 5; // múltiplos de 5 min
     setTiempoPagadoInput({ horas: Math.floor(min / 60) || "", minutos: min % 60 });
     setFormData((prev) => ({ ...prev, tiempoPagado: min }));
-  }, [modoRegistro, montoInput, formData.lugarDeJuego, formData.totalControles]);
+  }, [modoRegistro, montoInput, formData.lugarDeJuego]);
 
   // ✅ Mientras el formulario de NUEVO registro esté abierto, refresca la
   //    Hora Inicio cada 15s a la hora actual, salvo que el usuario la haya
@@ -406,14 +404,16 @@ const PlaysManagement = () => {
     filtros.minPendienteMinutos !== "";
 
   // Valores para el "Resumen de Cobro" (funciona en ambos modos: tiempo y monto).
-  // El costo de controles es independiente del tiempo (los 2 primeros gratis).
+  // El costo de controles es independiente del tiempo (los 2 primeros gratis) y
+  // SIEMPRE se suma aparte. En modo monto el subtotal de tiempo es el monto
+  // ingresado; en modo tiempo se calcula desde el tiempo.
   const controlesPagadosUI = Math.max(0, (Number(formData.totalControles) || 0) - 2);
   const costoControlesUI = controlesPagadosUI * 200;
-  const montoFinalUI =
+  const subtotalTiempoUI =
     modoRegistro === "monto"
       ? Number(montoInput) || 0
-      : desgloseCostos.total;
-  const subtotalTiempoUI = Math.max(0, montoFinalUI - costoControlesUI);
+      : desgloseCostos.subtotal;
+  const montoFinalUI = subtotalTiempoUI + costoControlesUI;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -570,11 +570,12 @@ const PlaysManagement = () => {
       const axios = await getAxios();
       // Los 2 primeros controles son gratis; del 3.º en adelante ₡200 c/u.
       const controlesPagados = Math.max(0, formData.totalControles - 2);
-      // Monto real cobrado: en modo "monto" es el exacto ingresado; en modo
-      // "tiempo" es el total calculado (tiempo + controles).
+      // Monto real cobrado (ingreso): tiempo + controles en ambos modos.
+      // En modo "monto" el monto ingresado es el pago del tiempo y los controles
+      // se suman aparte; en modo "tiempo" es el total calculado.
       const montoPagado =
         modoRegistro === "monto"
-          ? Number(montoInput) || 0
+          ? (Number(montoInput) || 0) + controlesPagados * 200
           : calcularCostos(
               formData.lugarDeJuego,
               formData.tiempoPagado,
@@ -893,7 +894,7 @@ const PlaysManagement = () => {
                     ) : (
                       <div className="col-12">
                         <label className="form-label fw-bold">
-                          Monto recibido *
+                          Monto por el tiempo *
                         </label>
                         <div className="input-group input-group-lg">
                           <span className="input-group-text">₡</span>
@@ -921,7 +922,7 @@ const PlaysManagement = () => {
                           </small>
                         )}
                         <small className="text-muted d-block mt-1">
-                          💡 Se guarda el monto exacto. El tiempo se calcula y redondea a 5 min.
+                          💡 Es el pago por el tiempo (se calcula y redondea a 5 min). Los controles se suman aparte.
                         </small>
                       </div>
                     )}
@@ -1080,9 +1081,7 @@ const PlaysManagement = () => {
                           </div>
                           <hr className="my-2" />
                           <div className="d-flex justify-content-between">
-                            <span className="fw-bold fs-5">
-                              {modoRegistro === "monto" ? "MONTO RECIBIDO:" : "TOTAL:"}
-                            </span>
+                            <span className="fw-bold fs-5">TOTAL A COBRAR:</span>
                             <span className="fw-bold fs-4 text-success">
                               ₡{montoFinalUI.toLocaleString()}
                             </span>
