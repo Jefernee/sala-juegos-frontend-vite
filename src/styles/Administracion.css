@@ -995,9 +995,29 @@
 
 .activos-header__nuevo { height: 44px; }
 
+/* Encabezado de la sección de filtros */
+.activos-filtros-titulo {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.6rem;
+}
+
 /* Bloque de filtros de Activos: grupos con título ("Reparación", "Categoría") */
 .activos-filtros {
   display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+}
+
+/* Desplegables de filtro: solo visibles en móvil (en desktop mandan los chips).
+   Apilados a ancho completo para que no se corten los nombres largos */
+.activos-filtros-movil {
+  display: none;
   flex-direction: column;
   gap: 1rem;
   padding: 1rem 1.1rem;
@@ -1245,6 +1265,22 @@
   font-size: 0.78rem;
 }
 
+/* Señal de que la card se puede abrir para ver el detalle */
+.activo-card__vermas {
+  margin-top: 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #60a5fa;
+  text-align: right;
+  opacity: 0.8;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.activo-card:hover .activo-card__vermas {
+  opacity: 1;
+  transform: translateX(3px);
+}
+
 /* Acciones visibles en la card */
 .activo-card__acciones {
   display: flex;
@@ -1275,6 +1311,77 @@
   text-transform: uppercase;
   letter-spacing: 0.6px;
   margin-bottom: 0.85rem;
+}
+
+/* ─── HISTORIAL / LISTA DE REPARACIONES ─────────────────────────────────── */
+.rep-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.rep-total__label { font-size: 0.8rem; color: #94a3b8; font-weight: 600; }
+.rep-total__monto { font-size: 1.05rem; font-weight: 700; color: #fbbf24; }
+
+.rep-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rep-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+
+.rep-item__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.rep-item__monto { font-size: 1.05rem; font-weight: 700; color: #fbbf24; }
+.rep-item__fecha { font-size: 0.78rem; color: #94a3b8; margin-bottom: 0.3rem; }
+
+.rep-item__dato {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  margin-top: 0.15rem;
+}
+
+.rep-item__dato strong { color: #e2e8f0; font-weight: 600; }
+
+.rep-item__factura {
+  margin-top: 0.6rem;
+  display: inline-flex;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.rep-item__factura img { height: 70px; width: auto; display: block; }
+
+.rep-item__acciones {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 /* Badges de estado */
@@ -1595,6 +1702,10 @@
 
   .activos-header { flex-direction: column; align-items: stretch; }
   .activos-header__nuevo { width: 100%; }
+
+  /* Filtros en móvil: desplegables nativos (fáciles de tocar) en vez de chips */
+  .activos-filtros--desktop { display: none; }
+  .activos-filtros-movil { display: flex; }
 
   /* Modales a pantalla casi completa en móvil */
   .admin-modal-overlay { padding: 0.5rem; align-items: flex-end; }

@@ -22,9 +22,10 @@ const COLOR_ESTADO = {
   "Fuera de servicio": "#b91c1c",
   Almacenado: "#6b7280",
 };
-const COLOR_TIPO = {
-  "Nueva Compra": "#047857",
-  "Reparación": "#b45309",
+// Color del desglose con/sin reparación
+const COLOR_REP = {
+  con: "#b45309",
+  sin: "#047857",
 };
 const colorEstado = (e) => COLOR_ESTADO[e] || "#6b7280";
 
@@ -50,17 +51,28 @@ function KPICard({ label, value, sub, icon: Icon, color }) {
   );
 }
 
-// Fila de barra para desgloses (por estado / por tipo)
-function BarRow({ label, cantidad, monto, value, maxValue, color }) {
+// Fila de barra para desgloses (por estado / con-sin reparación).
+// La barra representa el costo de COMPRA; debajo se muestran los dos montos
+// etiquetados (compra vs reparaciones) para que no se confundan.
+function BarRow({ label, cantidad, montoCompra, montoRep, value, maxValue, color }) {
   return (
     <div className="ra-bar-row">
-      <span className="ra-bar-dot" style={{ background: color }} />
-      <span className="ra-bar-label" title={label}>{label}</span>
-      <span className="ra-bar-count">{fmtN(cantidad)}</span>
-      <div className="ra-bar-track">
-        <div className="ra-bar-fill" style={{ width: `${pct(value, maxValue)}%`, background: color }} />
+      <div className="ra-bar-top">
+        <span className="ra-bar-dot" style={{ background: color }} />
+        <span className="ra-bar-label" title={label}>{label}</span>
+        <span className="ra-bar-count">{fmtN(cantidad)}</span>
+        <div className="ra-bar-track">
+          <div className="ra-bar-fill" style={{ width: `${pct(value, maxValue)}%`, background: color }} />
+        </div>
       </div>
-      <span className="ra-bar-val">{fmt(monto)}</span>
+      <div className="ra-bar-montos">
+        <span className="ra-bar-monto ra-bar-monto--compra">
+          <span className="ra-bar-monto-lbl">🛒 Compra</span> {fmt(montoCompra)}
+        </span>
+        <span className="ra-bar-monto ra-bar-monto--rep">
+          <span className="ra-bar-monto-lbl">🔧 Reparaciones</span> {fmt(montoRep)}
+        </span>
+      </div>
     </div>
   );
 }
@@ -95,15 +107,14 @@ export default function ReportesActivos() {
     if (!reporte?.activos?.length) return;
     const cols = [
       ["Placa", (a) => formatPlaca(a)],
-      ["Nombre", (a) => a.nombre || ""],
-      ["Tipo", (a) => a.tipoRegistro || ""],
+      ["Artículo", (a) => a.nombre || ""],
+      ["Categoría", (a) => a.categoria || ""],
       ["Estado", (a) => a.estado || ""],
-      ["Costo", (a) => a.costo ?? ""],
-      ["Costo reparación", (a) => a.costoReparacion ?? ""],
-      ["N° Factura", (a) => a.numeroFactura || ""],
-      ["Problema técnico", (a) => a.problemaTecnico || ""],
-      ["Reparado por", (a) => a.reparadoPor || ""],
-      ["Fecha", (a) => fechaCorta(a.fechaCompraReparacion)],
+      ["Estado manual", (a) => a.estadoOverride || "Automático"],
+      ["Costo de compra", (a) => a.costo ?? ""],
+      ["N° reparaciones", (a) => a.numReparaciones ?? 0],
+      ["Costo reparaciones", (a) => a.costoReparaciones ?? 0],
+      ["Fecha de compra", (a) => fechaCorta(a.fechaCompra)],
     ];
     const escapar = (v) => `"${String(v).replace(/"/g, '""')}"`;
     const filas = [
@@ -142,10 +153,13 @@ export default function ReportesActivos() {
   }
 
   const r = reporte;
-  const estados = [...(r.porEstado || [])].sort((a, b) => (b.costoTotal || 0) - (a.costoTotal || 0));
-  const tipos   = [...(r.porTipo   || [])].sort((a, b) => (b.montoTotal || 0) - (a.montoTotal || 0));
+  // Solo estados con al menos un activo (el backend manda los 5, algunos en 0)
+  const estados = [...(r.porEstado || [])]
+    .filter((e) => (e.cantidad || 0) > 0)
+    .sort((a, b) => (b.costoTotal || 0) - (a.costoTotal || 0));
+  const reps = [...(r.porReparacion || [])].sort((a, b) => (b.montoTotal || 0) - (a.montoTotal || 0));
   const maxEstado = Math.max(...estados.map((e) => e.costoTotal || 0), 1);
-  const maxTipo   = Math.max(...tipos.map((t) => t.montoTotal || 0), 1);
+  const maxRep    = Math.max(...reps.map((t) => t.montoTotal || 0), 1);
   const activos = r.activos || [];
 
   return (
@@ -175,7 +189,7 @@ export default function ReportesActivos() {
         <div className="ra-kpis">
           <KPICard
             label="Total de activos" value={fmtN(r.totalActivos)}
-            sub={`${fmtN(r.totalCompras)} compras · ${fmtN(r.totalReparaciones)} reparaciones`}
+            sub={`${fmtN(r.conReparacion)} con reparación · ${fmtN(r.sinReparacion)} sin`}
             icon={Boxes} color="#4338ca"
           />
           <KPICard
@@ -184,7 +198,7 @@ export default function ReportesActivos() {
           />
           <KPICard
             label="Costo de reparaciones" value={fmt(r.totalCostoReparaciones)}
-            sub="Gastado en arreglos" icon={Wrench} color="#b45309"
+            sub={`${fmtN(r.totalReparaciones)} reparaciones en total`} icon={Wrench} color="#b45309"
           />
           <KPICard
             label="Inversión total" value={fmt(r.inversionTotal)}
@@ -203,25 +217,27 @@ export default function ReportesActivos() {
               {estados.map((e) => (
                 <BarRow
                   key={e.estado} label={e.estado} cantidad={e.cantidad}
-                  monto={e.costoTotal} value={e.costoTotal} maxValue={maxEstado}
+                  montoCompra={e.costoTotal} montoRep={e.costoReparaciones}
+                  value={e.costoTotal} maxValue={maxEstado}
                   color={colorEstado(e.estado)}
                 />
               ))}
             </div>
           </div>
 
-          {/* Desglose por tipo */}
+          {/* Desglose con / sin reparación */}
           <div className="ra-seccion">
             <p className="ra-seccion-titulo">
-              <Tag size={12} /> Por tipo de registro
+              <Tag size={12} /> Con / sin reparación
             </p>
             <div className="ra-card">
-              {tipos.length === 0 && <div className="ra-empty">Sin datos por tipo</div>}
-              {tipos.map((t) => (
+              {reps.length === 0 && <div className="ra-empty">Sin datos de reparación</div>}
+              {reps.map((t) => (
                 <BarRow
-                  key={t.tipoRegistro} label={t.tipoRegistro} cantidad={t.cantidad}
-                  monto={t.montoTotal} value={t.montoTotal} maxValue={maxTipo}
-                  color={COLOR_TIPO[t.tipoRegistro] || "#8A8A85"}
+                  key={t.clave} label={t.label} cantidad={t.cantidad}
+                  montoCompra={t.montoTotal} montoRep={t.costoReparaciones}
+                  value={t.montoTotal} maxValue={maxRep}
+                  color={COLOR_REP[t.clave] || "#8A8A85"}
                 />
               ))}
             </div>
@@ -237,10 +253,10 @@ export default function ReportesActivos() {
             <div className="ra-tabla-head">
               <span>Placa</span>
               <span>Artículo</span>
-              <span>Tipo</span>
+              <span>Categoría</span>
               <span>Estado</span>
               <span className="ra-col-num">Costo</span>
-              <span className="ra-col-num">Reparación</span>
+              <span className="ra-col-num">Reparaciones</span>
             </div>
             <div className="ra-tabla-divider" />
             {activos.length === 0 && <div className="ra-empty">No hay activos registrados</div>}
@@ -248,33 +264,26 @@ export default function ReportesActivos() {
               <div key={a.numeroPlaca ?? a.nombre + i} className="ra-tabla-row">
                 <span className="ra-placa">{formatPlaca(a)}</span>
                 <span className="ra-tabla-nombre" title={a.nombre}>{a.nombre}</span>
+                <span className="ra-tabla-cat" title={a.categoria}>{a.categoria || "—"}</span>
                 <span>
                   <span
                     className="ra-chip"
-                    style={{
-                      color: COLOR_TIPO[a.tipoRegistro] || "#8A8A85",
-                      borderColor: `${COLOR_TIPO[a.tipoRegistro] || "#8A8A85"}40`,
-                      background: `${COLOR_TIPO[a.tipoRegistro] || "#8A8A85"}14`,
-                    }}
-                  >
-                    {a.tipoRegistro === "Reparación" ? "Reparación" : "Compra"}
-                  </span>
-                </span>
-                <span>
-                  <span
-                    className="ra-chip"
+                    title={a.estadoOverride ? "Estado marcado manualmente" : undefined}
                     style={{
                       color: colorEstado(a.estado),
                       borderColor: `${colorEstado(a.estado)}40`,
                       background: `${colorEstado(a.estado)}14`,
                     }}
                   >
-                    {a.estado}
+                    {a.estadoOverride ? "✋ " : ""}{a.estado}
                   </span>
                 </span>
                 <span className="ra-col-num ra-monto">{fmt(a.costo)}</span>
-                <span className="ra-col-num ra-monto-rep">
-                  {a.costoReparacion != null ? fmt(a.costoReparacion) : "—"}
+                <span
+                  className="ra-col-num ra-monto-rep"
+                  title={a.numReparaciones ? `${a.numReparaciones} reparación(es)` : undefined}
+                >
+                  {a.numReparaciones > 0 ? fmt(a.costoReparaciones) : "—"}
                 </span>
               </div>
             ))}

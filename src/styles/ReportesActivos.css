@@ -236,12 +236,34 @@
 /* ── Bar rows (desgloses) ─────────────────────────────────────── */
 .ra-bar-row {
   display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 0;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 0;
   border-bottom: 1px solid var(--ra-border);
 }
 .ra-bar-row:last-child { border-bottom: none; }
+.ra-bar-top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+/* Dos montos etiquetados debajo de la barra (compra vs reparaciones) */
+.ra-bar-montos {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding-left: 18px;
+}
+.ra-bar-monto { font-size: 12.5px; font-weight: 700; }
+.ra-bar-monto--compra { color: #047857; }
+.ra-bar-monto--rep { color: #b45309; }
+.ra-bar-monto-lbl {
+  font-size: 10px;
+  color: var(--ra-text2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
 .ra-bar-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .ra-bar-label {
   width: 120px;
@@ -316,6 +338,13 @@
   overflow-wrap: anywhere;
   white-space: normal;
   line-height: 1.3;
+  min-width: 0;
+}
+.ra-tabla-cat {
+  color: var(--ra-text2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   min-width: 0;
 }
 .ra-monto { color: #047857; font-weight: 600; }
