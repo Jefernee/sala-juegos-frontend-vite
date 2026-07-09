@@ -1,12 +1,13 @@
 import React, { useState, lazy, Suspense } from "react";
 import "../styles/ReportesDashboard.css";
 import Navbar from "../components/NavBar2";
-import { BarChart3, Gamepad2, Boxes } from "lucide-react";
+import { BarChart3, Gamepad2, Boxes, Scale } from "lucide-react";
 
 // Lazy load de los componentes de reportes
 const ReportesVentas  = lazy(() => import("../components/ReportesVentas"));
 const ReportesPlays   = lazy(() => import("../components/ReportesPlays"));
 const ReportesActivos = lazy(() => import("../components/ReportesActivos"));
+const ReportesEstadoResultados = lazy(() => import("../components/ReportesEstadoResultados"));
 
 // Lista escalable de reportes: para sumar uno nuevo basta con agregar un ítem
 // (id, título, ícono, descripción, color y su componente). El layout no cambia.
@@ -14,6 +15,7 @@ const REPORTES = [
   {
     id: "ventas",
     titulo: "Reporte de Ventas",
+    corto: "Ventas",
     icono: BarChart3,
     descripcion: "Análisis financiero de ventas",
     color: "verde",
@@ -22,6 +24,7 @@ const REPORTES = [
   {
     id: "plays",
     titulo: "Reporte de Plays",
+    corto: "Plays",
     icono: Gamepad2,
     descripcion: "Sesiones de juego e ingresos",
     color: "morado",
@@ -30,10 +33,20 @@ const REPORTES = [
   {
     id: "activos",
     titulo: "Reporte de Activos",
+    corto: "Activos",
     icono: Boxes,
     descripcion: "Inversión en equipo y reparaciones",
     color: "azul",
     Componente: ReportesActivos,
+  },
+  {
+    id: "estado-resultados",
+    titulo: "Estado de Resultados",
+    corto: "Resultados",
+    icono: Scale,
+    descripcion: "Ingresos, egresos y utilidades del mes",
+    color: "amarillo",
+    Componente: ReportesEstadoResultados,
   },
 ];
 
@@ -57,28 +70,23 @@ export default function ReportesDashboard() {
           </p>
         </div>
 
-        {/* Grilla de botones (mismo estilo que Administración) */}
-        <div className="reportes-nav-grid">
+        {/* Tabs compactos (mismo estilo que Administración) */}
+        <nav className="reportes-tabs" aria-label="Tipos de reporte">
           {REPORTES.map((rep) => {
             const Icono = rep.icono;
             return (
               <button
                 key={rep.id}
-                className={`reportes-nav-card ${rep.color} ${vistaActual === rep.id ? "active" : ""}`}
+                className={`reportes-tab ${rep.color} ${vistaActual === rep.id ? "reportes-tab--activo" : ""}`}
                 onClick={() => setVistaActual(rep.id)}
                 aria-current={vistaActual === rep.id ? "page" : undefined}
               >
-                <span className="reportes-nav-card__icono">
-                  <Icono size={22} />
-                </span>
-                <span className="reportes-nav-card__texto">
-                  <span className="reportes-nav-card__titulo">{rep.titulo}</span>
-                  <span className="reportes-nav-card__desc">{rep.descripcion}</span>
-                </span>
+                <span className="reportes-tab__icono"><Icono size={18} /></span>
+                <span className="reportes-tab__label">{rep.corto}</span>
               </button>
             );
           })}
-        </div>
+        </nav>
 
         {/* Contenido del Reporte Seleccionado */}
         <div className="reportes-contenido">

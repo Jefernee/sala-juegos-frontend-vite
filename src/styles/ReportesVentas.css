@@ -258,12 +258,12 @@
 }
 
 .rv-kpi-label {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--rv-text2);
   text-transform: uppercase;
   letter-spacing: 0.9px;
   margin-bottom: 7px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .rv-kpi-value {
@@ -275,7 +275,7 @@
 }
 
 .rv-kpi-sub {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--rv-text2);
   margin-top: 5px;
 }
@@ -298,11 +298,11 @@
 }
 
 .rv-seccion-titulo {
-  font-size: 10px;
+  font-size: 11.5px;
   color: var(--rv-text2);
   text-transform: uppercase;
   letter-spacing: 1px;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
 }
 

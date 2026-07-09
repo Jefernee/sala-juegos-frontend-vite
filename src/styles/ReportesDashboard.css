@@ -127,7 +127,84 @@
 }
 
 /* ========================================
-   GRILLA DE NAVEGACIÓN (mismo estilo que Administración)
+   TABS COMPACTOS (mismo estilo que Administración)
+   ======================================== */
+.reportes-tabs {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 0.45rem;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.reportes-tabs::-webkit-scrollbar { display: none; }
+
+.reportes-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  border-radius: 10px;
+  padding: 0.65rem 0.9rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s, transform 0.18s, border-color 0.18s;
+}
+.reportes-tab:hover {
+  color: #fff;
+  background: #273449;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.reportes-tab__icono { display: flex; align-items: center; }
+
+/* Estado activo: relleno con el color del reporte, texto blanco y sombra
+   para que se note claramente en cuál estás */
+.reportes-tab--activo {
+  color: #fff;
+  border-color: transparent;
+  transform: translateY(-1px);
+}
+.reportes-tab--activo .reportes-tab__icono { color: #fff; }
+.reportes-tab--activo.verde {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35);
+}
+.reportes-tab--activo.morado {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35);
+}
+.reportes-tab--activo.azul {
+  background: linear-gradient(135deg, #38bdf8, #0284c7);
+  box-shadow: 0 6px 18px rgba(56, 189, 248, 0.35);
+}
+.reportes-tab--activo.amarillo {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35);
+}
+
+@media (max-width: 640px) {
+  .reportes-tabs { gap: 0.3rem; padding: 0.35rem; }
+  .reportes-tab {
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.5rem 0.2rem;
+    min-width: 0;
+  }
+  .reportes-tab__label { font-size: 0.68rem; letter-spacing: 0.2px; }
+}
+
+/* ========================================
+   GRILLA DE NAVEGACIÓN (legacy, sin uso)
    ======================================== */
 .reportes-nav-grid {
   display: grid;

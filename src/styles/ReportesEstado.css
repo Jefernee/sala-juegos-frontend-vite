@@ -1,0 +1,402 @@
+/* ========================================
+   REPORTE ESTADO DE RESULTADOS — ReportesEstado.css
+   Prefijo: er-   (misma estética que Reportesplays.css)
+   ======================================== */
+
+.reportes-estado-contenido {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+}
+/* Cifras parejas */
+.reportes-estado-contenido,
+.reportes-estado-contenido * { font-variant-numeric: tabular-nums lining-nums; }
+
+/* Signo de las utilidades / márgenes */
+.er-neg { color: #dc2626; }
+.er-pos { color: #059669; }
+
+/* ── Controles superiores ─────────────────────────────────────── */
+.er-controles {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 1.25rem;
+}
+.er-controles-izq { display: flex; align-items: center; gap: 10px; }
+.er-controles-der { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.er-titulo-periodo { font-size: 16px; font-weight: 600; color: #1f2937; }
+
+.er-select {
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #1f2937;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.er-select:focus { outline: none; border-color: #2563eb; }
+
+.er-btn-volver {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6b7280;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.er-btn-volver:hover { background: #f3f4f6; }
+
+.er-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #1f2937;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.er-btn:hover:not(:disabled) { background: #f3f4f6; border-color: #2563eb; }
+.er-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.er-btn--accent { background: #2563eb; border-color: #2563eb; color: #fff; }
+.er-btn--accent:hover:not(:disabled) { background: #1d4ed8; border-color: #1d4ed8; }
+
+/* ── Mensajes ─────────────────────────────────────────────────── */
+.er-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 1rem;
+}
+.er-loading-overlay { font-size: 12px; color: #9ca3af; text-align: right; margin-bottom: 0.5rem; }
+
+/* ── KPI cards ────────────────────────────────────────────────── */
+.er-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 1.25rem;
+}
+@media (max-width: 700px) { .er-kpis { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 400px) { .er-kpis { grid-template-columns: 1fr; } }
+
+.er-kpi-card {
+  background: linear-gradient(160deg, #f8fafc 0%, #ffffff 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px 18px 15px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.er-kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.1);
+  border-color: #d1d5db;
+}
+.er-kpi-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; opacity: 0.85; }
+.er-kpi-icon { position: absolute; top: 14px; right: 14px; opacity: 0.18; }
+.er-kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+.er-kpi-value {
+  font-size: 21px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.05;
+}
+.er-kpi-sub { font-size: 12px; color: #6b7280; margin-top: 6px; line-height: 1.35; }
+.er-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11.5px;
+  font-weight: 700;
+  margin-top: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.er-trend--bueno { color: #047857; background: rgba(16, 185, 129, 0.12); }
+.er-trend--malo  { color: #b91c1c; background: rgba(239, 68, 68, 0.12); }
+.er-trend--flat  { color: #6b7280; background: #f1f5f9; }
+
+/* ── Secciones y cards ────────────────────────────────────────── */
+.er-seccion { margin-bottom: 1.25rem; }
+.er-seccion-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+.er-seccion-titulo svg { color: #94a3b8; flex-shrink: 0; }
+.er-hint {
+  font-size: 12.5px;
+  color: #6b7280;
+  margin: -4px 0 10px;
+}
+.er-card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.er-dos-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 1.25rem;
+}
+@media (max-width: 768px) { .er-dos-col { grid-template-columns: 1fr; } }
+.er-dos-col .er-seccion { margin-bottom: 0; }
+
+/* ── Líneas de monto (ingresos / egresos) ─────────────────────── */
+.er-linea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+.er-linea:last-child { border-bottom: none; }
+.er-linea-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.er-linea-label { font-size: 14px; color: #374151; font-weight: 500; }
+.er-linea-desc { font-size: 12px; color: #94a3b8; line-height: 1.35; }
+.er-linea-val { font-size: 14px; font-weight: 600; color: #1f2937; flex-shrink: 0; padding-left: 10px; }
+.er-linea--fuerte {
+  border-top: 1px solid #e5e7eb;
+  border-bottom: none;
+  margin-top: 2px;
+  padding-top: 10px;
+}
+.er-linea--fuerte .er-linea-label { font-weight: 700; color: #1f2937; }
+.er-linea--fuerte .er-linea-val { font-weight: 800; font-size: 14px; }
+
+/* ── Subtabla por tipo ────────────────────────────────────────── */
+.er-subtabla {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #e5e7eb;
+}
+.er-subtabla-titulo {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+.er-tipo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+.er-tipo-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.er-tipo-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.er-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.er-tipo-name {
+  font-size: 12.5px; color: #374151;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.er-tipo-value { font-size: 12.5px; font-weight: 600; color: #1f2937; }
+.er-tipo-pct { font-size: 11px; color: #9ca3af; min-width: 32px; text-align: right; }
+
+/* Desglose anidado bajo su línea (servicios por tipo, equipo comprado, etc.) */
+.er-desglose {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: -2px 0 8px 7px;
+  padding: 6px 0 4px 14px;
+  border-left: 2px solid #e5e7eb;
+}
+.er-desglose--inversion {
+  margin-top: 8px;
+  border-left-color: rgba(245, 158, 11, 0.45);
+}
+.er-desglose-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.er-desglose-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #4b5563;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.er-desglose-cifra { font-size: 13px; color: #1f2937; font-weight: 600; flex-shrink: 0; }
+.er-desglose-pct { font-size: 11.5px; color: #9ca3af; font-weight: 500; margin-left: 3px; }
+
+/* ── Filas de resultado (utilidades) ──────────────────────────── */
+.er-util-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+.er-util-row:last-child { border-bottom: none; }
+.er-util-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.er-util-label { font-size: 14.5px; font-weight: 700; color: #1f2937; }
+.er-util-desc { font-size: 12px; color: #94a3b8; line-height: 1.35; }
+.er-util-cifras { display: flex; align-items: baseline; gap: 12px; flex-shrink: 0; }
+.er-util-val { font-size: 16px; font-weight: 800; }
+.er-util-margen { font-size: 13px; font-weight: 700; min-width: 56px; text-align: right; }
+
+.er-util-row--destacar {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 4px 0;
+}
+.er-util-row--destacar .er-util-label { color: #075985; }
+
+/* ── Compra de equipo (inversión, separada de los gastos operativos) ─── */
+.er-inversion {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-left: 3px solid #94a3b8;
+  border-radius: 10px;
+}
+.er-inversion-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.er-inversion-fila .er-linea-val { font-weight: 700; }
+
+/* ── Ahorro (informativo, no afecta utilidades) ───────────────── */
+.er-ahorro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-left: 3px solid #8b5cf6;
+  border-radius: 10px;
+  padding: 11px 14px;
+  margin-bottom: 1.25rem;
+}
+.er-ahorro-icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
+.er-ahorro-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.er-ahorro-titulo {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #7c3aed;
+}
+.er-ahorro-desc { font-size: 13px; color: #4b5563; }
+.er-ahorro-desc strong { color: #1f2937; }
+
+/* ── Meta (conteos + última actualización) ────────────────────── */
+.er-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* ── Tabla por mes (vista anual) ──────────────────────────────── */
+.er-mes-head,
+.er-mes-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr 22px;
+  gap: 8px;
+  align-items: center;
+}
+.er-mes-head {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  font-weight: 700;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 2px;
+}
+.er-mes-row {
+  padding: 11px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 13.5px;
+}
+.er-mes-row:last-child { border-bottom: none; }
+.er-mes-row--activo { cursor: pointer; border-radius: 8px; transition: background 0.15s; }
+.er-mes-row--activo:hover { background: #f1f5f9; }
+.er-mes-row--activo:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }
+.er-mes-nombre { color: #374151; font-weight: 600; }
+.er-col-num { text-align: right; }
+.er-mes-sindatos {
+  grid-column: 2 / 5;
+  text-align: right;
+  font-size: 11px;
+  color: #cbd5e1;
+  font-style: italic;
+}
+.er-mes-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  color: #cbd5e1;
+  transition: transform 0.15s, color 0.15s;
+}
+.er-mes-row--activo:hover .er-mes-chevron { color: #2563eb; transform: translateX(2px); }
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .reportes-estado-contenido { padding: 0.75rem; }
+  .er-controles { flex-direction: column; align-items: flex-start; }
+  .er-controles-der { width: 100%; }
+  .er-controles-der .er-select { flex: 1; }
+}
