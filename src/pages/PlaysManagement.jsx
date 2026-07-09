@@ -44,9 +44,19 @@ const JUEGOS_DISPONIBLES = [
   "Resident Evil",
   "Spider-Man 2",
   "God of War Ragnarök",
+  "Days Gone",
 ];
 
 const ESTADOS_PAGO = ["En Proceso", "Completado", "Pendiente"];
+
+// Precio por hora según el lugar de juego
+const precioPorHora = (lugar) => {
+  if (!lugar) return 0;
+  if (lugar.includes("Play 5")) return 1000;
+  if (lugar.includes("Play 4")) return 800;
+  if (lugar === "Ping Pong") return 800;
+  return 0;
+};
 
 // ✅ Constante fuera del componente para que useEffect no la detecte como cambio
 const FILTROS_VACIOS = {
@@ -182,7 +192,7 @@ const PlaysManagement = () => {
     horaFinal: "",
     lugarDeJuego: "",
     juegosJugados: [],
-    totalControles: 1,
+    totalControles: "",
     estadoPago: "En Proceso",
   });
 
@@ -199,6 +209,10 @@ const PlaysManagement = () => {
     costoControles: 0,
     total: 0,
   });
+  // Modo de registro: "tiempo" (calcula monto desde el tiempo) o
+  // "monto" (calcula el tiempo desde el monto recibido, guardando el monto exacto)
+  const [modoRegistro, setModoRegistro] = useState("tiempo");
+  const [montoInput, setMontoInput] = useState("");
   const [paginacion, setPaginacion] = useState({
     page: 1,
     limit: 5,
@@ -217,10 +231,7 @@ const PlaysManagement = () => {
     (lugarDeJuego, tiempoPagado, totalControles) => {
       if (!lugarDeJuego || !tiempoPagado)
         return { subtotal: 0, costoControles: 0, total: 0 };
-      let pph = 0;
-      if (lugarDeJuego.includes("Play 5")) pph = 1000;
-      else if (lugarDeJuego.includes("Play 4")) pph = 800;
-      else if (lugarDeJuego === "Ping Pong") pph = 800;
+      const pph = precioPorHora(lugarDeJuego);
       const subtotal = Math.round((tiempoPagado / 60) * pph);
       // Los 2 primeros controles son gratis; del 3.º en adelante ₡200 c/u.
       const controlesPagados = Math.max(0, (totalControles || 0) - 2);
@@ -264,6 +275,26 @@ const PlaysManagement = () => {
     formData.totalControles,
     calcularCostos,
   ]);
+
+  // En modo "monto": calcula el tiempo equivalente a partir del monto recibido.
+  // Resta primero el costo de los controles (los 2 primeros gratis) y convierte
+  // el resto a minutos según ₡/hora del lugar, redondeando a múltiplos de 5 min.
+  useEffect(() => {
+    if (modoRegistro !== "monto") return;
+    const monto = Number(montoInput) || 0;
+    const pph = precioPorHora(formData.lugarDeJuego);
+    if (!pph || !monto) {
+      setTiempoPagadoInput({ horas: "", minutos: "" });
+      setFormData((prev) => ({ ...prev, tiempoPagado: 0 }));
+      return;
+    }
+    const controlesPagados = Math.max(0, (Number(formData.totalControles) || 0) - 2);
+    const montoTiempo = Math.max(0, monto - controlesPagados * 200);
+    let min = Math.round((montoTiempo / pph) * 60);
+    min = Math.round(min / 5) * 5; // múltiplos de 5 min
+    setTiempoPagadoInput({ horas: Math.floor(min / 60) || "", minutos: min % 60 });
+    setFormData((prev) => ({ ...prev, tiempoPagado: min }));
+  }, [modoRegistro, montoInput, formData.lugarDeJuego, formData.totalControles]);
 
   // ✅ Mientras el formulario de NUEVO registro esté abierto, refresca la
   //    Hora Inicio cada 15s a la hora actual, salvo que el usuario la haya
@@ -365,13 +396,24 @@ const PlaysManagement = () => {
     filtros.minPendienteHoras !== "" ||
     filtros.minPendienteMinutos !== "";
 
+  // Valores para el "Resumen de Cobro" (funciona en ambos modos: tiempo y monto).
+  // El costo de controles es independiente del tiempo (los 2 primeros gratis).
+  const controlesPagadosUI = Math.max(0, (Number(formData.totalControles) || 0) - 2);
+  const costoControlesUI = controlesPagadosUI * 200;
+  const montoFinalUI =
+    modoRegistro === "monto"
+      ? Number(montoInput) || 0
+      : desgloseCostos.total;
+  const subtotalTiempoUI = Math.max(0, montoFinalUI - costoControlesUI);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     // Si el usuario escribe la Hora Inicio, dejamos de refrescarla automáticamente
     if (name === "horaInicio") setHoraInicioManual(true);
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "totalControles" ? Number(value) : value,
+      [name]:
+        name === "totalControles" ? (value ? Number(value) : "") : value,
     }));
   };
 
@@ -381,6 +423,16 @@ const PlaysManagement = () => {
     const canonica = resolverHora12h(formData.horaInicio);
     if (canonica) {
       setFormData((prev) => ({ ...prev, horaInicio: canonica }));
+    }
+  };
+
+  const cambiarModo = (modo) => {
+    setModoRegistro(modo);
+    setMontoInput("");
+    if (modo === "monto") {
+      // El tiempo se calculará desde el monto; limpiamos el tiempo manual.
+      setTiempoPagadoInput({ horas: "", minutos: "" });
+      setFormData((prev) => ({ ...prev, tiempoPagado: 0 }));
     }
   };
 
@@ -459,12 +511,14 @@ const PlaysManagement = () => {
       horaFinal: "",
       lugarDeJuego: "",
       juegosJugados: [],
-      totalControles: 1,
+      totalControles: "",
       estadoPago: "En Proceso",
     });
     setTiempoPagadoInput({ horas: "", minutos: "" });
     setTiempoPendienteInput({ horas: "", minutos: "" });
     setDesgloseCostos({ subtotal: 0, costoControles: 0, total: 0 });
+    setModoRegistro("tiempo");
+    setMontoInput("");
     setEditando(null);
     setHoraInicioManual(false);
     setMostrarFormulario(false);
@@ -479,7 +533,8 @@ const PlaysManagement = () => {
       !formData.horaInicio ||
       !formData.horaFinal ||
       !formData.lugarDeJuego ||
-      formData.juegosJugados.length === 0
+      formData.juegosJugados.length === 0 ||
+      !formData.totalControles
     ) {
       mostrarNotif(
         "Por favor completa todos los campos obligatorios. Tienen un asterisco",
@@ -506,6 +561,16 @@ const PlaysManagement = () => {
       const axios = await getAxios();
       // Los 2 primeros controles son gratis; del 3.º en adelante ₡200 c/u.
       const controlesPagados = Math.max(0, formData.totalControles - 2);
+      // Monto real cobrado: en modo "monto" es el exacto ingresado; en modo
+      // "tiempo" es el total calculado (tiempo + controles).
+      const montoPagado =
+        modoRegistro === "monto"
+          ? Number(montoInput) || 0
+          : calcularCostos(
+              formData.lugarDeJuego,
+              formData.tiempoPagado,
+              formData.totalControles,
+            ).total;
       const datosAEnviar = {
         cliente: formData.cliente,
         atendio: formData.atendio,
@@ -517,6 +582,7 @@ const PlaysManagement = () => {
         juegosJugados: formData.juegosJugados,
         totalControles: formData.totalControles, // total de controles usados (1-4)
         controlAdicional: controlesPagados,       // controles pagados (compat. costo/reportes)
+        montoPagado,                              // monto real cobrado (fuente de verdad del ingreso)
         estadoPago: formData.estadoPago,
       };
       if (editando) {
@@ -580,6 +646,9 @@ const PlaysManagement = () => {
         ((play.controlAdicional || 0) > 0 ? play.controlAdicional + 2 : 1),
       estadoPago: play.estadoPago || "En Proceso",
     });
+    // Al editar siempre mostramos el modo por tiempo (el registro ya tiene tiempo)
+    setModoRegistro("tiempo");
+    setMontoInput("");
     setEditando(play._id);
     setMostrarFormulario(true);
   };
@@ -747,55 +816,106 @@ const PlaysManagement = () => {
                       </h6>
                     </div>
                     <div className="col-12">
-                      <label className="form-label fw-bold">
-                        Tiempo Pagado *
+                      <label className="form-label fw-bold d-block">
+                        ¿Cómo registrar el cobro?
                       </label>
-                      <div className="row g-2">
-                        <div className="col-6">
-                          <div className="input-group input-group-lg">
-                            <input
-                              type="number"
-                              className="form-control"
-                              min="0"
-                              max="12"
-                              value={tiempoPagadoInput.horas}
-                              placeholder="0"
-                              onChange={(e) =>
-                                handleTiempoPagadoChange(
-                                  "horas",
-                                  e.target.value,
-                                )
-                              }
-                            />
-                            <span className="input-group-text">horas</span>
-                          </div>
-                        </div>
-                        <div className="col-6">
-                          <div className="input-group input-group-lg">
-                            <input
-                              type="number"
-                              className="form-control"
-                              min="0"
-                              max="59"
-                              value={tiempoPagadoInput.minutos}
-                              placeholder="0"
-                              onChange={(e) =>
-                                handleTiempoPagadoChange(
-                                  "minutos",
-                                  e.target.value,
-                                )
-                              }
-                            />
-                            <span className="input-group-text">min</span>
-                          </div>
-                        </div>
+                      <div className="btn-group w-100" role="group">
+                        <button
+                          type="button"
+                          className={`btn btn-lg ${modoRegistro === "tiempo" ? "btn-primary" : "btn-outline-primary"}`}
+                          onClick={() => cambiarModo("tiempo")}
+                        >
+                          🕐 Por tiempo
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-lg ${modoRegistro === "monto" ? "btn-primary" : "btn-outline-primary"}`}
+                          onClick={() => cambiarModo("monto")}
+                        >
+                          💵 Por monto
+                        </button>
                       </div>
-                      {formData.tiempoPagado > 0 && (
-                        <small className="text-success d-block mt-1 fw-semibold">
-                          ✓ Total: {minutosATexto(formData.tiempoPagado)}
-                        </small>
-                      )}
                     </div>
+                    {modoRegistro === "tiempo" ? (
+                      <div className="col-12">
+                        <label className="form-label fw-bold">
+                          Tiempo Pagado *
+                        </label>
+                        <div className="row g-2">
+                          <div className="col-6">
+                            <div className="input-group input-group-lg">
+                              <input
+                                type="number"
+                                className="form-control"
+                                min="0"
+                                max="12"
+                                value={tiempoPagadoInput.horas}
+                                placeholder="0"
+                                onChange={(e) =>
+                                  handleTiempoPagadoChange("horas", e.target.value)
+                                }
+                              />
+                              <span className="input-group-text">horas</span>
+                            </div>
+                          </div>
+                          <div className="col-6">
+                            <div className="input-group input-group-lg">
+                              <input
+                                type="number"
+                                className="form-control"
+                                min="0"
+                                max="59"
+                                value={tiempoPagadoInput.minutos}
+                                placeholder="0"
+                                onChange={(e) =>
+                                  handleTiempoPagadoChange("minutos", e.target.value)
+                                }
+                              />
+                              <span className="input-group-text">min</span>
+                            </div>
+                          </div>
+                        </div>
+                        {formData.tiempoPagado > 0 && (
+                          <small className="text-success d-block mt-1 fw-semibold">
+                            ✓ Total: {minutosATexto(formData.tiempoPagado)}
+                          </small>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="col-12">
+                        <label className="form-label fw-bold">
+                          Monto recibido *
+                        </label>
+                        <div className="input-group input-group-lg">
+                          <span className="input-group-text">₡</span>
+                          <input
+                            type="number"
+                            className="form-control"
+                            min="0"
+                            step="5"
+                            value={montoInput}
+                            placeholder="425"
+                            onChange={(e) => setMontoInput(e.target.value)}
+                          />
+                        </div>
+                        {!formData.lugarDeJuego ? (
+                          <small className="text-muted d-block mt-1">
+                            ⚠️ Primero elegí el lugar de juego (para saber ₡/hora)
+                          </small>
+                        ) : formData.tiempoPagado > 0 ? (
+                          <small className="text-success d-block mt-1 fw-semibold">
+                            ✓ Tiempo equivalente: {minutosATexto(formData.tiempoPagado)}
+                          </small>
+                        ) : (
+                          <small className="text-muted d-block mt-1">
+                            Ingresá el monto para calcular el tiempo
+                          </small>
+                        )}
+                        <small className="text-muted d-block mt-1">
+                          💡 Se guarda el monto exacto. El tiempo se calcula y redondea a 5 min.
+                        </small>
+                      </div>
+                    )}
                     <div className="col-12">
                       <label className="form-label fw-bold">
                         Tiempo Pendiente {editando && "*"}
@@ -898,6 +1018,9 @@ const PlaysManagement = () => {
                         onChange={handleInputChange}
                         required
                       >
+                        <option value="" disabled>
+                          Seleccioná los controles...
+                        </option>
                         <option value={1}>1 control — Gratis</option>
                         <option value={2}>2 controles — Gratis</option>
                         <option value={3}>3 controles (+₡200)</option>
@@ -933,22 +1056,26 @@ const PlaysManagement = () => {
                           <div className="d-flex justify-content-between mb-2">
                             <span>Tiempo de juego:</span>
                             <strong>
-                              ₡{desgloseCostos.subtotal.toLocaleString()}
+                              ₡{subtotalTiempoUI.toLocaleString()}
                             </strong>
                           </div>
                           <div className="d-flex justify-content-between mb-2">
-                            <span>Controles ({formData.totalControles}):</span>
+                            <span>Controles ({formData.totalControles || "—"}):</span>
                             <strong>
-                              {desgloseCostos.costoControles > 0
-                                ? `₡${desgloseCostos.costoControles.toLocaleString()}`
-                                : "Gratis"}
+                              {!formData.totalControles
+                                ? "—"
+                                : costoControlesUI > 0
+                                  ? `₡${costoControlesUI.toLocaleString()}`
+                                  : "Gratis"}
                             </strong>
                           </div>
                           <hr className="my-2" />
                           <div className="d-flex justify-content-between">
-                            <span className="fw-bold fs-5">TOTAL:</span>
+                            <span className="fw-bold fs-5">
+                              {modoRegistro === "monto" ? "MONTO RECIBIDO:" : "TOTAL:"}
+                            </span>
                             <span className="fw-bold fs-4 text-success">
-                              ₡{desgloseCostos.total.toLocaleString()}
+                              ₡{montoFinalUI.toLocaleString()}
                             </span>
                           </div>
                         </div>
