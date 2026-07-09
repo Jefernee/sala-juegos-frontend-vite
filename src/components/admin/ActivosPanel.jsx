@@ -17,9 +17,35 @@ const FILTROS_TIPO = [
   { valor: "Reparación", label: "🔧 Con reparación" },
 ];
 
+// Categorías de los activos. "Otros" cubre lo que no es control/consola/pantalla
+// (refri, futbolín, cables, etc.). El valor viaja como ?categoria= al backend.
+const CATEGORIAS = [
+  "Control PS4",
+  "Control PS5",
+  "Consola PS4",
+  "Consola PS5",
+  "Pantalla",
+  "Otros",
+];
+
+const CATEGORIA_ICONO = {
+  "Control PS4": "🎮",
+  "Control PS5": "🎮",
+  "Consola PS4": "🕹️",
+  "Consola PS5": "🕹️",
+  Pantalla: "📺",
+  Otros: "📦",
+};
+
+const FILTROS_CATEGORIA = [
+  { valor: "Todas", label: "Todas" },
+  ...CATEGORIAS.map((c) => ({ valor: c, label: `${CATEGORIA_ICONO[c]} ${c}` })),
+];
+
 const getFormVacio = () => ({
   tipoRegistro: "Nueva Compra",
   nombre: "",
+  categoria: "Otros",
   costo: "",
   costoReparacion: "",
   estado: "En uso",
@@ -34,6 +60,7 @@ const getFormVacio = () => ({
 const formDesdeActivo = (a) => ({
   tipoRegistro: a.tipoRegistro || "Nueva Compra",
   nombre: a.nombre || "",
+  categoria: a.categoria || "Otros",
   costo: a.costo != null ? String(a.costo) : "",
   costoReparacion: a.costoReparacion != null ? String(a.costoReparacion) : "",
   estado: a.estado || "En uso",
@@ -291,6 +318,7 @@ const ActivoFormModal = ({ activo, reparacionDe, getAuthHeaders, mostrarNotif, m
       return {
         tipoRegistro: "Nueva Compra",
         nombre: form.nombre.trim(),
+        categoria: form.categoria,
         costo: Number(form.costo),
         estado: form.estado,
         ...(form.descripcion.trim() && { descripcion: form.descripcion.trim() }),
@@ -306,6 +334,7 @@ const ActivoFormModal = ({ activo, reparacionDe, getAuthHeaders, mostrarNotif, m
     const payload = { ...camposImagen };
     const original = formDesdeActivo(activo);
     if (form.nombre.trim() !== original.nombre) payload.nombre = form.nombre.trim();
+    if (form.categoria !== original.categoria) payload.categoria = form.categoria;
     if (Number(form.costo) !== Number(original.costo)) payload.costo = Number(form.costo);
     if (form.estado !== original.estado) payload.estado = form.estado;
     ["descripcion", "numeroFactura", "notas"].forEach((k) => {
@@ -451,6 +480,21 @@ const ActivoFormModal = ({ activo, reparacionDe, getAuthHeaders, mostrarNotif, m
                 {errores.costo
                   ? <div className="campo-error">{errores.costo}</div>
                   : <small className="admin-hint">Lo que costó comprarlo</small>}
+              </div>
+
+              <div className="col-12 col-sm-6">
+                <label className="admin-label">Categoría</label>
+                <select
+                  className="form-select admin-select"
+                  value={form.categoria}
+                  disabled={guardando}
+                  onChange={setField("categoria")}
+                >
+                  {CATEGORIAS.map((c) => (
+                    <option key={c} value={c}>{`${CATEGORIA_ICONO[c]} ${c}`}</option>
+                  ))}
+                </select>
+                <small className="admin-hint">Usá «Otros» para lo que no sea control/consola/pantalla</small>
               </div>
             </>
           )}
@@ -737,6 +781,12 @@ const ActivoDetalleModal = ({ activo, cargando, onCerrar, onVerImagen }) => {
         {/* Datos */}
         <div className="detalle-datos">
           <div className="detalle-dato">
+            <span className="detalle-dato__label">Categoría</span>
+            <span className="detalle-dato__valor">
+              {CATEGORIA_ICONO[activo.categoria] || "📦"} {activo.categoria || "Otros"}
+            </span>
+          </div>
+          <div className="detalle-dato">
             <span className="detalle-dato__label">Costo del producto</span>
             <span className="detalle-dato__valor detalle-dato__valor--monto">{formatCRC(activo.costo)}</span>
           </div>
@@ -802,6 +852,7 @@ const ActivosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
   const [busqueda, setBusqueda] = useState("");
   const [busquedaDebounced, setBusquedaDebounced] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("Todos");
+  const [filtroCategoria, setFiltroCategoria] = useState("Todas");
 
   const [modalForm, setModalForm] = useState(null);   // null | { activo: null | obj }
   const [detalle, setDetalle] = useState(null);        // null | activo
@@ -827,6 +878,7 @@ const ActivosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
       const params = { page, limit: LIMITE_PAGINA };
       if (busquedaDebounced) params.search = busquedaDebounced;
       if (filtroTipo !== "Todos") params.tipoRegistro = filtroTipo;
+      if (filtroCategoria !== "Todas") params.categoria = filtroCategoria;
       const res = await axios.get(`${API_URL}/api/activos-sala`, { params, ...getAuthHeaders() });
       const data = res.data.data || [];
       setActivos(data);
@@ -840,12 +892,17 @@ const ActivosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
     } finally {
       setLoading(false);
     }
-  }, [page, busquedaDebounced, filtroTipo, getAuthHeaders, manejarError]);
+  }, [page, busquedaDebounced, filtroTipo, filtroCategoria, getAuthHeaders, manejarError]);
 
   useEffect(() => { fetchActivos(); }, [fetchActivos]);
 
   const cambiarFiltro = (f) => {
     setFiltroTipo(f);
+    setPage(1);
+  };
+
+  const cambiarFiltroCategoria = (c) => {
+    setFiltroCategoria(c);
     setPage(1);
   };
 
@@ -887,7 +944,7 @@ const ActivosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
     }
   };
 
-  const hayFiltros = busquedaDebounced || filtroTipo !== "Todos";
+  const hayFiltros = busquedaDebounced || filtroTipo !== "Todos" || filtroCategoria !== "Todas";
 
   return (
     <div className="fade-in">
@@ -912,12 +969,24 @@ const ActivosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
         </button>
       </div>
 
-      <div className="filtro-chips mb-4">
+      <div className="filtro-chips mb-2">
         {FILTROS_TIPO.map((f) => (
           <button
             key={f.valor}
             className={`filtro-chip ${filtroTipo === f.valor ? "filtro-chip--activo" : ""}`}
             onClick={() => cambiarFiltro(f.valor)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="filtro-chips mb-4">
+        {FILTROS_CATEGORIA.map((f) => (
+          <button
+            key={f.valor}
+            className={`filtro-chip ${filtroCategoria === f.valor ? "filtro-chip--activo" : ""}`}
+            onClick={() => cambiarFiltroCategoria(f.valor)}
           >
             {f.label}
           </button>
@@ -973,6 +1042,9 @@ const ActivosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
                         </small>
                       )}
                       <div className="d-flex justify-content-between align-items-center gap-2 flex-wrap mt-2">
+                        <span className="activo-card__tipo-chip">
+                          {CATEGORIA_ICONO[a.categoria] || "📦"} {a.categoria || "Otros"}
+                        </span>
                         <span className={`estado-badge estado-badge--${ESTADO_CLASE[a.estado] || "gris"}`}>
                           {a.estado}
                         </span>
