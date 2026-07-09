@@ -1,5 +1,5 @@
 // src/pages/PlaysManagement.jsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import "../styles/PlaysManagement.css";
 import Navbar from "../components/NavBar2";
@@ -171,6 +171,7 @@ const PlaysManagement = () => {
   const [plays, setPlays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const formularioRef = useRef(null);
   const [editando, setEditando] = useState(null);
   const [mostrarNotificacion, setMostrarNotificacion] = useState(false);
   const [notificacion, setNotificacion] = useState(null);
@@ -306,6 +307,14 @@ const PlaysManagement = () => {
     }, 15000);
     return () => clearInterval(intervalo);
   }, [mostrarFormulario, editando, horaInicioManual]);
+
+  // ✅ Al abrir el formulario (nuevo o al editar) lo llevamos a la vista, para
+  //    que el usuario no tenga que subir a mano cuando edita desde la lista.
+  useEffect(() => {
+    if (mostrarFormulario && formularioRef.current) {
+      formularioRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [mostrarFormulario, editando]);
 
   // ✅ fetchPlays NO tiene filtros en sus dependencias
   //    Siempre recibe filtrosActuales como parámetro → tipear en el panel no recarga nada
@@ -737,7 +746,7 @@ const PlaysManagement = () => {
 
           {/* Formulario */}
           {mostrarFormulario && (
-            <div className="card formulario-panel mb-4 shadow-lg">
+            <div ref={formularioRef} className="card formulario-panel mb-4 shadow-lg">
               <div className="card-header bg-gradient-primary">
                 <h5 className="mb-0 text-white">
                   {editando

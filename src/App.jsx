@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import AppRouter from "./components/AppRouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import PantallaCarga from "./components/PantallaCarga";
 import Home2 from "./pages/Home2";
 import Login from "./pages/Login";
 import Inscripcion from "./pages/Inscripcion";
@@ -17,7 +18,7 @@ const PlaysManagement = lazy(() => import("./pages/PlaysManagement"));
 const SalesHistory = lazy(() => import("./pages/SalesHistory"));
 const Administracion = lazy(() => import("./pages/Administracion"));
 
-const PageLoader = () => <div>Cargando...</div>;
+const PageLoader = () => <PantallaCarga />;
 
 function App() {
   return (
