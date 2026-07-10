@@ -763,6 +763,71 @@
   grid-template-columns: 90px 55px 1fr 1fr 1fr 70px !important;
 }
 
+/* ── Tabla detalle de productos (todos) ───────────────────────── */
+.rv-prod-head,
+.rv-prod-row,
+.rv-prod-total {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) 52px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 62px;
+  gap: 8px;
+  align-items: center;
+}
+.rv-prod-head {
+  font-size: 10px;
+  color: var(--rv-text2);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  font-weight: 600;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rv-border);
+}
+.rv-prod-row {
+  padding: 8px 0;
+  font-size: 12.5px;
+  color: var(--rv-text1);
+  border-bottom: 1px solid var(--rv-border);
+}
+.rv-prod-row:last-of-type { border-bottom: none; }
+.rv-prod-total {
+  padding: 9px 0 2px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--rv-text1);
+  border-top: 2px solid var(--rv-border);
+  margin-top: 2px;
+}
+.rv-prod-nombre {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rv-prod-num { text-align: right; overflow: hidden; text-overflow: ellipsis; }
+.rv-prod-right { text-align: right; }
+
+@media (max-width: 700px) {
+  .rv-prod-head,
+  .rv-prod-row,
+  .rv-prod-total {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) 58px;
+    gap: 6px;
+  }
+  /* Oculto Unidades y Recaudado (recaudado = costo + ganancia); dejo lo clave:
+     Producto · Costo · Ganancia · Margen */
+  .rv-col-uds,
+  .rv-col-rec { display: none; }
+}
+@media (max-width: 420px) {
+  .rv-prod-head,
+  .rv-prod-row,
+  .rv-prod-total {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) 50px;
+    gap: 5px;
+  }
+  .rv-prod-row,
+  .rv-prod-total { font-size: 11px; }
+}
+
 /* Barras dobles (costo + ganancia apiladas) */
 .rv-mes-barra-doble {
   width: 100%;

@@ -98,6 +98,59 @@ function RankingProductos({ productos = [] }) {
   );
 }
 
+// Badge de margen con color según salud
+function margenBadge(mg) {
+  const color = mg > 20 ? "#047857" : mg > 0 ? "#b45309" : "#b91c1c";
+  return (
+    <span className="rv-margen-badge" style={{ background: `${color}1f`, color }}>{fmtPct(mg)}</span>
+  );
+}
+
+// Tabla con el detalle de TODOS los productos vendidos en el mes
+function TablaProductosDetalle({ productos = [] }) {
+  if (!productos.length) return <div className="rv-empty">Sin productos vendidos este mes</div>;
+  const rows = [...productos].sort((a, b) => (b.totalRecaudado || 0) - (a.totalRecaudado || 0));
+  const tUds   = rows.reduce((s, p) => s + (p.totalVendido || 0), 0);
+  const tRec   = rows.reduce((s, p) => s + (p.totalRecaudado || 0), 0);
+  const tGan   = rows.reduce((s, p) => s + (p.ganancia || 0), 0);
+  const tCosto = tRec - tGan;
+  const tMargen = tRec > 0 ? (tGan / tRec) * 100 : 0;
+  return (
+    <div className="rv-card">
+      <div className="rv-prod-head">
+        <span>Producto</span>
+        <span className="rv-col-uds rv-prod-num">Uds</span>
+        <span className="rv-col-rec rv-prod-num">Recaudado</span>
+        <span className="rv-col-costo rv-prod-num">Costo</span>
+        <span className="rv-prod-num">Ganancia</span>
+        <span className="rv-prod-right">Margen</span>
+      </div>
+      {rows.map((p, i) => {
+        const costo = (p.totalRecaudado || 0) - (p.ganancia || 0);
+        const mg = p.totalRecaudado > 0 ? ((p.ganancia || 0) / p.totalRecaudado) * 100 : 0;
+        return (
+          <div key={p.nombre + i} className="rv-prod-row">
+            <span className="rv-prod-nombre" title={p.nombre}>{p.nombre}</span>
+            <span className="rv-col-uds rv-prod-num">{fmtN(p.totalVendido)}u</span>
+            <span className="rv-col-rec rv-prod-num" style={{ color: "#b45309" }}>{fmt(p.totalRecaudado)}</span>
+            <span className="rv-col-costo rv-prod-num" style={{ color: "#b91c1c" }}>{fmt(costo)}</span>
+            <span className="rv-prod-num" style={{ color: "#047857", fontWeight: 600 }}>{fmt(p.ganancia || 0)}</span>
+            <span className="rv-prod-right">{margenBadge(mg)}</span>
+          </div>
+        );
+      })}
+      <div className="rv-prod-total">
+        <span>Total ({fmtN(rows.length)})</span>
+        <span className="rv-col-uds rv-prod-num">{fmtN(tUds)}u</span>
+        <span className="rv-col-rec rv-prod-num" style={{ color: "#b45309" }}>{fmt(tRec)}</span>
+        <span className="rv-col-costo rv-prod-num" style={{ color: "#b91c1c" }}>{fmt(tCosto)}</span>
+        <span className="rv-prod-num" style={{ color: "#047857" }}>{fmt(tGan)}</span>
+        <span className="rv-prod-right">{margenBadge(tMargen)}</span>
+      </div>
+    </div>
+  );
+}
+
 function CalendarioHeatmap({ dias = [], año, mes }) {
   const [tooltip, setTooltip] = useState(null);
   const primerDia = new Date(año, mes - 1, 1).getDay();
@@ -267,6 +320,10 @@ function VistaMensual({ reporte: r }) {
           <p className="rv-seccion-titulo"><Award size={12} style={{ display:"inline", marginRight:6, verticalAlign:"middle" }} />Productos más vendidos</p>
           <div className="rv-card"><RankingProductos productos={productos} /></div>
         </div>
+      </div>
+      <div className="rv-seccion">
+        <p className="rv-seccion-titulo"><Package size={12} style={{ display:"inline", marginRight:6, verticalAlign:"middle" }} />Detalle de productos — todos ({fmtN((r.productosMasVendidos||[]).length)})</p>
+        <TablaProductosDetalle productos={r.productosMasVendidos || []} />
       </div>
       <div className="rv-seccion">
         <p className="rv-seccion-titulo"><TrendingUp size={12} style={{ display:"inline", marginRight:6, verticalAlign:"middle" }} />Resumen de pagos</p>

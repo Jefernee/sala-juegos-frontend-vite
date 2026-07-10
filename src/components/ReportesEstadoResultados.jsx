@@ -88,10 +88,10 @@ function LineaMonto({ label, desc, value, fuerte }) {
 
 // Detalle desglosado de un renglón (ej. servicios por tipo). Va ANIDADO justo
 // debajo de su línea, para que se lea como "el detalle de esto" y no se repita.
-function Desglose({ items, total }) {
+function Desglose({ items, total, restoLabel = "Otros" }) {
   if (!items?.length) return null;
   // Si el backend truncó la lista (ej. top 15 de ventas), la suma no llega al
-  // total: mostramos "Otros" con la diferencia para que no quede ambiguo.
+  // total: mostramos una fila con la diferencia para que el desglose cuadre.
   const suma = items.reduce((s, it) => s + (Number(it.monto) || 0), 0);
   const resto = Math.round((total || 0) - suma);
   return (
@@ -100,7 +100,7 @@ function Desglose({ items, total }) {
         <div key={it.tipo} className="er-desglose-row">
           <span className="er-desglose-name">
             <span className="er-dot" style={{ background: COLORS[i % COLORS.length] }} />
-            {it.tipo}
+            <span className="er-desglose-txt">{it.tipo}</span>
           </span>
           <span className="er-desglose-cifra">
             {fmt(it.monto)} <span className="er-desglose-pct">{pct(it.monto, total)}%</span>
@@ -111,7 +111,7 @@ function Desglose({ items, total }) {
         <div className="er-desglose-row">
           <span className="er-desglose-name">
             <span className="er-dot" style={{ background: "#cbd5e1" }} />
-            Otros
+            <span className="er-desglose-txt">{restoLabel}</span>
           </span>
           <span className="er-desglose-cifra">
             {fmt(resto)} <span className="er-desglose-pct">{pct(resto, total)}%</span>
@@ -185,6 +185,7 @@ function VistaMensual({ reporte: r }) {
                   monto: v.ingreso,
                 }))}
                 total={r.ingresoVentas}
+                restoLabel="Otros productos"
               />
             )}
             <LineaMonto label="🎮 Alquiler de consolas (Plays)" desc="Cobrado por las sesiones de juego" value={r.ingresoPlays} />
@@ -304,8 +305,8 @@ function VistaAnual({ data, onSelectMes }) {
         <div className="er-card">
           <div className="er-mes-head">
             <span>Mes</span>
-            <span className="er-col-num">Ingresos</span>
-            <span className="er-col-num">Egresos</span>
+            <span className="er-col-num er-col-sec">Ingresos</span>
+            <span className="er-col-num er-col-sec">Egresos</span>
             <span className="er-col-num">Utilidad neta</span>
             <span aria-hidden="true" />
           </div>
@@ -324,8 +325,8 @@ function VistaAnual({ data, onSelectMes }) {
               <span className="er-mes-nombre">{m.nombreMes || MESES[m.mes]}</span>
               {m.generado ? (
                 <>
-                  <span className="er-col-num er-pos">{fmt(m.totalIngresos)}</span>
-                  <span className="er-col-num er-neg">{fmt(m.totalEgresos)}</span>
+                  <span className="er-col-num er-col-sec er-pos">{fmt(m.totalIngresos)}</span>
+                  <span className="er-col-num er-col-sec er-neg">{fmt(m.totalEgresos)}</span>
                   <span className={`er-col-num ${signClass(m.utilidadNeta)}`}>{fmt(m.utilidadNeta)}</span>
                   <span className="er-mes-chevron"><ChevronRight size={16} /></span>
                 </>
