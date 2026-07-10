@@ -18,6 +18,12 @@
 .er-neg { color: #dc2626; }
 .er-pos { color: #059669; }
 
+/* Nombres/descripciones largos (o "palabras" sin espacios) parten en vez de
+   estirar la tarjeta y desbordarla a la derecha en móvil */
+.er-linea-label, .er-linea-desc,
+.er-desglose-name,
+.er-util-label, .er-util-desc { overflow-wrap: anywhere; }
+
 /* ── Controles superiores ─────────────────────────────────────── */
 .er-controles {
   display: flex;
@@ -100,8 +106,10 @@
   gap: 12px;
   margin-bottom: 1.25rem;
 }
-@media (max-width: 700px) { .er-kpis { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 400px) { .er-kpis { grid-template-columns: 1fr; } }
+/* minmax(0,1fr) — sin esto la pista no baja del ancho del número (min-content)
+   y en móvil las tarjetas se salen por la derecha con cifras/nombres largos */
+@media (max-width: 700px) { .er-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 400px) { .er-kpis { grid-template-columns: minmax(0, 1fr); } }
 
 .er-kpi-card {
   background: linear-gradient(160deg, #f8fafc 0%, #ffffff 100%);
@@ -150,7 +158,7 @@
 .er-trend--flat  { color: #6b7280; background: #f1f5f9; }
 
 /* ── Secciones y cards ────────────────────────────────────────── */
-.er-seccion { margin-bottom: 1.25rem; }
+.er-seccion { margin-bottom: 1.25rem; min-width: 0; }
 .er-seccion-titulo {
   display: flex;
   align-items: center;
@@ -177,11 +185,11 @@
 }
 .er-dos-col {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
   margin-bottom: 1.25rem;
 }
-@media (max-width: 768px) { .er-dos-col { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .er-dos-col { grid-template-columns: minmax(0, 1fr); } }
 .er-dos-col .er-seccion { margin-bottom: 0; }
 
 /* ── Líneas de monto (ingresos / egresos) ─────────────────────── */
