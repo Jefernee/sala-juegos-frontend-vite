@@ -45,6 +45,18 @@ const JUEGOS_DISPONIBLES = [
   "Spider-Man 2",
   "God of War Ragnarök",
   "Days Gone",
+  "Dead Cells",
+  "Crash",
+  "Stick Fight",
+  "Oddballers",
+  "Call of Duty Modern Warfare 3",
+  "Spider-Man Miles Morales",
+  "Naruto to Boruto",
+  "FIFA 25",
+  "Jurassic World 2",
+  "Roblox",
+  "World War Z Aftermath",
+  "Assetto Corsa",
 ];
 
 const ESTADOS_PAGO = ["En Proceso", "Completado", "Pendiente"];
