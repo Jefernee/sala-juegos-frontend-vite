@@ -18,6 +18,15 @@ const escapar = (s) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
+// Si el afiche es de Cloudinary, pedimos una versión liviana y optimizada para
+// que la preview cargue rápido (no la imagen original pesada). Si ya trae
+// transformaciones o no es Cloudinary, la dejamos igual.
+const optimizarImagen = (url) => {
+  if (!url || !url.includes("/upload/")) return url;
+  if (/\/upload\/[^/]*[fqwc]_/.test(url)) return url; // ya tiene transformaciones
+  return url.replace("/upload/", "/upload/f_auto,q_auto,w_1200,c_limit/");
+};
+
 export default async (request, context) => {
   const response = await context.next();
   try {
@@ -52,7 +61,7 @@ export default async (request, context) => {
     const desc =
       torneo.descripcion?.trim() ||
       `Inscribite al torneo ${torneo.nombre}. ¡Cupos limitados, no te quedés afuera!`;
-    const img = torneo.imagenUrl || IMG_DEFAULT;
+    const img = optimizarImagen(torneo.imagenUrl) || IMG_DEFAULT;
     const canonical = `${SITIO}/torneos/${id}`;
 
     const bloque =
@@ -75,6 +84,9 @@ export default async (request, context) => {
 
     const headers = new Headers(response.headers);
     headers.delete("content-length"); // el cuerpo cambió de tamaño
+    // Cachear en el CDN para que el 2º scrapeo en adelante sea instantáneo.
+    // Los navegadores igual revalidan (max-age=0), así la app nunca queda vieja.
+    headers.set("Cache-Control", "public, max-age=0, s-maxage=600, stale-while-revalidate=86400");
     return new Response(html, { status: response.status, headers });
   } catch {
     // Ante cualquier error, devolvemos la respuesta original intacta.
