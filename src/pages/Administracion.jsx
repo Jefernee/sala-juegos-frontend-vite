@@ -6,21 +6,33 @@ import DashboardPanel from "../components/admin/DashboardPanel";
 import AhorroPanel from "../components/admin/AhorroPanel";
 import MovimientosPanel from "../components/admin/MovimientosPanel";
 import ActivosPanel from "../components/admin/ActivosPanel";
+import UsuariosPanel from "../components/admin/UsuariosPanel";
+import TorneosPanel from "../components/admin/TorneosPanel";
+import { puedeGestionarUsuarios } from "../utils/auth";
 import "../styles/Administracion.css";
 
-const TABS = [
+// Torneos lo ven administrador y colaborador (todos los que llegan a esta
+// página; el vendedor ni siquiera puede entrar a Administración).
+const TABS_BASE = [
   { id: "resumen", icono: "📊", label: "Resumen" },
   { id: "ahorro", icono: "🏦", label: "Ahorro" },
   { id: "ganancias", icono: "💰", label: "Ganancias" },
   { id: "pagos", icono: "🧾", label: "Pagos" },
   { id: "activos", icono: "🕹️", label: "Activos" },
+  { id: "torneos", icono: "🏆", label: "Torneos" },
 ];
+
+// La pestaña de Usuarios solo la ve el administrador (dueño).
+const TAB_USUARIOS = { id: "usuarios", icono: "👥", label: "Usuarios" };
 
 const Administracion = () => {
   const [vista, setVista] = useState("resumen");
   const [notificacion, setNotificacion] = useState(null);
   const toastTimer = useRef(null);
   const navigate = useNavigate();
+
+  const gestionaUsuarios = puedeGestionarUsuarios();
+  const tabs = gestionaUsuarios ? [...TABS_BASE, TAB_USUARIOS] : TABS_BASE;
 
   useEffect(() => {
     document.title = "Administración - Sala de Juegos Ruiz";
@@ -71,7 +83,7 @@ const Administracion = () => {
 
         {/* Navegación interna del módulo */}
         <nav className="admin-tabs mb-4" aria-label="Secciones de administración">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button
               key={t.id}
               className={`admin-tab ${vista === t.id ? "admin-tab--activo" : ""}`}
@@ -95,6 +107,8 @@ const Administracion = () => {
         {vista === "ganancias" && <MovimientosPanel key="ganancias" tipo="ganancias" {...propsComunes} />}
         {vista === "pagos" && <MovimientosPanel key="pagos" tipo="pagos" {...propsComunes} />}
         {vista === "activos" && <ActivosPanel {...propsComunes} />}
+        {vista === "torneos" && <TorneosPanel {...propsComunes} />}
+        {vista === "usuarios" && gestionaUsuarios && <UsuariosPanel {...propsComunes} />}
       </div>
 
       {/* Toast global */}

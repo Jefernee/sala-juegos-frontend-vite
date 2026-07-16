@@ -1296,6 +1296,16 @@
   overflow: hidden;
 }
 
+/* Tarjetas de Torneos: tienen 4 acciones, así que se permiten en varias filas
+   (si no, con nowrap se cortan). Cada botón toma el ancho de su texto. */
+.activo-card__acciones--wrap {
+  flex-wrap: wrap;
+}
+.activo-card__acciones--wrap .accion-btn--texto {
+  flex: 1 1 auto;
+  overflow: visible;
+}
+
 /* Sección destacada de reparación en el formulario */
 .seccion-reparacion {
   background: rgba(245, 158, 11, 0.06);

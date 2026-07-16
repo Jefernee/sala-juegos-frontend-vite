@@ -1,6 +1,8 @@
-import React, { lazy, Suspense, useEffect } from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
+import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Link, useNavigate } from "react-router-dom";
+import { API_URL, formatFecha, formatCRC } from "../components/admin/adminUtils";
 import "../App.css";
 import "../styles/Ganadores.css";
 import "../styles/Encabezado.css";
@@ -14,11 +16,10 @@ import OptimizedImage from '../components/OptimizedImage';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 // Importar datos centralizados
-import { 
-  juegosData, 
-  ganadoresData, 
-  torneosData, 
-  galeriaImagenes 
+import {
+  juegosData,
+  ganadoresData,
+  galeriaImagenes
 } from '../constants/homeData';
 
 // Lazy loading del mapa
@@ -27,7 +28,25 @@ const MapComponent = lazy(() => import('../components/MapComponent'));
 function Home2() {
   const navigate = useNavigate();
 
-  
+  // Torneos: ahora vienen del backend (lista pública). Cada uno lleva a su
+  // página pública /torneos/:id donde el cliente se inscribe.
+  const [torneos, setTorneos] = useState([]);
+  const [torneosLoading, setTorneosLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/torneos/public`);
+        if (!cancelado) setTorneos(Array.isArray(res.data?.data) ? res.data.data : []);
+      } catch {
+        if (!cancelado) setTorneos([]);
+      } finally {
+        if (!cancelado) setTorneosLoading(false);
+      }
+    })();
+    return () => { cancelado = true; };
+  }, []);
 
   // Precargar SOLO imágenes críticas (above-the-fold)
   useEffect(() => {
@@ -47,12 +66,6 @@ function Home2() {
 
     // El resto de imágenes se cargarán con lazy loading cuando sean visibles
   }, []);
-
-  const handleInscribir = (torneoNombre) => {
-    navigate("/inscripcion", {
-      state: { torneo: torneoNombre },
-    });
-  };
 
   return (
     <>
@@ -240,28 +253,6 @@ function Home2() {
               </div>
             </div>
           </div>
-
-          {/* Categorías destacadas */}
-          <div className="row mt-5">
-            {[
-              { icon: "controller", name: "Consolas & Juegos" },
-              { icon: "headphones", name: "Accesorios" },
-              { icon: "box-seam", name: "Productos Varios" },
-              { icon: "stars", name: "Destacados" }
-            ].map((categoria, index) => (
-              <div key={index} className="col-md-3 col-6 mb-3">
-                <Link to="/productos" className="text-decoration-none">
-                  <div className="text-center p-3 bg-white rounded shadow-sm h-100 hover-card">
-                    <i
-                      className={`bi bi-${categoria.icon} text-primary`}
-                      style={{ fontSize: "3rem" }}
-                    ></i>
-                    <h6 className="mt-3 mb-0">{categoria.name}</h6>
-                  </div>
-                </Link>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -307,25 +298,19 @@ function Home2() {
             {ganadoresData.map((ganador) => (
               <div key={ganador.id} className="col-md-6 mb-4">
                 <div className={`p-3 shadow rounded text-center ${ganador.cardClass}`}>
-                  <div style={{ 
-                    width: "200px", 
-                    height: "200px", 
-                    margin: "0 auto 1rem auto",
-                    position: "relative"
-                  }}>
+                  <div className="ganador-avatar-wrap">
                     <OptimizedImage
                       src={ganador.imagen}
                       alt={`Ganador ${ganador.nombre}`}
-                      className="img-fluid rounded-circle"
-                      style={{ 
-                        width: "200px", 
-                        height: "200px", 
+                      className="ganador-avatar rounded-circle"
+                      style={{
+                        width: "100%",
+                        height: "100%",
                         objectFit: "contain",
-                        background: "white",
-                        padding: "10px",
-                        display: "block"
+                        objectPosition: "center",
+                        display: "block",
                       }}
-                      loadingHeight="200px"
+                      loadingHeight="100%"
                     />
                   </div>
                   <h4 className="mb-2 text-white">{ganador.nombre}</h4>
@@ -337,28 +322,61 @@ function Home2() {
         </div>
       </section>
 
-      {/* Inscripción de Torneos */}
+      {/* Inscripción de Torneos (desde el backend) */}
       <section id="tournaments" className="bg-custom py-5">
         <div className="container">
           <h2 className="text-center mb-4">Inscripción de Torneos y Competiciones</h2>
-          <div className="row">
-            {torneosData.map((torneo) => (
-              <div key={torneo.id} className="col-md-6 mb-4">
-                <div className="p-3 shadow rounded">
-                  <h4 className="mb-3">{torneo.icono}{torneo.nombre}</h4>
-                  <p>{torneo.descripcion}</p>
-                  <p>Fecha: {torneo.fecha}</p>
-                  <p>Valor: {torneo.valor}</p>
-                  <button
-                    className="btn btn-success"
-                    onClick={() => handleInscribir(torneo.registroNombre)}
-                  >
-                    Inscribirse
-                  </button>
-                </div>
+          {torneosLoading ? (
+            <div className="text-center py-3">
+              <div className="spinner-border text-light" role="status">
+                <span className="visually-hidden">Cargando torneos...</span>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : torneos.length === 0 ? (
+            <p className="text-center mb-0">
+              Pronto anunciaremos nuevos torneos. ¡Mantenete atento!
+            </p>
+          ) : (
+            <div className="row justify-content-center">
+              {torneos.map((torneo) => {
+                const abierto = torneo.estado === "abierto";
+                return (
+                  <div key={torneo._id} className="col-md-6 col-lg-4 mb-4">
+                    <div className="torneo-home-card">
+                      {torneo.imagenUrl && (
+                        <img
+                          src={torneo.imagenUrl}
+                          alt={torneo.nombre}
+                          className="torneo-home-card__afiche"
+                        />
+                      )}
+                      <div className="torneo-home-card__title">
+                        <span>🏆 {torneo.nombre}</span>
+                        <span
+                          className={`badge torneo-home-card__title-badge ${abierto ? "bg-success" : "bg-secondary"}`}
+                        >
+                          {abierto ? "Abierto" : "Cerrado"}
+                        </span>
+                      </div>
+                      <div className="torneo-home-card__meta">
+                        <span className="torneo-home-card__pill">📅 {formatFecha(torneo.fecha)}</span>
+                        <span className="torneo-home-card__pill">
+                          💰 {Number(torneo.costoInscripcion) > 0 ? formatCRC(torneo.costoInscripcion) : "Gratis"}
+                        </span>
+                      </div>
+                      {torneo.descripcion && <p className="torneo-home-card__desc">{torneo.descripcion}</p>}
+                      <button
+                        className="btn btn-success torneo-home-card__btn w-100"
+                        onClick={() => navigate(`/torneos/${torneo._id}`)}
+                      >
+                        {abierto ? "Inscribirse" : "Ver torneo"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

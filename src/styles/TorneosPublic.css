@@ -1,0 +1,151 @@
+/* Páginas públicas de torneos (/torneos y /torneos/:id) */
+.torneo-public {
+  min-height: 100vh;
+  background: #f4f6fb;
+}
+
+.torneo-public__volver {
+  margin-bottom: 1rem;
+}
+
+/* Botones de navegación (Inicio / Todos los torneos): blancos con borde y
+   sombra para que resalten sobre el fondo claro. */
+.torneo-nav-btn {
+  background: #ffffff;
+  border: 1px solid #d0d7e2;
+  color: #1e293b;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.torneo-nav-btn:hover,
+.torneo-nav-btn:focus {
+  background: #eef2f7;
+  color: #1e293b;
+  border-color: #aebacd;
+}
+
+.torneo-public__titulo {
+  text-align: center;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 1.75rem;
+}
+
+/* ── Afiche con relleno difuminado (sin barras grises feas) ──────────────────
+   El póster se ve COMPLETO y centrado; detrás va una copia borrosa que llena
+   el marco. Se ve bien sea el afiche vertical u horizontal. */
+.afiche {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #0f172a;
+}
+.afiche--card { height: 210px; }
+.afiche--hero { height: 340px; }
+.afiche__bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(22px) brightness(0.55);
+  transform: scale(1.25);
+}
+.afiche__img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.afiche__placeholder {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  color: #fff;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+}
+
+/* ── Tarjeta de torneo (lista) ──────────────────────────────────────────────*/
+.torneo-card-link {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+.torneo-card {
+  height: 100%;
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.torneo-card-link:hover .torneo-card {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
+}
+.torneo-card__body {
+  padding: 1rem 1.15rem 1.25rem;
+}
+.torneo-card__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+/* ── Badges y pills ─────────────────────────────────────────────────────────*/
+.torneo-badge {
+  display: inline-block;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+.torneo-badge--abierto { background: #dcfce7; color: #166534; }
+.torneo-badge--cerrado { background: #fee2e2; color: #991b1b; }
+
+.torneo-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+.torneo-pill {
+  background: #f1f5f9;
+  color: #334155;
+  border-radius: 999px;
+  padding: 0.28rem 0.72rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+/* ── Detalle ────────────────────────────────────────────────────────────────*/
+.torneo-detalle-card {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+  height: 100%;
+}
+.torneo-detalle-card__body {
+  padding: 1.25rem 1.35rem 1.5rem;
+}
+.torneo-detalle-card__titulo {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+.torneo-detalle-desc {
+  color: #475569;
+  margin-top: 0.5rem;
+}

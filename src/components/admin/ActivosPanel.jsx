@@ -3,7 +3,7 @@
 // detalle informativo con lightbox, y modales de producto y de reparaciones.
 // El ESTADO lo calcula el backend (En uso / En reparación / Reparado); acá solo
 // se controla el override manual (Fuera de servicio / Almacenado).
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import ImageUploadWithCompression from "../ImageUploadWithCompression";
 import {
   API_URL, getAxios, formatCRC, formatFecha, formatPlaca, getLocalDateString, fechaParaInput,
@@ -26,6 +26,8 @@ const CATEGORIAS = [
   "Consola PS4",
   "Consola PS5",
   "Pantalla",
+  "Juegos digitales",
+  "Juegos físicos",
   "Otros",
 ];
 
@@ -35,13 +37,12 @@ const CATEGORIA_ICONO = {
   "Consola PS4": "🕹️",
   "Consola PS5": "🕹️",
   Pantalla: "📺",
+  "Juegos digitales": "💾",
+  "Juegos físicos": "💿",
   Otros: "📦",
 };
 
-const FILTROS_CATEGORIA = [
-  { valor: "Todas", label: "Todas" },
-  ...CATEGORIAS.map((c) => ({ valor: c, label: `${CATEGORIA_ICONO[c]} ${c}` })),
-];
+const iconoCategoria = (c) => CATEGORIA_ICONO[c] || "📦";
 
 // Override manual del estado. "" = automático (según reparaciones); los otros
 // dos fuerzan un estado que el sistema no puede adivinar.
@@ -102,7 +103,7 @@ const Lightbox = ({ url, alt, onCerrar }) => (
 );
 
 // ─── BLOQUE DE IMAGEN EN LOS FORMULARIOS ────────────────────────────────────
-const CampoImagen = ({ etiqueta, urlActual, imagenData, quitar, onChange, onQuitar, uploadRef, disabled }) => {
+const CampoImagen = ({ etiqueta, urlActual, imagenData, quitar, onChange, onQuitar, onProcesando, uploadRef, disabled }) => {
   // En edición con imagen existente: mostrarla hasta que se pida cambiarla
   const [cambiando, setCambiando] = useState(!urlActual);
 
@@ -151,6 +152,7 @@ const CampoImagen = ({ etiqueta, urlActual, imagenData, quitar, onChange, onQuit
           <ImageUploadWithCompression
             ref={uploadRef}
             onChange={onChange}
+            onProcessingChange={onProcesando}
             showPreview
             alwaysCompress
             maxWidthOrHeight={1000}
@@ -191,7 +193,10 @@ const ProductoFormModal = ({ activo, getAuthHeaders, mostrarNotif, manejarError,
   const [facturaData, setFacturaData] = useState(null);
   const [quitarImagen, setQuitarImagen] = useState(false);
   const [quitarFactura, setQuitarFactura] = useState(false);
+  const [procesandoImg, setProcesandoImg] = useState(false);
+  const [procesandoFactura, setProcesandoFactura] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const procesandoImagenes = procesandoImg || procesandoFactura;
   const [proximaPlaca, setProximaPlaca] = useState(null);
   const imageRef = useRef(null);
   const facturaRef = useRef(null);
@@ -294,6 +299,10 @@ const ProductoFormModal = ({ activo, getAuthHeaders, mostrarNotif, manejarError,
   const handleSubmit = async (ev) => {
     ev.preventDefault();
     if (!validar() || guardando) return;
+    if (procesandoImagenes) {
+      mostrarNotif("Esperá a que termine de cargar la imagen antes de guardar", "warning");
+      return;
+    }
 
     const payload = construirPayload();
     if (esEdicion && Object.keys(payload).length === 0) {
@@ -390,7 +399,7 @@ const ProductoFormModal = ({ activo, getAuthHeaders, mostrarNotif, manejarError,
               onChange={setField("categoria")}
             >
               {CATEGORIAS.map((c) => (
-                <option key={c} value={c}>{`${CATEGORIA_ICONO[c]} ${c}`}</option>
+                <option key={c} value={c}>{`${iconoCategoria(c)} ${c}`}</option>
               ))}
             </select>
             <small className="admin-hint">Usá «Otros» para lo que no sea control/consola/pantalla</small>
@@ -481,6 +490,7 @@ const ProductoFormModal = ({ activo, getAuthHeaders, mostrarNotif, manejarError,
               quitar={quitarImagen}
               onChange={(d) => { setImagenData(d); if (d) setQuitarImagen(false); }}
               onQuitar={(v) => { setQuitarImagen(v); if (v) { imageRef.current?.reset(); setImagenData(null); } }}
+              onProcesando={setProcesandoImg}
               uploadRef={imageRef}
               disabled={guardando}
             />
@@ -494,6 +504,7 @@ const ProductoFormModal = ({ activo, getAuthHeaders, mostrarNotif, manejarError,
               quitar={quitarFactura}
               onChange={(d) => { setFacturaData(d); if (d) setQuitarFactura(false); }}
               onQuitar={(v) => { setQuitarFactura(v); if (v) { facturaRef.current?.reset(); setFacturaData(null); } }}
+              onProcesando={setProcesandoFactura}
               uploadRef={facturaRef}
               disabled={guardando}
             />
@@ -504,9 +515,13 @@ const ProductoFormModal = ({ activo, getAuthHeaders, mostrarNotif, manejarError,
           <button type="button" className="admin-btn-ghost" onClick={onCerrar} disabled={guardando}>
             Cancelar
           </button>
-          <button type="submit" className="btn admin-btn admin-btn--orange px-4 fw-bold" disabled={guardando}>
+          <button
+            type="submit"
+            className="btn admin-btn admin-btn--orange px-4 fw-bold"
+            disabled={guardando || procesandoImagenes}
+          >
             {guardando && <span className="btn-spinner" />}
-            {guardando ? textoGuardando : esEdicion ? "Guardar cambios" : "Registrar producto"}
+            {guardando ? textoGuardando : procesandoImagenes ? "Procesando imagen…" : esEdicion ? "Guardar cambios" : "Registrar producto"}
           </button>
         </div>
       </form>
@@ -531,6 +546,7 @@ const ReparacionesModal = ({ activo, getAuthHeaders, mostrarNotif, manejarError,
   const [errores, setErrores] = useState({});
   const [facturaData, setFacturaData] = useState(null);
   const [quitarFactura, setQuitarFactura] = useState(false);
+  const [procesandoFactura, setProcesandoFactura] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const facturaRef = useRef(null);
 
@@ -579,6 +595,10 @@ const ReparacionesModal = ({ activo, getAuthHeaders, mostrarNotif, manejarError,
   const guardar = async (ev) => {
     ev.preventDefault();
     if (!validar() || guardando) return;
+    if (procesandoFactura) {
+      mostrarNotif("Esperá a que termine de cargar la factura antes de guardar", "warning");
+      return;
+    }
     setGuardando(true);
     try {
       const axios = await getAxios();
@@ -733,6 +753,7 @@ const ReparacionesModal = ({ activo, getAuthHeaders, mostrarNotif, manejarError,
                   quitar={quitarFactura}
                   onChange={(d) => { setFacturaData(d); if (d) setQuitarFactura(false); }}
                   onQuitar={(v) => { setQuitarFactura(v); if (v) { facturaRef.current?.reset(); setFacturaData(null); } }}
+                  onProcesando={setProcesandoFactura}
                   uploadRef={facturaRef}
                   disabled={guardando}
                 />
@@ -748,9 +769,13 @@ const ReparacionesModal = ({ activo, getAuthHeaders, mostrarNotif, manejarError,
               >
                 ← Volver
               </button>
-              <button type="submit" className="btn admin-btn admin-btn--orange px-4 fw-bold" disabled={guardando}>
+              <button
+                type="submit"
+                className="btn admin-btn admin-btn--orange px-4 fw-bold"
+                disabled={guardando || procesandoFactura}
+              >
                 {guardando && <span className="btn-spinner" />}
-                {guardando ? textoGuardando : editando ? "Guardar reparación" : "Agregar reparación"}
+                {guardando ? textoGuardando : procesandoFactura ? "Procesando imagen…" : editando ? "Guardar reparación" : "Agregar reparación"}
               </button>
             </div>
           </form>
@@ -998,6 +1023,7 @@ const ActivosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
   const [busquedaDebounced, setBusquedaDebounced] = useState("");
   const [filtroReparacion, setFiltroReparacion] = useState("Todos");
   const [filtroCategoria, setFiltroCategoria] = useState("Todas");
+  const [conteoPorCategoria, setConteoPorCategoria] = useState(null);
 
   const [modalForm, setModalForm] = useState(null);        // null | { activo: null | obj }
   const [reparacionesDe, setReparacionesDe] = useState(null); // null | activo
@@ -1029,6 +1055,11 @@ const ActivosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
       const res = await axios.get(`${API_URL}/api/activos-sala`, { params, ...getAuthHeaders() });
       const data = res.data.data || [];
       setActivos(data);
+      // El conteo llega completo (todas las categorías) independientemente del
+      // filtro aplicado; de acá salen los chips. Si no viene, se mantiene el previo.
+      if (res.data.conteoPorCategoria && typeof res.data.conteoPorCategoria === "object") {
+        setConteoPorCategoria(res.data.conteoPorCategoria);
+      }
       setPagination(
         res.data.pagination ||
           (data.length > 0 ? { currentPage: page, totalPages: page, totalItems: data.length } : null),
@@ -1098,6 +1129,29 @@ const ActivosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
 
   const hayFiltros = busquedaDebounced || filtroReparacion !== "Todos" || filtroCategoria !== "Todas";
 
+  // Chips de categoría: se arman dinámicamente. Base = categorías conocidas (para
+  // que se vean aunque aún no haya cargado); luego se agregan las que el backend
+  // reporte en conteoPorCategoria y no estén hardcodeadas. Así, si el backend
+  // suma categorías nuevas, aparecen solas. Cada chip muestra su conteo.
+  const filtrosCategoria = useMemo(() => {
+    const extras = Object.keys(conteoPorCategoria || {}).filter((c) => !CATEGORIAS.includes(c));
+    const categorias = [...CATEGORIAS, ...extras];
+    const conteo = (c) => (conteoPorCategoria ? conteoPorCategoria[c] ?? 0 : null);
+    const totalConteo = conteoPorCategoria
+      ? Object.values(conteoPorCategoria).reduce((s, n) => s + (Number(n) || 0), 0)
+      : null;
+    return [
+      { valor: "Todas", label: totalConteo != null ? `Todas (${totalConteo})` : "Todas" },
+      ...categorias.map((c) => {
+        const n = conteo(c);
+        return {
+          valor: c,
+          label: `${iconoCategoria(c)} ${c}${n != null ? ` (${n})` : ""}`,
+        };
+      }),
+    ];
+  }, [conteoPorCategoria]);
+
   return (
     <div className="fade-in">
       {/* Encabezado: búsqueda + botón */}
@@ -1142,7 +1196,7 @@ const ActivosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
         <div className="filtro-grupo">
           <span className="filtro-grupo__label">Categoría</span>
           <div className="filtro-chips">
-            {FILTROS_CATEGORIA.map((f) => (
+            {filtrosCategoria.map((f) => (
               <button
                 key={f.valor}
                 className={`filtro-chip ${filtroCategoria === f.valor ? "filtro-chip--activo" : ""}`}
@@ -1178,7 +1232,7 @@ const ActivosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
             value={filtroCategoria}
             onChange={(e) => cambiarFiltroCategoria(e.target.value)}
           >
-            {FILTROS_CATEGORIA.map((f) => (
+            {filtrosCategoria.map((f) => (
               <option key={f.valor} value={f.valor}>{f.label}</option>
             ))}
           </select>

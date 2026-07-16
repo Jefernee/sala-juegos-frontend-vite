@@ -1,10 +1,24 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
+import { puedeVerModulo } from "../utils/auth";
 import "../styles/NavBar2.css";
+
+// Cada ítem del menú declara su `modulo`, que decide si el rol actual lo ve.
+// El vendedor solo ve "sales" y "plays"; administrador y colaborador ven todo.
+const ITEMS = [
+  { to: "/dashboard/administracion", modulo: "administracion", label: "🏦 Administración" },
+  { to: "/dashboard/plays", modulo: "plays", label: "🎮 Control de Plays" },
+  { to: "/dashboard/pedidos", modulo: "pedidos", label: "📦 Pedidos" },
+  { to: "/dashboard/reportes", modulo: "reportes", label: "📈 Reportes" },
+  { to: "/dashboard/sales", modulo: "sales", label: "💰 Ventas" },
+  { to: "/dashboard/manage-products", modulo: "manageProducts", label: "⚙️ Gestionar Productos" },
+];
 
 const Navbar = () => {
   const navClass = ({ isActive }) =>
     isActive ? "nav-link active" : "nav-link";
+
+  const items = ITEMS.filter((item) => puedeVerModulo(item.modulo));
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark w-100 dashboard-navbar">
@@ -24,41 +38,13 @@ const Navbar = () => {
 
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav ms-auto gap-2">
-            <li className="nav-item">
-              <NavLink to="/dashboard/administracion" className={navClass}>
-                🏦 Administración
-              </NavLink>
-            </li>
-            
-            <li className="nav-item">
-              <NavLink to="/dashboard/plays" className={navClass}>
-                🎮 Control de Plays
-              </NavLink>
-            </li>
-
-            <li className="nav-item">
-              <NavLink to="/dashboard/pedidos" className={navClass}>
-                📦 Pedidos
-              </NavLink>
-            </li>
-
-            <li className="nav-item">
-              <NavLink to="/dashboard/reportes" className={navClass}>
-                📈 Reportes
-              </NavLink>
-            </li>
-
-            <li className="nav-item">
-              <NavLink to="/dashboard/sales" className={navClass}>
-                💰 Ventas
-              </NavLink>
-            </li>
-
-            <li className="nav-item">
-              <NavLink to="/dashboard/manage-products" className={navClass}>
-                ⚙️ Gestionar Productos
-              </NavLink>
-            </li>
+            {items.map((item) => (
+              <li className="nav-item" key={item.to}>
+                <NavLink to={item.to} className={navClass}>
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
           </ul>
         </div>
       </div>

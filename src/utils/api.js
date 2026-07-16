@@ -29,6 +29,24 @@ axios.interceptors.response.use(null, async (error) => {
   return Promise.reject(error);
 });
 
+// ── Acceso por rol (403) ─────────────────────────────────────────────────────
+// Red de seguridad: si el backend rechaza por rol (el vendedor tocó una API que
+// no le corresponde), lo avisamos y lo mandamos a Ventas. En condiciones
+// normales la UI ya oculta esos módulos, así que esto casi no debería dispararse.
+const RUTA_VENTAS = "/dashboard/sales";
+axios.interceptors.response.use(null, (error) => {
+  const esRolNoAutorizado =
+    error?.response?.status === 403 &&
+    error?.response?.data?.code === "ROL_NO_AUTORIZADO";
+
+  if (esRolNoAutorizado && window.location.pathname !== RUTA_VENTAS) {
+    // Mensaje de una sola vez que la pantalla de Ventas mostrará al cargar.
+    sessionStorage.setItem("accesoDenegado", "No tenés permiso para este módulo.");
+    window.location.replace(RUTA_VENTAS);
+  }
+  return Promise.reject(error);
+});
+
 // ── Warmup: despierta el backend al abrir la app ─────────────────────────────
 // Fire-and-forget. Hace ping a /api/health con varios intentos y timeout amplio
 // (el cold start puede tardar). No bloquea el render.

@@ -11,6 +11,24 @@ const formatFileSize = (bytes) => {
   return mb >= 1 ? `${mb.toFixed(2)} MB` : `${kb.toFixed(2)} KB`;
 };
 
+// Rechaza si la promesa no resuelve a tiempo (para no quedar colgados)
+const conTimeout = (promesa, ms) =>
+  Promise.race([
+    promesa,
+    new Promise((_, rechazar) => setTimeout(() => rechazar(new Error("TIMEOUT")), ms)),
+  ]);
+
+// Comprime con web worker, pero si falla o se cuelga (típico en algunos
+// navegadores de celular) reintenta en el hilo principal, sin worker.
+const comprimirImagen = async (file, options) => {
+  try {
+    return await conTimeout(imageCompression(file, { ...options, useWebWorker: true }), 25000);
+  } catch (err) {
+    console.warn("⚠️ Compresión con web worker falló/expiró, reintentando sin worker…", err);
+    return imageCompression(file, { ...options, useWebWorker: false });
+  }
+};
+
 const ImageUploadWithCompression = forwardRef(
   (
     {
@@ -20,6 +38,9 @@ const ImageUploadWithCompression = forwardRef(
       accept = "image/*",
       showPreview = true,
       onError = null,
+      // Avisa al padre cuando arranca/termina el procesamiento de la imagen,
+      // para que pueda bloquear el guardado mientras tanto.
+      onProcessingChange = null,
       // Si es true, siempre comprime/redimensiona (no solo cuando supera 5MB)
       alwaysCompress = false,
       maxWidthOrHeight = 1200,
@@ -38,6 +59,7 @@ const ImageUploadWithCompression = forwardRef(
       if (!file) return;
 
       setIsCompressing(true);
+      onProcessingChange?.(true);
       setErrorMessage("");
 
       // Limpiar preview anterior
@@ -74,12 +96,11 @@ const ImageUploadWithCompression = forwardRef(
           const options = {
             maxSizeMB: 4.5,
             maxWidthOrHeight,
-            useWebWorker: true,
             fileType: "image/jpeg",
             initialQuality: 0.8,
           };
 
-          finalFile = await imageCompression(file, options);
+          finalFile = await comprimirImagen(file, options);
           console.log("✅ Compresión completada:", formatFileSize(finalFile.size));
 
           if (finalFile.size > 5 * 1024 * 1024) {
@@ -126,8 +147,9 @@ const ImageUploadWithCompression = forwardRef(
         if (fileInputRef.current) fileInputRef.current.value = "";
       } finally {
         setIsCompressing(false);
+        onProcessingChange?.(false);
       }
-    }, [preview, showPreview, onChange, onError, alwaysCompress, maxWidthOrHeight]);
+    }, [preview, showPreview, onChange, onError, onProcessingChange, alwaysCompress, maxWidthOrHeight]);
 
     const handleFileChange = (e) => {
       const file = e.target.files?.[0];

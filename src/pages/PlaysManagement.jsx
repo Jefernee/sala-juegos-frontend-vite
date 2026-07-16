@@ -57,6 +57,21 @@ const JUEGOS_DISPONIBLES = [
   "Roblox",
   "World War Z Aftermath",
   "Assetto Corsa",
+  "Call of Duty Warzone",
+  "Overcooked",
+  "Efootball",
+  "Minecraft Dungeons",
+  "Rayman Legends",
+  "Assassin's Creed Valhalla",
+  "The Last of Us",
+  "God of War",
+  "Fall Guys",
+  "Sackboy",
+  "Need for Speed Heat",
+  "Star Wars Jedi",
+  "Minecraft Legends",
+  "Uncharted 4",
+  "Call of Duty 2",
 ];
 
 const ESTADOS_PAGO = ["En Proceso", "Completado", "Pendiente"];

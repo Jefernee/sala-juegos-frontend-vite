@@ -6,6 +6,10 @@ import NavBar from "../components/NavBar";
 const PublicProductsList = () => {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Solo la PRIMERA carga muestra la pantalla completa de "Cargando...".
+  // Las búsquedas/paginación siguientes usan un indicador chico y NO desmontan
+  // el buscador (si no, el input pierde el foco y la letra recién escrita).
+  const [firstLoad, setFirstLoad] = useState(true);
   const [pagination, setPagination] = useState({
     totalProducts: 0,
     totalPages: 0,
@@ -46,17 +50,23 @@ const PublicProductsList = () => {
       alert("Error al cargar productos. Por favor, intenta de nuevo.");
     } finally {
       setLoading(false);
+      setFirstLoad(false);
     }
   };
 
-  // Hook al nivel superior del componente
+  // Búsqueda en vivo: se dispara sola mientras el cliente escribe (con un
+  // pequeño retardo para no pegarle al backend en cada tecla). Con el campo
+  // vacío (carga inicial o "Limpiar") busca de inmediato, sin esperar.
   useEffect(() => {
-    fetchProductos(1, "");
-  }, []);
+    const termino = search.trim();
+    const t = setTimeout(() => fetchProductos(1, termino), termino ? 400 : 0);
+    return () => clearTimeout(t);
+  }, [search]);
 
+  // El submit del form (Enter o botón) solo evita recargar la página; la
+  // búsqueda ya la maneja el efecto de arriba.
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchProductos(1, search);
   };
 
   const handlePageChange = (newPage) => {
@@ -149,7 +159,7 @@ const PublicProductsList = () => {
     }
   };
 
-  if (loading) {
+  if (firstLoad) {
     return (
       <div className="public-products-container">
         <NavBar /> {/* 🎯 USA EL COMPONENTE en lugar de todo el <nav> */}
@@ -192,10 +202,7 @@ const PublicProductsList = () => {
                 <button
                   className="btn btn-secondary"
                   type="button"
-                  onClick={() => {
-                    setSearch("");
-                    fetchProductos(1, "");
-                  }}
+                  onClick={() => setSearch("")}
                 >
                   ✕ Limpiar
                 </button>
@@ -203,14 +210,23 @@ const PublicProductsList = () => {
             </div>
           </form>
 
-          {/* Contador de resultados */}
-          {pagination?.totalProducts > 0 && (
-            <p className="text-muted mb-3">
-              Mostrando {productos?.length || 0} de {pagination.totalProducts}{" "}
-              productos
-              {search && ` para "${search}"`}
-            </p>
-          )}
+          {/* Contador de resultados + indicador chico de búsqueda */}
+          <p className="text-muted mb-3 d-flex align-items-center gap-2">
+            {loading && (
+              <span
+                className="spinner-border spinner-border-sm text-secondary"
+                role="status"
+                aria-hidden="true"
+              ></span>
+            )}
+            <span>
+              {loading
+                ? "Buscando..."
+                : pagination?.totalProducts > 0
+                  ? `Mostrando ${productos?.length || 0} de ${pagination.totalProducts} productos${search ? ` para "${search}"` : ""}`
+                  : ""}
+            </span>
+          </p>
 
           {/* Grid de productos */}
           {!productos || productos.length === 0 ? (
@@ -229,19 +245,12 @@ const PublicProductsList = () => {
                     {/* Imagen */}
                     <div className="public-product-image-container">
                       <img
-                        src={
-                          producto.imagenOptimizada ||
-                          producto.imagen ||
-                          "https://via.placeholder.com/300"
-                        }
+                        src={producto.imagen || "https://via.placeholder.com/300"}
                         alt={producto.nombre}
                         className="card-img-top public-product-image"
                         loading="lazy"
                         onClick={() =>
-                          window.open(
-                            producto.imagenOriginal || producto.imagen,
-                            "_blank",
-                          )
+                          window.open(producto.imagen, "_blank")
                         }
                         title="Click para ver imagen completa"
                       />
@@ -378,9 +387,7 @@ const PublicProductsList = () => {
             <div className="modal-body">
               <div className="producto-info-modal">
                 <img
-                  src={
-                    selectedProduct.imagenOptimizada || selectedProduct.imagen
-                  }
+                  src={selectedProduct.imagen}
                   alt={selectedProduct.nombre}
                   className="producto-imagen-modal"
                 />

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import "../styles/SalesDashboard.css";
 import Navbar from "../components/NavBar2";
+import { puedeVerModulo } from "../utils/auth";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -43,6 +44,16 @@ const SalesDashboard = () => {
         Authorization: `Bearer ${token}`,
       },
     };
+  }, []);
+
+  // Si el usuario llegó acá por un 403 de rol (redirigido por el interceptor
+  // global), mostramos el aviso una sola vez.
+  useEffect(() => {
+    const msg = sessionStorage.getItem("accesoDenegado");
+    if (msg) {
+      sessionStorage.removeItem("accesoDenegado");
+      alert(msg);
+    }
   }, []);
 
   const fetchProductos = useCallback(
@@ -372,9 +383,12 @@ const SalesDashboard = () => {
         <div className="container-fluid py-4">
           <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
             <h2 className="sales-title mb-0">💰 Sistema de Ventas</h2>
-            <Link to="/sales-history" className="btn btn-outline-success">
-              📊 Ver Historial
-            </Link>
+            {/* El historial de ventas es un módulo de reportes: oculto para el vendedor. */}
+            {puedeVerModulo("salesHistory") && (
+              <Link to="/sales-history" className="btn btn-outline-success">
+                📊 Ver Historial
+              </Link>
+            )}
           </div>
           <div className="row g-4">
             <div className="col-lg-5 order-lg-2">

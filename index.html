@@ -20,11 +20,44 @@
     <meta name="author" content="Jefernee Ruiz" />
     <meta name="keywords" content="sala de juegos, entretenimiento, videojuegos, Batán de Limón, Costa Rica" />
 
-    <!-- Open Graph -->
+    <!-- Open Graph / Twitter (por defecto). La Edge Function torneo-og reescribe
+         este bloque con los datos del torneo cuando se comparte /torneos/:id -->
+    <!-- OG:START -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Sala de Juegos Ruiz" />
     <meta property="og:title" content="Sala de Juegos Ruiz" />
-    <meta property="og:description" content="Un lugar seguro y confiable para divertirse sanamente" />
-    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:description" content="Torneos, catálogo y diversión en Batán de Limón, Costa Rica." />
+    <meta property="og:image" content="https://salajuegosruiz.netlify.app/logo512.png" />
     <meta property="og:url" content="https://salajuegosruiz.netlify.app/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Sala de Juegos Ruiz" />
+    <meta name="twitter:description" content="Torneos, catálogo y diversión en Batán de Limón, Costa Rica." />
+    <meta name="twitter:image" content="https://salajuegosruiz.netlify.app/logo512.png" />
+    <!-- OG:END -->
+
+    <!-- Datos estructurados: ayuda a Google a entender que es un negocio local
+         en Batán de Limón (aparecer en búsquedas locales y en el mapa). -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "Sala de Juegos Ruiz",
+      "description": "Sala de juegos y entretenimiento en Batán de Limón, Costa Rica: videojuegos, torneos y diversión sana para toda la familia.",
+      "url": "https://salajuegosruiz.netlify.app/",
+      "image": "https://salajuegosruiz.netlify.app/logo512.png",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Batán",
+        "addressRegion": "Limón",
+        "addressCountry": "CR"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 10.0821389,
+        "longitude": -83.3479722
+      }
+    }
+    </script>
 
     <!-- Manifest PWA -->
     <link rel="manifest" href="/manifest.json" />
@@ -152,7 +185,19 @@
     </style>
   </head>
   <body>
-    <noscript>Necesitas habilitar JavaScript para usar esta aplicación.</noscript>
+    <noscript>
+      <h1>Sala de Juegos Ruiz — Batán de Limón, Costa Rica</h1>
+      <p>
+        Sala de juegos y entretenimiento para toda la familia en Batán de Limón:
+        videojuegos, PlayStation, torneos y competiciones, ping pong y más
+        diversión sana. ¡Vení a jugar!
+      </p>
+      <p>
+        Secciones: <a href="/">Inicio</a> · <a href="/productos">Productos</a> ·
+        <a href="/torneos">Torneos y competiciones</a>
+      </p>
+      <p>Para usar todas las funciones de la página, activá JavaScript en tu navegador.</p>
+    </noscript>
 
     <div id="root">
       <div id="splash">

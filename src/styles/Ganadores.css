@@ -1,4 +1,25 @@
 
+/* Avatar circular del ganador: cuadrado responsivo, foto centrada y COMPLETA
+   (object-fit: contain) para que no se corte la cara. El círculo blanco de
+   fondo enmarca la foto tanto en móvil como en escritorio. */
+.ganador-avatar-wrap {
+  position: relative;
+  width: 200px;
+  max-width: 60vw;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto 1rem auto;
+}
+
+.ganador-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 50%;
+  display: block;
+  background: #fff;
+}
+
 .card-verde {
   background-color: hsl(131, 84%, 10%) !important; 
 }
