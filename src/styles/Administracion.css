@@ -699,8 +699,14 @@
   font-size: 0.78rem;
   font-weight: 600;
   color: #cbd5e1;
-  padding: 0 0.5rem;
-  white-space: nowrap;
+  padding: 0.4rem 0.5rem;
+  /* Etiquetas largas: se ajustan en varias líneas y el botón crece de alto
+     (antes con nowrap + alto fijo se desbordaban en móvil). */
+  white-space: normal;
+  height: auto;
+  min-height: 38px;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .accion-btn--texto.accion-btn--rojo { color: #f87171; }
@@ -1293,7 +1299,7 @@
 
 .activo-card__acciones .accion-btn {
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Tarjetas de Torneos: tienen 4 acciones, así que se permiten en varias filas
