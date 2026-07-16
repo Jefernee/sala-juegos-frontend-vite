@@ -1306,6 +1306,19 @@
   overflow: visible;
 }
 
+/* Texto auxiliar DENTRO de las cards oscuras (usuarios/torneos). Por defecto
+   .admin-hint / .admin-label son oscuros (pensados para modales claros) y no se
+   leen sobre el fondo #111827 de la card; acá los aclaramos. Los modales no se
+   ven afectados porque el override está acotado a .activo-card. */
+.activo-card .admin-hint { color: #94a3b8; }
+.activo-card .admin-label { color: #94a3b8; }
+.activo-card code {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+}
+
 /* Sección destacada de reparación en el formulario */
 .seccion-reparacion {
   background: rgba(245, 158, 11, 0.06);
