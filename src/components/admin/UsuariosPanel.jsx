@@ -1,13 +1,19 @@
-// Panel de gestión de usuarios y roles. Visible SOLO para el administrador
-// (el dueño). Permite listar usuarios, cambiar el rol entre colaborador y
-// vendedor, y crear nuevos usuarios (colaborador o vendedor).
+// Panel de gestión de usuarios y roles. Visible SOLO para el administrador.
+// Permite listar usuarios, cambiar el rol entre administrador, colaborador y
+// vendedor, y crear nuevos usuarios con cualquiera de esos roles.
 //
 // Reglas del backend que respetamos en la UI:
-//  - No se puede asignar "administrador" ni cambiarle el rol al dueño → esas
-//    filas se muestran sin editar (chip "Dueño").
+//  - Los 3 roles válidos son exactamente: administrador, colaborador, vendedor.
+//  - La cuenta del dueño (administrador principal) está protegida: el backend
+//    responde 400 si se intenta cambiarle el rol. No hay forma fiable de
+//    detectarla en el front (puede haber varios administradores), así que se
+//    deja intentar y, si vuelve 400, se muestra el `message` y el select
+//    revierte solo (es controlado por el rol real). Además se bloquea la fila
+//    del propio usuario logueado para que no se auto-degrade y se bloquee.
 //  - Al crear con el token del admin, el `rol` del body sí se respeta.
 import { useState, useEffect, useCallback, useRef } from "react";
 import { API_URL, getAxios, formatFecha } from "./adminUtils";
+import { getUsuario } from "../../utils/auth";
 import { ModalOverlay, EstadoVacio, ErrorRecarga, Cargando } from "./Comunes";
 
 const ROL_INFO = {
@@ -16,8 +22,10 @@ const ROL_INFO = {
   vendedor: { label: "🧾 Vendedor", clase: "amarillo" },
 };
 
-// Roles que el administrador puede asignar (nunca "administrador").
+// Roles que el administrador puede asignar. Los 3 valores son los que acepta
+// el backend, tal cual (fuente de verdad del contrato).
 const ROLES_ASIGNABLES = [
+  { valor: "administrador", label: "👑 Administrador — control total" },
   { valor: "colaborador", label: "🤝 Colaborador — ve todos los módulos" },
   { valor: "vendedor", label: "🧾 Vendedor — solo Ventas y Control de Plays" },
 ];
@@ -43,6 +51,11 @@ const UsuariosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
   const [guardandoPassword, setGuardandoPassword] = useState(false);
 
   const montado = useRef(true);
+
+  // Id del usuario logueado: se usa para bloquear su propia fila (que no se
+  // pueda auto-degradar). El user guardado en login trae `_id` (Mongo).
+  const yo = getUsuario();
+  const miId = yo?._id || yo?.id || null;
 
   useEffect(() => () => { montado.current = false; }, []);
 
@@ -187,9 +200,10 @@ const UsuariosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
     <div className="fade-in">
       <div className="aviso-mes mb-4">
         👥 Gestión de usuarios. Solo vos (administrador) ves esta sección. Podés
-        crear personal, cambiar entre <strong>Colaborador</strong> (ve todo) y
-        <strong> Vendedor</strong> (solo Ventas y Control de Plays), y ver o
-        reasignar la <strong>contraseña</strong> de cada quien.
+        crear personal y cambiar el rol entre <strong>Administrador</strong> (control
+        total), <strong>Colaborador</strong> (ve todo) y <strong>Vendedor</strong>{" "}
+        (solo Ventas y Control de Plays), y ver o reasignar la{" "}
+        <strong>contraseña</strong> de cada quien.
       </div>
 
       <div className="d-flex justify-content-end mb-3">
@@ -208,7 +222,7 @@ const UsuariosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
         <div className="row g-3">
           {usuarios.map((u) => {
             const info = ROL_INFO[u.rol] || { label: u.rol, clase: "gris" };
-            const esDueno = u.rol === "administrador";
+            const esYo = !!miId && u._id === miId;
             return (
               <div key={u._id} className="col-12 col-lg-6">
                 <div className="activo-card w-100">
@@ -258,25 +272,22 @@ const UsuariosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
                     </div>
 
                     <div className="mt-3">
-                      {esDueno ? (
-                        <span className="activo-card__tipo-chip">✋ Cuenta del dueño · no editable</span>
-                      ) : (
-                        <>
-                          <label className="admin-label">Rol</label>
-                          <div className="d-flex align-items-center gap-2">
-                            <select
-                              className="form-select admin-select"
-                              value={u.rol}
-                              disabled={cambiandoId === u._id}
-                              onChange={(e) => cambiarRol(u, e.target.value)}
-                            >
-                              {ROLES_ASIGNABLES.map((r) => (
-                                <option key={r.valor} value={r.valor}>{r.label}</option>
-                              ))}
-                            </select>
-                            {cambiandoId === u._id && <span className="btn-spinner" />}
-                          </div>
-                        </>
+                      <label className="admin-label">Rol</label>
+                      <div className="d-flex align-items-center gap-2">
+                        <select
+                          className="form-select admin-select"
+                          value={u.rol}
+                          disabled={cambiandoId === u._id || esYo}
+                          onChange={(e) => cambiarRol(u, e.target.value)}
+                        >
+                          {ROLES_ASIGNABLES.map((r) => (
+                            <option key={r.valor} value={r.valor}>{r.label}</option>
+                          ))}
+                        </select>
+                        {cambiandoId === u._id && <span className="btn-spinner" />}
+                      </div>
+                      {esYo && (
+                        <div className="admin-hint mt-1">✋ Es tu propia cuenta: no podés cambiar tu rol.</div>
                       )}
                     </div>
                   </div>
