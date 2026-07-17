@@ -11,6 +11,12 @@
 //    revierte solo (es controlado por el rol real). Además se bloquea la fila
 //    del propio usuario logueado para que no se auto-degrade y se bloquee.
 //  - Al crear con el token del admin, el `rol` del body sí se respeta.
+//  - Contraseñas visibles: solo el dueño las recibe. Para el resto de
+//    administradores llegan en `password: null`. Detectamos "soy el dueño" si
+//    el listado trae al menos una contraseña visible; si no, ocultamos del todo
+//    la sección de contraseñas (valor, Mostrar y Copiar). El botón de reasignar
+//    queda igual: si un admin que no es el dueño intenta resetear la cuenta del
+//    dueño, el backend responde 403 y mostramos ese message.
 import { useState, useEffect, useCallback, useRef } from "react";
 import { API_URL, getAxios, formatFecha } from "./adminUtils";
 import { getUsuario } from "../../utils/auth";
@@ -157,7 +163,13 @@ const UsuariosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
       mostrarNotif(res.data?.message || "Contraseña actualizada");
       if (montado.current) setModalPassword(null);
     } catch (err) {
+      // manejarError muestra el toast y maneja el 401 (redirige a login). Para el
+      // resto (ej. 403 "Solo el dueño puede cambiar la contraseña de esta
+      // cuenta.") mostramos también el message dentro del modal y lo dejamos
+      // abierto, sin quedar en estado de "guardando".
       manejarError(err);
+      const msg = err?.response?.data?.message;
+      if (msg && montado.current) setErrorPassword(msg);
     } finally {
       if (montado.current) setGuardandoPassword(false);
     }
@@ -196,14 +208,19 @@ const UsuariosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
     }
   };
 
+  // "Soy el dueño" = el backend me mandó al menos una contraseña visible. Los
+  // administradores que no son el dueño las reciben todas en null, así que para
+  // ellos no mostramos la sección de contraseñas.
+  const soyDueno = usuarios.some((u) => u.password != null);
+
   return (
     <div className="fade-in">
       <div className="aviso-mes mb-4">
         👥 Gestión de usuarios. Solo vos (administrador) ves esta sección. Podés
         crear personal y cambiar el rol entre <strong>Administrador</strong> (control
         total), <strong>Colaborador</strong> (ve todo) y <strong>Vendedor</strong>{" "}
-        (solo Ventas y Control de Plays), y ver o reasignar la{" "}
-        <strong>contraseña</strong> de cada quien.
+        (solo Ventas y Control de Plays)
+        {soyDueno ? <>, y ver o reasignar la <strong>contraseña</strong> de cada quien.</> : <>, y reasignar la <strong>contraseña</strong> de cada quien.</>}
       </div>
 
       <div className="d-flex justify-content-end mb-3">
@@ -236,35 +253,41 @@ const UsuariosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
                       <div className="admin-hint">📅 Desde {formatFecha(u.createdAt)}</div>
                     )}
 
-                    {/* Contraseña (oculta por defecto) */}
+                    {/* Contraseña: la visualización (valor, Mostrar, Copiar) solo
+                        la ve el dueño. Para el resto de admins llega en null, así
+                        que se oculta del todo. El botón de reasignar queda igual. */}
                     <div className="mt-2">
-                      <label className="admin-label">Contraseña</label>
-                      {u.password ? (
-                        <div className="d-flex align-items-center gap-2 flex-wrap">
-                          <code style={{ fontSize: "0.95rem", wordBreak: "break-all" }}>
-                            {revelados.has(u._id) ? u.password : "••••••••"}
-                          </code>
-                          <button
-                            type="button"
-                            className="accion-btn accion-btn--texto"
-                            onClick={() => toggleReveal(u._id)}
-                          >
-                            {revelados.has(u._id) ? "🙈 Ocultar" : "👁️ Mostrar"}
-                          </button>
-                          <button
-                            type="button"
-                            className="accion-btn accion-btn--texto"
-                            onClick={() => copiarPassword(u.password)}
-                          >
-                            📋 Copiar
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="admin-hint">— (sin registrar)</div>
+                      {soyDueno && (
+                        <>
+                          <label className="admin-label">Contraseña</label>
+                          {u.password ? (
+                            <div className="d-flex align-items-center gap-2 flex-wrap">
+                              <code style={{ fontSize: "0.95rem", wordBreak: "break-all" }}>
+                                {revelados.has(u._id) ? u.password : "••••••••"}
+                              </code>
+                              <button
+                                type="button"
+                                className="accion-btn accion-btn--texto"
+                                onClick={() => toggleReveal(u._id)}
+                              >
+                                {revelados.has(u._id) ? "🙈 Ocultar" : "👁️ Mostrar"}
+                              </button>
+                              <button
+                                type="button"
+                                className="accion-btn accion-btn--texto"
+                                onClick={() => copiarPassword(u.password)}
+                              >
+                                📋 Copiar
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="admin-hint">— No disponible</div>
+                          )}
+                        </>
                       )}
                       <button
                         type="button"
-                        className="accion-btn accion-btn--texto accion-btn--naranja mt-1"
+                        className={`accion-btn accion-btn--texto accion-btn--naranja ${soyDueno ? "mt-1" : ""}`}
                         onClick={() => abrirReasignar(u)}
                       >
                         🔑 Reasignar contraseña
