@@ -36,22 +36,20 @@
 
 /* ─── TABS DEL MÓDULO ──────────────────────────────────────────────────────── */
 
+/* Rejilla de pestañas: en vez de una sola fila con scroll, las pestañas se
+   acomodan solas (≈4-5 por línea) y las que sobran bajan a la siguiente,
+   quedando parejas tanto en escritorio como en móvil. */
 .admin-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 0.4rem;
   background: #0f172a;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 14px;
   padding: 0.4rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
 }
 
-.admin-tabs::-webkit-scrollbar { display: none; }
-
 .admin-tab {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -378,6 +376,11 @@
   color: #fbbf24;
 }
 
+.tipo-toggle__btn--active-red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
 /* ─── SELECTOR DE MES ──────────────────────────────────────────────────────── */
 
 .mes-selector { position: relative; }
@@ -605,6 +608,7 @@
 
 .registro-item__badge--green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
 .registro-item__badge--blue  { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.registro-item__badge--red   { background: rgba(239, 68, 68, 0.15); color: #f87171; }
 
 /* ─── TABLA / CARDS DE MOVIMIENTOS (Ganancias y Pagos) ─────────────────────── */
 
@@ -643,6 +647,7 @@
 
 .mov-row--green { border-left-color: #10b981; }
 .mov-row--blue  { border-left-color: #3b82f6; }
+.mov-row--red   { border-left-color: #ef4444; }
 
 .mov-row__monto {
   font-weight: 700;
@@ -652,6 +657,16 @@
 
 .mov-row__monto--verde { color: #34d399; }
 .mov-row__monto--rojo  { color: #f87171; }
+
+/* Detalle del pago en dólares debajo del monto en colones */
+.mov-row__usd {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #64748b;
+  white-space: nowrap;
+  margin-top: 0.1rem;
+}
 
 .mov-row__desc {
   font-size: 0.83rem;
@@ -1696,10 +1711,10 @@
 /* ─── RESPONSIVE ───────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
-  /* Las 5 pestañas siempre visibles: ícono arriba, nombre abajo,
-     sin necesidad de deslizar hacia los lados */
+  /* En móvil: 4 pestañas por fila (ícono arriba, nombre abajo). Las que
+     sobran bajan a otra fila, sin quedar apretadas ni requerir deslizar. */
   .admin-tabs {
-    overflow-x: visible;
+    grid-template-columns: repeat(4, 1fr);
     gap: 0.2rem;
     padding: 0.3rem;
   }
@@ -1754,4 +1769,353 @@
 
   .detalle-img { height: 200px; }
   .activo-card__img-wrap { height: 220px; }
+}
+
+/* ─── MIS FINANZAS PERSONALES ──────────────────────────────────────────────── */
+
+/* Aviso de sección privada */
+.fin-aviso {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  color: #93c5fd;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.fin-aviso strong { color: #bfdbfe; }
+
+/* Tarjetas KPI (estado de resultados del mes) */
+.fin-kpi {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 1.25rem 1.4rem;
+  min-height: 120px;
+  justify-content: center;
+}
+
+.fin-kpi__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fin-kpi__valor {
+  font-size: clamp(1.4rem, 4.5vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  word-break: break-word;
+}
+
+.fin-kpi__pie {
+  font-size: 0.74rem;
+  color: #64748b;
+}
+
+.fin-kpi--verde {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: linear-gradient(160deg, #0d2118 0%, #0f172a 100%);
+}
+.fin-kpi--verde .fin-kpi__valor { color: #34d399; }
+
+.fin-kpi--rojo {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: linear-gradient(160deg, #210d0d 0%, #0f172a 100%);
+}
+.fin-kpi--rojo .fin-kpi__valor { color: #f87171; }
+
+/* La tarjeta de balance resalta un poco más (es el número clave del mes) */
+.fin-kpi--balance { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03); }
+
+/* Contenedor del desglose: dos columnas de categorías + panel de la dona */
+.fin-desglose-wrap {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.fin-desglose-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.fin-desglose {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+}
+
+.fin-desglose__titulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 0.85rem;
+}
+
+.fin-desglose__vacio {
+  color: #475569;
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.fin-desglose__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fin-cat__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.fin-cat__nombre {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.83rem;
+  color: #cbd5e1;
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fin-cat__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.fin-cat__cantidad {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.fin-cat__monto {
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.fin-cat__monto--verde { color: #34d399; }
+.fin-cat__monto--rojo  { color: #f87171; }
+
+.fin-cat__barra {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.fin-cat__barra-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.fin-cat__barra-fill--verde { background: linear-gradient(90deg, #10b981, #34d399); }
+.fin-cat__barra-fill--rojo  { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+/* Panel de la dona de gastos */
+.fin-donut-panel {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  text-align: center;
+}
+
+.fin-donut {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  margin: 0.25rem auto 0.75rem;
+}
+
+.fin-donut__centro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  pointer-events: none;
+}
+
+.fin-donut__centro-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.fin-donut__centro-monto {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #f87171;
+}
+
+.fin-donut-leyenda {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+}
+
+.fin-donut-leyenda__item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+}
+
+/* Tablet: la dona baja debajo de las dos columnas */
+@media (max-width: 900px) {
+  .fin-desglose-wrap { grid-template-columns: 1fr; }
+  .fin-donut-panel { display: flex; flex-direction: column; align-items: center; }
+  .fin-donut-leyenda {
+    flex-flow: row wrap;
+    justify-content: center;
+    gap: 0.4rem 0.9rem;
+  }
+}
+
+/* Móvil: las dos columnas de categorías se apilan */
+@media (max-width: 560px) {
+  .fin-desglose-cols { grid-template-columns: 1fr; }
+}
+
+/* Selector de moneda (colones / dólares) dentro del modal de movimiento */
+.moneda-toggle {
+  display: inline-flex;
+  gap: 0.25rem;
+  background: #0b1120;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.2rem;
+}
+
+.moneda-toggle__btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  border-radius: 6px;
+  padding: 0.28rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+
+.moneda-toggle__btn:hover:not(:disabled) { color: #cbd5e1; }
+.moneda-toggle__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.moneda-toggle__btn--activo {
+  background: rgba(59, 130, 246, 0.16);
+  color: #60a5fa;
+}
+
+/* Bloque de conversión (tipo de cambio del día + vista previa en colones) */
+.moneda-conversion {
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+}
+
+.moneda-tc-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.moneda-tc-fila--cargando {
+  color: #93c5fd;
+  font-size: 0.85rem;
+  justify-content: flex-start;
+}
+
+.moneda-tc-info { display: flex; flex-direction: column; gap: 0.1rem; }
+
+.moneda-tc-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.moneda-tc-fuente { font-size: 0.72rem; color: #64748b; }
+
+.moneda-tc-derecha { display: flex; align-items: center; gap: 0.5rem; }
+
+.moneda-tc-valor {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #60a5fa;
+  white-space: nowrap;
+}
+
+.moneda-tc-reintentar {
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+  border-radius: 7px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.moneda-tc-reintentar:hover:not(:disabled) { background: rgba(59, 130, 246, 0.22); }
+.moneda-tc-reintentar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.moneda-tc-error {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  color: #fbbf24;
+  font-size: 0.82rem;
+}
+
+.moneda-preview {
+  margin-top: 0.6rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(59, 130, 246, 0.18);
+  font-size: 0.82rem;
+  color: #93c5fd;
+}
+
+.moneda-preview strong { color: #bfdbfe; }
+
+.moneda-tc-nota {
+  margin-top: 0.4rem;
+  font-size: 0.74rem;
+  color: #64748b;
+  line-height: 1.35;
 }

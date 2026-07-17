@@ -8,7 +8,8 @@ import MovimientosPanel from "../components/admin/MovimientosPanel";
 import ActivosPanel from "../components/admin/ActivosPanel";
 import UsuariosPanel from "../components/admin/UsuariosPanel";
 import TorneosPanel from "../components/admin/TorneosPanel";
-import { puedeGestionarUsuarios } from "../utils/auth";
+import FinanzasPersonalesPanel from "../components/admin/FinanzasPersonalesPanel";
+import { puedeGestionarUsuarios, esAdministrador } from "../utils/auth";
 import "../styles/Administracion.css";
 
 // Torneos lo ven administrador y colaborador (todos los que llegan a esta
@@ -22,8 +23,10 @@ const TABS_BASE = [
   { id: "torneos", icono: "🏆", label: "Torneos" },
 ];
 
-// La pestaña de Usuarios solo la ve el administrador (dueño).
+// Pestañas exclusivas del administrador (dueño): gestión de usuarios y su
+// control de finanzas personales (entrada privada, aparte del negocio).
 const TAB_USUARIOS = { id: "usuarios", icono: "👥", label: "Usuarios" };
+const TAB_FINANZAS = { id: "finanzas", icono: "🔒", label: "Mis Finanzas" };
 
 const Administracion = () => {
   const [vista, setVista] = useState("resumen");
@@ -32,7 +35,12 @@ const Administracion = () => {
   const navigate = useNavigate();
 
   const gestionaUsuarios = puedeGestionarUsuarios();
-  const tabs = gestionaUsuarios ? [...TABS_BASE, TAB_USUARIOS] : TABS_BASE;
+  const esAdmin = esAdministrador();
+  const tabs = [
+    ...TABS_BASE,
+    ...(gestionaUsuarios ? [TAB_USUARIOS] : []),
+    ...(esAdmin ? [TAB_FINANZAS] : []),
+  ];
 
   useEffect(() => {
     document.title = "Administración - Sala de Juegos Ruiz";
@@ -109,6 +117,7 @@ const Administracion = () => {
         {vista === "activos" && <ActivosPanel {...propsComunes} />}
         {vista === "torneos" && <TorneosPanel {...propsComunes} />}
         {vista === "usuarios" && gestionaUsuarios && <UsuariosPanel {...propsComunes} />}
+        {vista === "finanzas" && esAdmin && <FinanzasPersonalesPanel {...propsComunes} />}
       </div>
 
       {/* Toast global */}
