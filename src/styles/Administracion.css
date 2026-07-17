@@ -1836,6 +1836,77 @@
 /* La tarjeta de balance resalta un poco más (es el número clave del mes) */
 .fin-kpi--balance { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03); }
 
+/* ─── RESUMEN INTELIGENTE (recomendaciones) ───────────────────────────────── */
+.fin-recom-panel {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+}
+
+.fin-recom-titulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 0.75rem;
+}
+
+.fin-recom-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.fin-recom {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left-width: 4px;
+  border-radius: 12px;
+  padding: 0.75rem 0.95rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.fin-recom__icono { font-size: 1.15rem; line-height: 1.35; flex-shrink: 0; }
+
+.fin-recom__msg {
+  font-size: 0.88rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* Colores por nivel. Crítico y advertencia resaltan más (fondo tintado). */
+.fin-recom--critico {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: linear-gradient(160deg, rgba(239, 68, 68, 0.14) 0%, rgba(239, 68, 68, 0.05) 100%);
+}
+.fin-recom--critico .fin-recom__msg { color: #fecaca; }
+
+.fin-recom--advertencia {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: linear-gradient(160deg, rgba(245, 158, 11, 0.13) 0%, rgba(245, 158, 11, 0.04) 100%);
+}
+.fin-recom--advertencia .fin-recom__msg { color: #fde68a; }
+
+.fin-recom--bien {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.06);
+}
+.fin-recom--bien .fin-recom__msg { color: #a7f3d0; }
+
+.fin-recom--consejo {
+  border-color: rgba(59, 130, 246, 0.4);
+  background: rgba(59, 130, 246, 0.06);
+}
+.fin-recom--consejo .fin-recom__msg { color: #bfdbfe; }
+
+.fin-recom--info {
+  border-color: rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.05);
+}
+
 /* Contenedor del desglose: dos columnas de categorías + panel de la dona */
 .fin-desglose-wrap {
   display: grid;

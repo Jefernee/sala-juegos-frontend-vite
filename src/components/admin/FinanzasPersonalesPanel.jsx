@@ -14,6 +14,9 @@ import { ModalOverlay, ConfirmarEliminar, Paginacion, ErrorRecarga, EstadoVacio,
 const BASE = `${API_URL}/api/finanzas-personales`;
 const LIMITE = 10;
 
+// Orden de importancia de las recomendaciones: primero lo que hay que atender.
+const ORDEN_NIVEL = { critico: 0, advertencia: 1, bien: 2, consejo: 3, info: 4 };
+
 // Al pagar en dólares, el tipo de cambio del día se trae automáticamente (API
 // de Hacienda) y solo se muestra —no se edita—; el monto se convierte a colones
 // (el backend guarda todo en ₡) y el detalle en dólares queda en la descripción.
@@ -527,6 +530,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
 
   const [categorias, setCategorias] = useState(null);   // { ingreso:[], egreso:[] }
   const [resumen, setResumen] = useState(null);
+  const [recomendaciones, setRecomendaciones] = useState([]);
   const [movimientos, setMovimientos] = useState([]);
   const [pagination, setPagination] = useState(null);
 
@@ -593,8 +597,23 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
     }
   }, [mes, anio, page, getAuthHeaders, manejarError]);
 
+  // Recomendaciones automáticas del mes (las calcula el backend). Es un panel
+  // complementario: si falla (o el endpoint aún no existe), no mostramos nada
+  // y no molestamos con un error — el resumen principal ya maneja la sesión.
+  const fetchRecomendaciones = useCallback(async () => {
+    try {
+      const axios = await getAxios();
+      const res = await axios.get(`${BASE}/recomendaciones?mes=${mes}&anio=${anio}`, getAuthHeaders());
+      setRecomendaciones(Array.isArray(res.data?.recomendaciones) ? res.data.recomendaciones : []);
+    } catch (err) {
+      setRecomendaciones([]);
+      console.error("[FinanzasPersonales] No se pudieron cargar las recomendaciones:", err);
+    }
+  }, [mes, anio, getAuthHeaders]);
+
   useEffect(() => { fetchResumen(); }, [fetchResumen]);
   useEffect(() => { fetchLista(); }, [fetchLista]);
+  useEffect(() => { fetchRecomendaciones(); }, [fetchRecomendaciones]);
 
   const cambiarMes = (nuevoMes, nuevoAnio) => {
     setMes(nuevoMes);
@@ -605,11 +624,13 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   const refrescar = () => {
     fetchResumen();
     fetchLista();
+    fetchRecomendaciones();
   };
 
   const handleExito = (eraEdicion) => {
     setModal(null);
     fetchResumen();
+    fetchRecomendaciones();
     if (!eraEdicion && page !== 1) setPage(1); // el nuevo queda de primero
     else fetchLista();
   };
@@ -623,6 +644,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
       mostrarNotif(res.data?.message || "Movimiento eliminado");
       setAEliminar(null);
       fetchResumen();
+      fetchRecomendaciones();
       if (movimientos.length === 1 && page > 1) setPage((p) => p - 1);
       else fetchLista();
     } catch (err) {
@@ -634,6 +656,11 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
 
   const balance = resumen?.balance ?? 0;
   const balanceClase = balance >= 0 ? "verde" : "rojo";
+
+  // Recomendaciones con lo importante primero (crítico → advertencia → resto).
+  const recomOrdenadas = [...recomendaciones].sort(
+    (a, b) => (ORDEN_NIVEL[a.nivel] ?? 9) - (ORDEN_NIVEL[b.nivel] ?? 9),
+  );
 
   return (
     <div className="fade-in">
@@ -676,6 +703,21 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
               </div>
             </div>
           </div>
+
+          {/* Resumen inteligente: recomendaciones automáticas del mes */}
+          {recomOrdenadas.length > 0 && (
+            <div className="fin-recom-panel mb-4">
+              <p className="fin-recom-titulo">🧠 Resumen inteligente del mes</p>
+              <div className="fin-recom-lista">
+                {recomOrdenadas.map((rec, i) => (
+                  <div key={i} className={`fin-recom fin-recom--${rec.nivel || "info"}`}>
+                    <span className="fin-recom__icono">{rec.icono}</span>
+                    <span className="fin-recom__msg">{rec.mensaje}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Desglose por categoría + dona de gastos */}
           <div className="fin-desglose-wrap mb-4">
