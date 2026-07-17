@@ -74,7 +74,15 @@ const JUEGOS_DISPONIBLES = [
   "Call of Duty 2",
 ];
 
-const ESTADOS_PAGO = ["En Proceso", "Completado", "Pendiente"];
+// Estados de pago. Se quitó "En Proceso": ahora es obligatorio elegir
+// Completado o Pendiente (arranca vacío para que se seleccione a propósito).
+const ESTADOS_PAGO = ["Completado", "Pendiente"];
+
+// Orden visual de los campos obligatorios (para saltar al primero que falte).
+const CAMPOS_ORDEN = [
+  "cliente", "lugarDeJuego", "juegosJugados", "tiempo",
+  "horaInicio", "totalControles", "estadoPago",
+];
 
 // Precio por hora según el lugar de juego
 const precioPorHora = (lugar) => {
@@ -221,8 +229,11 @@ const PlaysManagement = () => {
     lugarDeJuego: "",
     juegosJugados: [],
     totalControles: "",
-    estadoPago: "En Proceso",
+    estadoPago: "",
   });
+
+  // Errores de validación por campo (para marcar en rojo y mostrar dónde falta)
+  const [errores, setErrores] = useState({});
 
   const [tiempoPagadoInput, setTiempoPagadoInput] = useState({
     horas: "",
@@ -451,6 +462,7 @@ const PlaysManagement = () => {
       [name]:
         name === "totalControles" ? (value ? Number(value) : "") : value,
     }));
+    setErrores((er) => (er[name] ? { ...er, [name]: "" } : er));
   };
 
   // ✅ Al salir del campo Hora Inicio, lo dejamos en formato canónico "2:10 PM"
@@ -492,6 +504,7 @@ const PlaysManagement = () => {
         (t.horas === "" ? 0 : t.horas) * 60 +
         (t.minutos === "" ? 0 : t.minutos),
     }));
+    setErrores((er) => (er.tiempo ? { ...er, tiempo: "" } : er));
   };
 
   const handleTiempoPendienteChange = (tipo, valor) => {
@@ -524,6 +537,7 @@ const PlaysManagement = () => {
       return;
     }
     setFormData((prev) => ({ ...prev, juegosJugados: sel }));
+    setErrores((er) => (er.juegosJugados ? { ...er, juegosJugados: "" } : er));
   };
 
   // ✅ Abre el formulario de nuevo registro refrescando la hora de inicio
@@ -548,8 +562,9 @@ const PlaysManagement = () => {
       lugarDeJuego: "",
       juegosJugados: [],
       totalControles: "",
-      estadoPago: "En Proceso",
+      estadoPago: "",
     });
+    setErrores({});
     setTiempoPagadoInput({ horas: "", minutos: "" });
     setTiempoPendienteInput({ horas: "", minutos: "" });
     setDesgloseCostos({ subtotal: 0, costoControles: 0, total: 0 });
@@ -560,24 +575,42 @@ const PlaysManagement = () => {
     setMostrarFormulario(false);
   };
 
+  // Valida los campos obligatorios y devuelve un objeto { campo: mensaje }.
+  const validarFormulario = () => {
+    const err = {};
+    if (!formData.cliente?.trim()) err.cliente = "Escribí el nombre del cliente";
+    if (!formData.lugarDeJuego) err.lugarDeJuego = "Elegí el lugar de juego";
+    if (formData.juegosJugados.length === 0) err.juegosJugados = "Elegí al menos 1 juego";
+    if (!formData.tiempoPagado) {
+      err.tiempo = modoRegistro === "monto"
+        ? "Ingresá el monto cobrado por el tiempo"
+        : "Ingresá el tiempo pagado";
+    }
+    if (!formData.horaInicio) err.horaInicio = "Ingresá la hora de inicio";
+    if (!formData.totalControles) err.totalControles = "Elegí la cantidad de controles";
+    if (!formData.estadoPago) err.estadoPago = "Elegí el estado del pago";
+    return err;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (
-      !formData.cliente ||
-      !formData.atendio ||
-      !formData.tiempoPagado ||
-      !formData.horaInicio ||
-      !formData.horaFinal ||
-      !formData.lugarDeJuego ||
-      formData.juegosJugados.length === 0 ||
-      !formData.totalControles
-    ) {
+    const err = validarFormulario();
+    if (Object.keys(err).length > 0) {
+      setErrores(err);
+      // Ir al primer campo que falta (en orden visual) y enfocarlo.
+      const primero = CAMPOS_ORDEN.find((k) => err[k]);
+      const cont = primero && document.getElementById(`campo-${primero}`);
+      if (cont) {
+        cont.scrollIntoView({ behavior: "smooth", block: "center" });
+        cont.querySelector("input, select, textarea")?.focus({ preventScroll: true });
+      }
       mostrarNotif(
-        "Por favor completa todos los campos obligatorios. Tienen un asterisco",
+        "Faltan datos por completar — te llevé al primero que falta",
         "warning",
       );
       return;
     }
+    setErrores({});
     // ✅ Resolver la hora de inicio (el sistema infiere AM/PM si falta) y
     //    recalcular la hora final desde ahí, por si se guarda sin salir del campo.
     const horaInicio24 = convertir12hA24h(resolverHora12h(formData.horaInicio));
@@ -681,8 +714,11 @@ const PlaysManagement = () => {
       totalControles:
         play.totalControles ??
         ((play.controlAdicional || 0) > 0 ? play.controlAdicional + 2 : 1),
-      estadoPago: play.estadoPago || "En Proceso",
+      // Registros viejos con "En Proceso" (ya no válido) arrancan vacíos para
+      // obligar a elegir Completado o Pendiente al guardar.
+      estadoPago: ESTADOS_PAGO.includes(play.estadoPago) ? play.estadoPago : "",
     });
+    setErrores({});
     // Al editar siempre mostramos el modo por tiempo (el registro ya tiene tiempo)
     setModoRegistro("tiempo");
     setMontoInput("");
@@ -790,29 +826,32 @@ const PlaysManagement = () => {
                         📋 Información Básica
                       </h6>
                     </div>
-                    <div className="col-12 col-md-6">
+                    <div className="col-12 col-md-6" id="campo-cliente">
                       <label className="form-label fw-bold">Cliente *</label>
                       <input
                         type="text"
-                        className="form-control form-control-lg"
+                        className={`form-control form-control-lg ${errores.cliente ? "is-invalid" : ""}`}
                         name="cliente"
                         value={formData.cliente}
                         onChange={handleInputChange}
                         placeholder="Nombre del cliente"
                         required
                       />
+                      {errores.cliente && (
+                        <div className="invalid-feedback d-block">{errores.cliente}</div>
+                      )}
                     </div>
                     <div className="col-12 mt-4">
                       <h6 className="border-bottom pb-2 mb-3 text-primary fw-bold">
                         🎮 Detalles del Juego
                       </h6>
                     </div>
-                    <div className="col-12">
+                    <div className="col-12" id="campo-lugarDeJuego">
                       <label className="form-label fw-bold">
                         Lugar de Juego *
                       </label>
                       <select
-                        className="form-select form-select-lg custom-select-mobile"
+                        className={`form-select form-select-lg custom-select-mobile ${errores.lugarDeJuego ? "is-invalid" : ""}`}
                         name="lugarDeJuego"
                         value={formData.lugarDeJuego}
                         onChange={handleInputChange}
@@ -825,13 +864,16 @@ const PlaysManagement = () => {
                           </option>
                         ))}
                       </select>
+                      {errores.lugarDeJuego && (
+                        <div className="invalid-feedback d-block">{errores.lugarDeJuego}</div>
+                      )}
                     </div>
-                    <div className="col-12">
+                    <div className="col-12" id="campo-juegosJugados">
                       <label className="form-label fw-bold">
                         Juegos Jugados agregar almenos 1 (máx. 2) *
                       </label>
                       <select
-                        className="form-select select-juegos-mejorado custom-select-mobile"
+                        className={`form-select select-juegos-mejorado custom-select-mobile ${errores.juegosJugados ? "is-invalid" : ""}`}
                         multiple
                         value={formData.juegosJugados}
                         onChange={handleJuegoChange}
@@ -843,9 +885,13 @@ const PlaysManagement = () => {
                           </option>
                         ))}
                       </select>
-                      <small className="text-muted d-block mt-1">
-                        💡 Mantén presionado para seleccionar múltiples
-                      </small>
+                      {errores.juegosJugados ? (
+                        <div className="invalid-feedback d-block">{errores.juegosJugados}</div>
+                      ) : (
+                        <small className="text-muted d-block mt-1">
+                          💡 Mantén presionado para seleccionar múltiples
+                        </small>
+                      )}
                     </div>
                     <div className="col-12 mt-4">
                       <h6 className="border-bottom pb-2 mb-3 text-primary fw-bold">
@@ -874,7 +920,7 @@ const PlaysManagement = () => {
                       </div>
                     </div>
                     {modoRegistro === "tiempo" ? (
-                      <div className="col-12">
+                      <div className="col-12" id="campo-tiempo">
                         <label className="form-label fw-bold">
                           Tiempo Pagado *
                         </label>
@@ -917,9 +963,12 @@ const PlaysManagement = () => {
                             ✓ Total: {minutosATexto(formData.tiempoPagado)}
                           </small>
                         )}
+                        {errores.tiempo && (
+                          <div className="invalid-feedback d-block">{errores.tiempo}</div>
+                        )}
                       </div>
                     ) : (
-                      <div className="col-12">
+                      <div className="col-12" id="campo-tiempo">
                         <label className="form-label fw-bold">
                           Monto por el tiempo *
                         </label>
@@ -927,14 +976,20 @@ const PlaysManagement = () => {
                           <span className="input-group-text">₡</span>
                           <input
                             type="number"
-                            className="form-control"
+                            className={`form-control ${errores.tiempo ? "is-invalid" : ""}`}
                             min="0"
                             step="5"
                             value={montoInput}
                             placeholder="425"
-                            onChange={(e) => setMontoInput(e.target.value)}
+                            onChange={(e) => {
+                              setMontoInput(e.target.value);
+                              setErrores((er) => (er.tiempo ? { ...er, tiempo: "" } : er));
+                            }}
                           />
                         </div>
+                        {errores.tiempo && (
+                          <div className="invalid-feedback d-block">{errores.tiempo}</div>
+                        )}
                         {!formData.lugarDeJuego ? (
                           <small className="text-muted d-block mt-1">
                             ⚠️ Primero elegí el lugar de juego (para saber ₡/hora)
@@ -1010,13 +1065,13 @@ const PlaysManagement = () => {
                         </small>
                       )}
                     </div>
-                    <div className="col-12 col-md-6">
+                    <div className="col-12 col-md-6" id="campo-horaInicio">
                       <label className="form-label fw-bold">
                         Hora Inicio *
                       </label>
                       <input
                         type="text"
-                        className="form-control form-control-lg"
+                        className={`form-control form-control-lg ${errores.horaInicio ? "is-invalid" : ""}`}
                         name="horaInicio"
                         value={formData.horaInicio}
                         onChange={handleInputChange}
@@ -1024,6 +1079,9 @@ const PlaysManagement = () => {
                         placeholder="2:10 PM"
                         required
                       />
+                      {errores.horaInicio && (
+                        <div className="invalid-feedback d-block">{errores.horaInicio}</div>
+                      )}
                     </div>
                     <div className="col-12 col-md-6">
                       <label className="form-label fw-bold">
@@ -1044,12 +1102,12 @@ const PlaysManagement = () => {
                         💰 Costos y Estado
                       </h6>
                     </div>
-                    <div className="col-12 col-md-6">
+                    <div className="col-12 col-md-6" id="campo-totalControles">
                       <label className="form-label fw-bold">
                         Controles <span className="text-danger">*</span>
                       </label>
                       <select
-                        className="form-select form-select-lg custom-select-mobile"
+                        className={`form-select form-select-lg custom-select-mobile ${errores.totalControles ? "is-invalid" : ""}`}
                         name="totalControles"
                         value={formData.totalControles}
                         onChange={handleInputChange}
@@ -1063,26 +1121,37 @@ const PlaysManagement = () => {
                         <option value={3}>3 controles (+₡200)</option>
                         <option value={4}>4 controles (+₡400)</option>
                       </select>
-                      <small className="text-muted d-block mt-1">
-                        Los 2 primeros controles son gratis. Del 3.º en adelante ₡200 c/u.
-                      </small>
+                      {errores.totalControles ? (
+                        <div className="invalid-feedback d-block">{errores.totalControles}</div>
+                      ) : (
+                        <small className="text-muted d-block mt-1">
+                          Los 2 primeros controles son gratis. Del 3.º en adelante ₡200 c/u.
+                        </small>
+                      )}
                     </div>
-                    <div className="col-12 col-md-6">
+                    <div className="col-12 col-md-6" id="campo-estadoPago">
                       <label className="form-label fw-bold">
-                        Estado del Pago
+                        Estado del Pago <span className="text-danger">*</span>
                       </label>
                       <select
-                        className="form-select form-select-lg custom-select-mobile"
+                        className={`form-select form-select-lg custom-select-mobile ${errores.estadoPago ? "is-invalid" : ""}`}
                         name="estadoPago"
                         value={formData.estadoPago}
                         onChange={handleInputChange}
+                        required
                       >
+                        <option value="" disabled>
+                          Selecciona el estado...
+                        </option>
                         {ESTADOS_PAGO.map((e) => (
                           <option key={e} value={e}>
                             {e}
                           </option>
                         ))}
                       </select>
+                      {errores.estadoPago && (
+                        <div className="invalid-feedback d-block">{errores.estadoPago}</div>
+                      )}
                     </div>
                     <div className="col-12">
                       <div className="card bg-light border-success">

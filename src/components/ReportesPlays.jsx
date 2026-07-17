@@ -250,10 +250,14 @@ function VistaMensual({ reporte: r }) {
                 <div className="rp-estado-val" style={{ color: "#b45309" }}>{fmtN(r.sesionesPendientes)}</div>
                 <div className="rp-estado-lbl">Pendientes</div>
               </div>
-              <div className="rp-estado">
-                <div className="rp-estado-val" style={{ color: "#6b7280" }}>{fmtN(r.sesionesEnProceso)}</div>
-                <div className="rp-estado-lbl">En proceso</div>
-              </div>
+              {/* "En proceso" se descontinuó: solo se muestra si hay registros
+                  viejos con ese estado, para que los totales sigan cuadrando. */}
+              {r.sesionesEnProceso > 0 && (
+                <div className="rp-estado">
+                  <div className="rp-estado-val" style={{ color: "#6b7280" }}>{fmtN(r.sesionesEnProceso)}</div>
+                  <div className="rp-estado-lbl">En proceso</div>
+                </div>
+              )}
             </div>
           </div>
         </div>
