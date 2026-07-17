@@ -94,16 +94,23 @@ const ICONOS_CAT = {
   Salario: "💼", "Salario MEP": "🏫", "Salario CreAI": "🤖",
   Negocio: "🏪", "Ventas/Extras": "🛍️", Préstamos: "🤝",
   // Egresos
-  Comida: "🍽️", Transporte: "🚗", "Vivienda/Alquiler": "🏠", Vivienda: "🏠",
+  Comida: "🍽️", "Comida de colegio": "🍱", Transporte: "🚗",
+  "Vivienda/Alquiler": "🏠", Vivienda: "🏠",
   Servicios: "🧾", Salud: "💊", Entretenimiento: "🎬",
-  "Compras personales": "🛒", Educación: "📚", "Deudas/Préstamos": "💳",
-  Ahorro: "🐷",
+  "Compras personales": "🛒", Educación: "📚", Regalos: "🎁", Rifas: "🎟️",
+  "Deudas/Préstamos": "💳", "Cuota banco (BCR)": "🏦",
+  Ahorro: "🐷", "Ahorro CreAI": "🪙", "Ahorro MEP": "💰",
   // Comodín
   Otros: "•",
 };
 
 const iconoCat = (categoria, tipo) =>
   ICONOS_CAT[categoria] || (tipo === "ingreso" ? "💰" : "💸");
+
+// El ahorro no es consumo: cualquier categoría que empiece con "Ahorro"
+// (Ahorro, Ahorro CreAI, Ahorro MEP…) se saca del gráfico de gastos y se muestra
+// aparte, para que la distribución de gastos refleje el gasto real del mes.
+const esAhorro = (categoria) => /^ahorro/i.test(String(categoria || "").trim());
 
 // ─── DONA DE GASTOS POR CATEGORÍA (SVG puro, sin dependencias) ───────────────
 const DonutGastos = ({ items }) => {
@@ -191,6 +198,42 @@ const DesgloseBloque = ({ titulo, icono, items, colorClase }) => {
           })}
         </div>
       )}
+    </div>
+  );
+};
+
+// ─── BLOQUE DE AHORRO DEL MES ────────────────────────────────────────────────
+// El ahorro viene dentro de desglose.egreso, pero no es gasto. Se muestra aparte
+// con su total y, si hay varias metas de ahorro, un mini desglose de cada una.
+const AhorroBloque = ({ items }) => {
+  const ordenado = [...(items || [])].sort((a, b) => (b.total || 0) - (a.total || 0));
+  if (ordenado.length === 0) return null;
+  const total = ordenado.reduce((s, it) => s + (Number(it.total) || 0), 0);
+
+  return (
+    <div className="fin-ahorro">
+      <div className="fin-ahorro__head">
+        <span className="fin-ahorro__titulo">🐷 Ahorro del mes</span>
+        <span className="fin-ahorro__total">{formatCRC(total)}</span>
+      </div>
+      {ordenado.length > 1 && (
+        <div className="fin-ahorro__lista">
+          {ordenado.map((it) => (
+            <div key={it.categoria} className="fin-ahorro__item">
+              <span className="fin-ahorro__item-nombre">
+                {iconoCat(it.categoria, "egreso")} {it.categoria}
+                <span className="fin-cat__cantidad">
+                  ({it.cantidad} {it.cantidad === 1 ? "mov." : "movs."})
+                </span>
+              </span>
+              <span className="fin-ahorro__item-monto">{formatCRC(it.total)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="fin-ahorro__nota">
+        El ahorro no cuenta como gasto: queda fuera de la distribución de gastos.
+      </p>
     </div>
   );
 };
@@ -657,6 +700,15 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   const balance = resumen?.balance ?? 0;
   const balanceClase = balance >= 0 ? "verde" : "rojo";
 
+  // El ahorro viene dentro de desglose.egreso pero no es consumo: se separa para
+  // que la dona y el desglose de "Gastos por categoría" reflejen el gasto real,
+  // y el ahorro se muestre en su propio bloque. (Los KPIs y el balance siguen
+  // saliendo tal cual del backend, que sí incluye el ahorro en los egresos.)
+  const egresoTodo = resumen?.desglose?.egreso || [];
+  const gastosReales = egresoTodo.filter((it) => !esAhorro(it.categoria));
+  const ahorros = egresoTodo.filter((it) => esAhorro(it.categoria));
+  const gastosOrdenados = [...gastosReales].sort((a, b) => (b.total || 0) - (a.total || 0));
+
   // Recomendaciones con lo importante primero (crítico → advertencia → resto).
   const recomOrdenadas = [...recomendaciones].sort(
     (a, b) => (ORDEN_NIVEL[a.nivel] ?? 9) - (ORDEN_NIVEL[b.nivel] ?? 9),
@@ -731,29 +783,28 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
               <DesgloseBloque
                 titulo="Gastos por categoría"
                 icono="📉"
-                items={resumen?.desglose?.egreso}
+                items={gastosReales}
                 colorClase="rojo"
               />
             </div>
-            {resumen?.desglose?.egreso?.length > 0 && (
+            {gastosOrdenados.length > 0 && (
               <div className="fin-donut-panel">
                 <p className="fin-desglose__titulo">🍩 Distribución de gastos</p>
-                <DonutGastos
-                  items={[...resumen.desglose.egreso].sort((a, b) => (b.total || 0) - (a.total || 0))}
-                />
+                <DonutGastos items={gastosOrdenados} />
                 <div className="fin-donut-leyenda">
-                  {[...resumen.desglose.egreso]
-                    .sort((a, b) => (b.total || 0) - (a.total || 0))
-                    .map((it, i) => (
-                      <span key={it.categoria} className="fin-donut-leyenda__item">
-                        <span className="fin-cat__dot" style={{ background: PALETA[i % PALETA.length] }} />
-                        {it.categoria}
-                      </span>
-                    ))}
+                  {gastosOrdenados.map((it, i) => (
+                    <span key={it.categoria} className="fin-donut-leyenda__item">
+                      <span className="fin-cat__dot" style={{ background: PALETA[i % PALETA.length] }} />
+                      {it.categoria}
+                    </span>
+                  ))}
                 </div>
               </div>
             )}
           </div>
+
+          {/* Ahorro del mes: aparte del gráfico de gastos (no es consumo) */}
+          {ahorros.length > 0 && <AhorroBloque items={ahorros} />}
 
           {/* Botón agregar */}
           <div className="d-flex justify-content-end mb-3">

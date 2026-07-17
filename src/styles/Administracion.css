@@ -1907,6 +1907,73 @@
   background: rgba(148, 163, 184, 0.05);
 }
 
+/* Ahorro del mes: bloque aparte del gráfico de gastos (el ahorro no es consumo) */
+.fin-ahorro {
+  margin-bottom: 1.5rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-left-width: 4px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(56, 189, 248, 0.1) 0%, rgba(56, 189, 248, 0.03) 100%);
+}
+
+.fin-ahorro__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.fin-ahorro__titulo {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.fin-ahorro__total {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #7dd3fc;
+}
+
+.fin-ahorro__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.fin-ahorro__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.fin-ahorro__item-nombre {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fin-ahorro__item-monto {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #bae6fd;
+}
+
+.fin-ahorro__nota {
+  margin: 0.7rem 0 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
 /* Contenedor del desglose: dos columnas de categorías + panel de la dona */
 .fin-desglose-wrap {
   display: grid;
