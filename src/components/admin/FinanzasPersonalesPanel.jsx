@@ -25,6 +25,14 @@ const ORDEN_NIVEL = { critico: 0, advertencia: 1, bien: 2, consejo: 3, info: 4 }
 const formatUSD = (monto) =>
   "$" + (Number(monto) || 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
+// Colones con signo: saldoInicial, saldoFinal y balance pueden ser negativos
+// (déficit arrastrado). formatCRC antepone "₡", así que el "-" va delante de todo
+// para no quedar "₡-73.089". "-₡73.089" para negativos, "₡73.089" para positivos.
+const formatCRCsigned = (monto) => {
+  const n = Math.round(Number(monto) || 0);
+  return (n < 0 ? "-" : "") + formatCRC(Math.abs(n));
+};
+
 // Formatea el monto MIENTRAS se escribe, con separador de miles para leerlo
 // fácil. CRC: enteros con punto ("1.000.000"). USD: miles con coma y hasta 2
 // decimales ("1,250.50"). Recibe el valor crudo (solo dígitos y punto decimal).
@@ -697,8 +705,9 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
     }
   };
 
-  const balance = resumen?.balance ?? 0;
-  const balanceClase = balance >= 0 ? "verde" : "rojo";
+  // saldoFinal = balance (mismo valor); ya incluye el saldo inicial arrastrado.
+  // Verde si queda dinero disponible, rojo si el mes cerró en déficit.
+  const saldoFinalClase = (resumen?.saldoFinal ?? 0) >= 0 ? "verde" : "rojo";
 
   // El ahorro viene dentro de desglose.egreso pero no es consumo: se separa para
   // que la dona y el desglose de "Gastos por categoría" reflejen el gasto real,
@@ -731,28 +740,45 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
         <Cargando />
       ) : (
         <>
-          {/* Tarjetas resumen (estado de resultados del mes) */}
-          <div className="row g-3 mb-3">
-            <div className="col-12 col-md-4">
-              <div className="fin-kpi fin-kpi--verde">
-                <span className="fin-kpi__label">📈 Ingresos del mes</span>
-                <span className="fin-kpi__valor">{formatCRC(resumen?.totalIngresos)}</span>
-              </div>
+          {/* Resumen del mes (estado de resultados personal). El orden es exacto:
+              del saldo que se trae del mes anterior hasta el que queda al final.
+              Todo viene calculado del backend; acá solo se pinta. */}
+          <div className="fin-resumen mb-3">
+            <div className="fin-resumen__fila">
+              <span className="fin-resumen__label">💼 Saldo inicial</span>
+              <span className="fin-resumen__monto fin-resumen__monto--neutro">
+                {formatCRCsigned(resumen?.saldoInicial)}
+              </span>
             </div>
-            <div className="col-12 col-md-4">
-              <div className="fin-kpi fin-kpi--rojo">
-                <span className="fin-kpi__label">📉 Egresos del mes</span>
-                <span className="fin-kpi__valor">{formatCRC(resumen?.totalEgresos)}</span>
-              </div>
+            <div className="fin-resumen__fila">
+              <span className="fin-resumen__label">📈 Ingresos del mes</span>
+              <span className="fin-resumen__monto fin-resumen__monto--verde">
+                {formatCRC(resumen?.totalIngresos)}
+              </span>
             </div>
-            <div className="col-12 col-md-4">
-              <div className={`fin-kpi fin-kpi--${balanceClase} fin-kpi--balance`}>
-                <span className="fin-kpi__label">⚖️ Balance del mes</span>
-                <span className="fin-kpi__valor">
-                  {balance < 0 ? "-" : ""}{formatCRC(Math.abs(balance))}
-                </span>
-                <span className="fin-kpi__pie">{balance >= 0 ? "Te sobró este mes" : "Gastaste de más"}</span>
-              </div>
+            <div className="fin-resumen__fila fin-resumen__fila--destacada">
+              <span className="fin-resumen__label">💵 Disponible para usar</span>
+              <span className="fin-resumen__monto fin-resumen__monto--azul">
+                {formatCRC(resumen?.disponible)}
+              </span>
+            </div>
+            <div className="fin-resumen__fila">
+              <span className="fin-resumen__label">📉 Egresos del mes</span>
+              <span className="fin-resumen__monto fin-resumen__monto--rojo">
+                {formatCRC(resumen?.totalGastos)}
+              </span>
+            </div>
+            <div className="fin-resumen__fila">
+              <span className="fin-resumen__label">🐷 Ahorro del mes</span>
+              <span className="fin-resumen__monto fin-resumen__monto--ahorro">
+                {formatCRC(resumen?.totalAhorro)}
+              </span>
+            </div>
+            <div className="fin-resumen__fila fin-resumen__fila--total">
+              <span className="fin-resumen__label">⚖️ Saldo final</span>
+              <span className={`fin-resumen__monto fin-resumen__monto--${saldoFinalClase}`}>
+                {formatCRCsigned(resumen?.saldoFinal)}
+              </span>
             </div>
           </div>
 

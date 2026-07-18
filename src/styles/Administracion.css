@@ -1836,6 +1836,63 @@
 /* La tarjeta de balance resalta un poco más (es el número clave del mes) */
 .fin-kpi--balance { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03); }
 
+/* ─── RESUMEN DEL MES (estado de resultados en líneas) ─────────────────────────
+   Saldo inicial → Ingresos → Disponible → Egresos → Ahorro → Saldo final.
+   Cada línea es label + monto; Disponible y Saldo final se destacan. */
+.fin-resumen {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 0.25rem 1.2rem;
+}
+
+.fin-resumen__fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.fin-resumen__fila:last-child { border-bottom: none; }
+
+.fin-resumen__label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.fin-resumen__monto {
+  font-size: clamp(1rem, 3vw, 1.25rem);
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.fin-resumen__monto--neutro { color: #cbd5e1; }
+.fin-resumen__monto--verde  { color: #34d399; }
+.fin-resumen__monto--azul   { color: #60a5fa; }
+.fin-resumen__monto--rojo   { color: #f87171; }
+.fin-resumen__monto--ahorro { color: #fbbf24; }
+
+/* Filas destacadas: Disponible (subtotal disponible) y Saldo final (total). El
+   margen negativo hace que el fondo tintado llegue al borde de la tarjeta. */
+.fin-resumen__fila--destacada,
+.fin-resumen__fila--total {
+  margin: 0 -1.2rem;
+  padding-left: 1.2rem;
+  padding-right: 1.2rem;
+}
+.fin-resumen__fila--destacada { background: rgba(59, 130, 246, 0.07); }
+.fin-resumen__fila--total {
+  background: rgba(255, 255, 255, 0.03);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: none;
+}
+.fin-resumen__fila--total .fin-resumen__label { color: #e2e8f0; font-weight: 700; }
+.fin-resumen__fila--total .fin-resumen__monto { font-size: clamp(1.15rem, 3.5vw, 1.45rem); }
+
 /* ─── RESUMEN INTELIGENTE (recomendaciones) ───────────────────────────────── */
 .fin-recom-panel {
   background: #0f172a;
