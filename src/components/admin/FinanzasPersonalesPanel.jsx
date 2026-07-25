@@ -14,9 +14,6 @@ import { ModalOverlay, ConfirmarEliminar, Paginacion, ErrorRecarga, EstadoVacio,
 const BASE = `${API_URL}/api/finanzas-personales`;
 const LIMITE = 10;
 
-// Orden de importancia de las recomendaciones: primero lo que hay que atender.
-const ORDEN_NIVEL = { critico: 0, advertencia: 1, bien: 2, consejo: 3, info: 4 };
-
 // Al pagar en dólares, el tipo de cambio del día se trae automáticamente (API
 // de Hacienda) y solo se muestra —no se edita—; el monto se convierte a colones
 // (el backend guarda todo en ₡) y el detalle en dólares queda en la descripción.
@@ -95,18 +92,29 @@ const tasaSegunTipo = (tcData, tipo) => {
 // Paleta para el desglose y la dona (mismo espíritu que el estado de resultados).
 const PALETA = ["#f97316", "#ef4444", "#eab308", "#8b5cf6", "#ec4899", "#06b6d4", "#14b8a6", "#f59e0b", "#a3e635"];
 
-// Iconos por defecto de las categorías que manda el backend. Si llega una
-// categoría nueva que no está acá, cae en el ícono comodín según el tipo.
+// Iconos por defecto de las categorías que manda el backend. Es SOLO cosmético:
+// la lista de categorías (y su orden) sale de `GET /categorias`, no de acá. Si
+// llega una categoría nueva que no está en el mapa, cae en el ícono comodín
+// según el tipo y funciona igual.
 const ICONOS_CAT = {
   // Ingresos
   Salario: "💼", "Salario MEP": "🏫", "Salario CreAI": "🤖",
   Negocio: "🏪", "Ventas/Extras": "🛍️", Préstamos: "🤝",
-  // Egresos
-  Comida: "🍽️", "Comida de colegio": "🍱", Transporte: "🚗",
-  "Vivienda/Alquiler": "🏠", Vivienda: "🏠",
-  Servicios: "🧾", Salud: "💊", Entretenimiento: "🎬",
-  "Compras personales": "🛒", Educación: "📚", Regalos: "🎁", Rifas: "🎟️",
-  "Deudas/Préstamos": "💳", "Cuota banco (BCR)": "🏦",
+  // Egresos · comida y hogar
+  Comida: "🍽️", "Comida de colegio": "🍱", "Comida en Batán": "🍲",
+  "Compras para el hogar": "🧺", "Vivienda/Alquiler": "🏠", Vivienda: "🏠",
+  Servicios: "🧾", "Internet/Celular": "📶",
+  // Egresos · transporte
+  Transporte: "🚗", Combustible: "⛽", "Viajes a Batán": "🛣️",
+  // Egresos · personales / día a día
+  Salud: "💊", Peluqueada: "💇", "Ropa y calzado": "👕",
+  "Compras personales": "🛒", Educación: "📚", Entretenimiento: "🎬",
+  Suscripciones: "🔁", Mascotas: "🐾",
+  // Egresos · ocasiones
+  Regalos: "🎁", Cumpleaños: "🎂", Rifas: "🎟️",
+  // Egresos · compromisos financieros
+  "Deudas/Préstamos": "💳", "Cuota banco (BCR)": "🏦", Seguros: "🛡️",
+  // Egresos · ahorro
   Ahorro: "🐷", "Ahorro CreAI": "🪙", "Ahorro MEP": "💰",
   // Comodín
   Otros: "•",
@@ -114,6 +122,9 @@ const ICONOS_CAT = {
 
 const iconoCat = (categoria, tipo) =>
   ICONOS_CAT[categoria] || (tipo === "ingreso" ? "💰" : "💸");
+
+// Categorías del backend cacheadas en memoria: { ingreso: [], egreso: [] }.
+let catCache = null;
 
 // El ahorro no es consumo: cualquier categoría que empiece con "Ahorro"
 // (Ahorro, Ahorro CreAI, Ahorro MEP…) se saca del gráfico de gastos y se muestra
@@ -593,16 +604,21 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   const [aEliminar, setAEliminar] = useState(null); // null | registro
   const [eliminando, setEliminando] = useState(false);
 
-  // Categorías: se cargan una sola vez (alimentan el select del modal).
+  // Categorías: se cargan una sola vez (alimentan el select del modal) y quedan
+  // cacheadas en memoria, así volver a la pestaña no repite la llamada.
   useEffect(() => {
+    if (catCache) { setCategorias(catCache); return; }
     let vivo = true;
     (async () => {
       try {
         const axios = await getAxios();
         const res = await axios.get(`${BASE}/categorias`, getAuthHeaders());
-        // Se usan tal cual las manda el backend (fuente de verdad): lo que se
-        // muestra en el select es exactamente lo que se envía y lo que valida.
-        if (vivo) setCategorias(res.data?.categorias || { ingreso: [], egreso: [] });
+        // Se usan tal cual las manda el backend (fuente de verdad, incluido el
+        // ORDEN: viene agrupado por tema y no se reordena acá). Lo que se ve en
+        // el select es exactamente lo que se envía y lo que el backend valida,
+        // así que agregar categorías allá no requiere tocar el frontend.
+        catCache = res.data?.categorias || { ingreso: [], egreso: [] };
+        if (vivo) setCategorias(catCache);
       } catch (err) {
         manejarError(err);
       }
@@ -718,11 +734,6 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   const ahorros = egresoTodo.filter((it) => esAhorro(it.categoria));
   const gastosOrdenados = [...gastosReales].sort((a, b) => (b.total || 0) - (a.total || 0));
 
-  // Recomendaciones con lo importante primero (crítico → advertencia → resto).
-  const recomOrdenadas = [...recomendaciones].sort(
-    (a, b) => (ORDEN_NIVEL[a.nivel] ?? 9) - (ORDEN_NIVEL[b.nivel] ?? 9),
-  );
-
   return (
     <div className="fade-in">
       {/* Aviso: sección privada, aparte del negocio */}
@@ -782,14 +793,20 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
             </div>
           </div>
 
-          {/* Resumen inteligente: recomendaciones automáticas del mes */}
-          {recomOrdenadas.length > 0 && (
+          {/* Resumen inteligente: recomendaciones automáticas del mes.
+              El backend ya manda los avisos ordenados por urgencia (crítico →
+              advertencia → consejo → bien → info) y recortados a los 4 más
+              importantes: se pintan TAL CUAL llegan, sin reordenar ni recortar.
+              El texto es largo a propósito (explica el porqué), así que no se
+              trunca. Y nada se recalcula acá: los montos y porcentajes vienen
+              ya formateados, y el ícono lo decide el backend. */}
+          {recomendaciones.length > 0 && (
             <div className="fin-recom-panel mb-4">
               <p className="fin-recom-titulo">🧠 Resumen inteligente del mes</p>
               <div className="fin-recom-lista">
-                {recomOrdenadas.map((rec, i) => (
+                {recomendaciones.map((rec, i) => (
                   <div key={i} className={`fin-recom fin-recom--${rec.nivel || "info"}`}>
-                    <span className="fin-recom__icono">{rec.icono}</span>
+                    {rec.icono && <span className="fin-recom__icono">{rec.icono}</span>}
                     <span className="fin-recom__msg">{rec.mensaje}</span>
                   </div>
                 ))}

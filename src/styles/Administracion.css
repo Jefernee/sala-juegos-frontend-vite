@@ -1927,11 +1927,17 @@
 
 .fin-recom__icono { font-size: 1.15rem; line-height: 1.35; flex-shrink: 0; }
 
+/* Los mensajes explican el porqué y ocupan 2-3 líneas: la tarjeta crece con el
+   contenido y el texto NUNCA se trunca (nada de ellipsis ni line-clamp). El
+   min-width:0 evita que en celular el flex lo desborde en vez de partirlo. */
 .fin-recom__msg {
+  flex: 1;
+  min-width: 0;
   font-size: 0.88rem;
   color: #cbd5e1;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 /* Colores por nivel. Crítico y advertencia resaltan más (fondo tintado). */
