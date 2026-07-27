@@ -101,14 +101,15 @@ const ICONOS_CAT = {
   Salario: "💼", "Salario MEP": "🏫", "Salario CreAI": "🤖",
   Negocio: "🏪", "Ventas/Extras": "🛍️", Préstamos: "🤝",
   // Egresos · comida y hogar
-  Comida: "🍽️", "Comida de colegio": "🍱", "Comida en Batán": "🍲",
-  "Compras para el hogar": "🧺", "Vivienda/Alquiler": "🏠", Vivienda: "🏠",
+  "Comida preparada": "🍔", "Comida de colegio": "🍱", "Comida en Batán": "🍗",
+  "Snacks y antojos": "🍩", Supermercado: "🛒",
+  "Vivienda/Alquiler": "🏠", Vivienda: "🏠",
   Servicios: "🧾", "Internet/Celular": "📶",
   // Egresos · transporte
   Transporte: "🚗", Combustible: "⛽", "Viajes a Batán": "🛣️",
   // Egresos · personales / día a día
   Salud: "💊", Peluqueada: "💇", "Ropa y calzado": "👕",
-  "Compras personales": "🛒", Educación: "📚", Entretenimiento: "🎬",
+  "Compras personales": "🧺", Educación: "📚", Entretenimiento: "🎬",
   Suscripciones: "🔁", Mascotas: "🐾",
   // Egresos · ocasiones
   Regalos: "🎁", Cumpleaños: "🎂", Rifas: "🎟️",
