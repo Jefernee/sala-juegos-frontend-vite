@@ -808,11 +808,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                 {formatCRCsigned(resumen?.saldoFinal)}
               </span>
             </div>
-            <div
-              className={`fin-resumen__fila fin-resumen__fila--libre${
-                tocoSaldoInicial ? " fin-resumen__fila--libre-alerta" : ""
-              }`}
-            >
+            <div className="fin-resumen__fila fin-resumen__fila--libre">
               <span className="fin-resumen__label">
                 {tocoSaldoInicial ? "⚠️ Ya tocaste tu saldo inicial" : "💸 Puedo gastar hasta"}
                 <small className="fin-resumen__sublabel">{libreSubtitulo}</small>
