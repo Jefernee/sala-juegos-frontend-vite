@@ -726,6 +726,22 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   // Verde si queda dinero disponible, rojo si el mes cerró en déficit.
   const saldoFinalClase = (resumen?.saldoFinal ?? 0) >= 0 ? "verde" : "rojo";
 
+  // libreParaGastar = saldoFinal − saldoInicial (lo calcula el backend). El
+  // ahorro apartado ya viene restado, así que es plata realmente libre: lo que
+  // se puede gastar sin meterle mano a lo que se traía del mes anterior. Si es
+  // negativo ya se tocó el saldo inicial, y se muestra el faltante en positivo.
+  const libreParaGastar = resumen?.libreParaGastar ?? 0;
+  const tocoSaldoInicial = libreParaGastar < 0;
+  // Con saldo inicial negativo no hay nada "que traías" que cuidar: se venía
+  // debiendo, así que el subtítulo lo dice tal cual en vez de hablar de no
+  // tocar el saldo inicial.
+  const arrancoDebiendo = (resumen?.saldoInicial ?? 0) < 0;
+  const libreSubtitulo = tocoSaldoInicial
+    ? `le sacaste ${formatCRC(Math.abs(libreParaGastar))} a lo que traías`
+    : arrancoDebiendo
+      ? `arrancaste el mes debiendo ${formatCRC(Math.abs(resumen?.saldoInicial ?? 0))}`
+      : `sin tocar tu saldo inicial (${formatCRC(resumen?.saldoInicial)})`;
+
   // El ahorro viene dentro de desglose.egreso pero no es consumo: se separa para
   // que la dona y el desglose de "Gastos por categoría" reflejen el gasto real,
   // y el ahorro se muestre en su propio bloque. (Los KPIs y el balance siguen
@@ -790,6 +806,21 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
               <span className="fin-resumen__label">⚖️ Saldo final</span>
               <span className={`fin-resumen__monto fin-resumen__monto--${saldoFinalClase}`}>
                 {formatCRCsigned(resumen?.saldoFinal)}
+              </span>
+            </div>
+            <div
+              className={`fin-resumen__fila fin-resumen__fila--libre${
+                tocoSaldoInicial ? " fin-resumen__fila--libre-alerta" : ""
+              }`}
+            >
+              <span className="fin-resumen__label">
+                {tocoSaldoInicial ? "⚠️ Ya tocaste tu saldo inicial" : "💸 Puedo gastar hasta"}
+                <small className="fin-resumen__sublabel">{libreSubtitulo}</small>
+              </span>
+              <span
+                className={`fin-resumen__monto fin-resumen__monto--${tocoSaldoInicial ? "rojo" : "verde"}`}
+              >
+                {formatCRC(Math.abs(libreParaGastar))}
               </span>
             </div>
           </div>

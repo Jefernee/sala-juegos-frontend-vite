@@ -1893,6 +1893,33 @@
 .fin-resumen__fila--total .fin-resumen__label { color: #e2e8f0; font-weight: 700; }
 .fin-resumen__fila--total .fin-resumen__monto { font-size: clamp(1.15rem, 3.5vw, 1.45rem); }
 
+/* Plata realmente libre (saldo final − saldo inicial). Va después del total y
+   con su propio tinte porque no es parte del estado de resultados: responde
+   "¿cuánto puedo gastar sin tocar lo que traía?". Rojo si ya se tocó. */
+.fin-resumen__fila--libre {
+  margin: 0 -1.2rem;
+  padding-left: 1.2rem;
+  padding-right: 1.2rem;
+  align-items: flex-start;
+  background: rgba(52, 211, 153, 0.07);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: none;
+}
+.fin-resumen__fila--libre-alerta { background: rgba(248, 113, 113, 0.08); }
+.fin-resumen__fila--libre .fin-resumen__label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  color: #e2e8f0;
+  font-weight: 700;
+}
+.fin-resumen__sublabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.3;
+  color: #94a3b8;
+}
+
 /* ─── RESUMEN INTELIGENTE (recomendaciones) ───────────────────────────────── */
 .fin-recom-panel {
   background: #0f172a;
