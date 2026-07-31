@@ -8,11 +8,19 @@
   color: #ffffff;
 }
 
+/* En escritorio aprovecha la pantalla como los demás módulos (Reportes anda en
+   1280px): el contenido llega cerca de los bordes en vez de quedar en una
+   columna angosta en el centro. El padding lateral crece con la pantalla para
+   que no quede pegado al borde. */
 .admin-page-content {
-  max-width: 1024px;
+  max-width: 1320px;
   width: 100%;
   margin: 0 auto;
   padding: 2rem 1rem 4rem;
+}
+
+@media (min-width: 1100px) {
+  .admin-page-content { padding-left: 1.75rem; padding-right: 1.75rem; }
 }
 
 /* ─── HEADER DE PÁGINA ─────────────────────────────────────────────────────── */
@@ -1912,7 +1920,10 @@
   flex-direction: column;
   gap: 0.15rem;
 }
+/* El subtítulo siempre va en su propia línea, también en las filas normales
+   (que no ponen el label en columna). */
 .fin-resumen__sublabel {
+  display: block;
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.3;
@@ -2345,4 +2356,598 @@
   font-size: 0.74rem;
   color: #64748b;
   line-height: 1.35;
+}
+
+/* ─── ACCIONES DEL MÓDULO (saldo de apertura + reporte anual) ──────────────── */
+.fin-acciones {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Agregar movimiento + reporte del año, juntos a la derecha */
+.fin-acciones__botones {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+/* Chip del saldo de apertura ya registrado: se toca para editarlo. Es ámbar
+   como el ahorro, porque lo que resume es plata apartada. */
+.fin-apertura-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 10px;
+  padding: 0.5rem 0.8rem;
+  color: #fcd34d;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.fin-apertura-chip:hover {
+  background: rgba(251, 191, 36, 0.14);
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+.fin-apertura-chip strong { color: #fde68a; }
+.fin-apertura-chip__texto { line-height: 1.4; }
+
+.fin-apertura-chip__editar {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+/* ─── AHORRO ACUMULADO / PATRIMONIO (fila del resumen del mes) ─────────────────
+   Va después del total y NO es parte del estado de resultados: es plata
+   apartada, así que la línea punteada la separa igual que "Puedo gastar hasta",
+   y el patrimonio (saldo final + ahorro acumulado) queda debajo del monto en
+   chiquito, no como una fila más que se pueda confundir con un subtotal. */
+.fin-resumen__fila--acumulado {
+  margin: 0 -1.2rem;
+  padding-left: 1.2rem;
+  padding-right: 1.2rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  border-bottom: none;
+}
+
+.fin-resumen__fila--acumulado .fin-resumen__label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.fin-resumen__valor-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.fin-resumen__submonto {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+  line-height: 1.3;
+  text-align: right;
+}
+
+/* ─── MODAL DE SALDO DE APERTURA ──────────────────────────────────────────── */
+.fin-apertura-ayuda {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+  color: #93c5fd;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+/* Selector de mes de corte: mismo lenguaje que el picker del selector de mes */
+.fin-apertura-mes {
+  background: #0b1120;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.6rem;
+}
+
+.fin-apertura-mes__anio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.55rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.fin-apertura-mes__anio button {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #cbd5e1;
+  border-radius: 7px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.fin-apertura-mes__anio button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.fin-apertura-mes__grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.3rem;
+}
+
+.fin-apertura-mes__btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+  color: #cbd5e1;
+  border-radius: 7px;
+  padding: 0.35rem 0;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.fin-apertura-mes__btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); }
+.fin-apertura-mes__btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.fin-apertura-mes__btn--activo {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #93c5fd;
+}
+
+.fin-apertura-preview {
+  background: rgba(251, 191, 36, 0.07);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  color: #fcd34d;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.fin-apertura-preview strong { color: #fde68a; }
+
+.fin-apertura-acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ─── REPORTE ANUAL ───────────────────────────────────────────────────────── */
+.fin-anual-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.fin-anual-titulo {
+  margin: 0;
+  font-weight: 800;
+  color: #e2e8f0;
+  font-size: 1.05rem;
+}
+
+.fin-anual-anios {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+  background: #0b1120;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.25rem;
+}
+
+.fin-anual-anio {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  border-radius: 7px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.fin-anual-anio:hover:not(:disabled) { color: #cbd5e1; }
+.fin-anual-anio:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.fin-anual-anio--activo {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+}
+
+/* Aviso de año en curso: los totales son parciales */
+.fin-aviso--curso {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+.fin-aviso--curso strong { color: #fde68a; }
+
+.fin-anual-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/* Variante ámbar de las tarjetas KPI, para el ahorro */
+.fin-kpi--ahorro {
+  border-color: rgba(251, 191, 36, 0.3);
+  background: linear-gradient(160deg, #211b0d 0%, #0f172a 100%);
+}
+.fin-kpi--ahorro .fin-kpi__valor { color: #fbbf24; }
+
+/* Contenedor genérico de las secciones del reporte */
+.fin-anual-panel {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+}
+
+.fin-anual-nota {
+  margin: 0.75rem 0 0;
+  font-size: 0.74rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+/* Gráfico de barras por mes */
+.fin-anual-chart__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.85rem;
+}
+
+.fin-anual-chart__escala { font-size: 0.72rem; color: #64748b; }
+
+/* En celular el gráfico no se aplasta: se desplaza horizontalmente */
+.fin-anual-chart__scroll { overflow-x: auto; }
+
+.fin-anual-chart__svg {
+  display: block;
+  width: 100%;
+  min-width: 560px;
+  height: auto;
+}
+
+.fin-anual-chart__mes { font-size: 12px; fill: #94a3b8; font-weight: 600; }
+.fin-anual-chart__mes--sin { fill: #475569; font-weight: 500; }
+.fin-anual-chart__sin { font-size: 14px; fill: #475569; }
+.fin-anual-chart__estrella { font-size: 10px; }
+
+/* La leyenda de la dona es una columna (va en la barra lateral); acá va en fila
+   debajo del gráfico. */
+.fin-anual-chart__leyenda {
+  margin-top: 0.75rem;
+  flex-flow: row wrap;
+  gap: 0.4rem 1.1rem;
+}
+.fin-anual-chart__nota { color: #64748b; font-size: 0.72rem; }
+
+/* Tabla mes por mes */
+.fin-anual-tabla-scroll { overflow-x: auto; }
+
+.fin-anual-tabla { min-width: 620px; }
+
+.fin-anual-tabla__head,
+.fin-anual-fila {
+  display: grid;
+  grid-template-columns: 1.1fr repeat(5, 1fr);
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.55rem 0.6rem;
+}
+
+.fin-anual-tabla__head {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.fin-anual-tabla__head span:not(:first-child) { text-align: right; }
+
+.fin-anual-fila {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+}
+
+.fin-anual-fila:last-child { border-bottom: none; }
+
+/* Mes cerrado en rojo: la fila entera se tiñe para encontrarla de un vistazo */
+.fin-anual-fila--rojo { background: rgba(239, 68, 68, 0.08); }
+
+/* Mes sin registrar: atenuado. No se muestran ceros (sería mentir: no es que
+   se gastara ₡0, es que no hay movimientos). */
+.fin-anual-fila--sin { opacity: 0.55; }
+
+.fin-anual-fila__mes {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.fin-anual-fila__monto {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #64748b;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.fin-anual-fila__monto--verde  { color: #34d399; }
+.fin-anual-fila__monto--rojo   { color: #f87171; }
+.fin-anual-fila__monto--ahorro { color: #fbbf24; }
+.fin-anual-fila__monto--saldo  { color: #cbd5e1; }
+
+/* Etiqueta arriba del mes donde entró el saldo de apertura: explica el salto
+   del ahorro acumulado en esa fila. */
+.fin-anual-apertura {
+  margin: 0.5rem 0 0.35rem;
+  padding: 0.45rem 0.7rem;
+  background: rgba(251, 191, 36, 0.09);
+  border-left: 3px solid rgba(251, 191, 36, 0.55);
+  border-radius: 6px;
+  font-size: 0.76rem;
+  color: #fcd34d;
+  line-height: 1.4;
+}
+
+/* Desglose anual: tres bloques (ingresos / gastos / ahorro) */
+.fin-anual-desglose { grid-template-columns: repeat(3, 1fr); }
+
+/* Variante ámbar del desglose, para el bloque de ahorro */
+.fin-cat__monto--ahorro { color: #fbbf24; }
+.fin-cat__barra-fill--ahorro { background: linear-gradient(90deg, #d97706, #fbbf24); }
+
+/* Destacados del año */
+.fin-destacados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.75rem;
+}
+
+.fin-destacado {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-left-width: 3px;
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+}
+
+.fin-destacado--verde  { border-left-color: rgba(16, 185, 129, 0.6); }
+.fin-destacado--rojo   { border-left-color: rgba(239, 68, 68, 0.6); }
+.fin-destacado--ahorro { border-left-color: rgba(251, 191, 36, 0.6); }
+
+.fin-destacado__label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.fin-destacado__titulo {
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  line-height: 1.3;
+}
+
+.fin-destacado__monto {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #cbd5e1;
+  letter-spacing: -0.3px;
+}
+
+.fin-destacado__pie { font-size: 0.7rem; color: #64748b; line-height: 1.35; }
+
+.fin-anual-rojos {
+  margin: 0.85rem 0 0;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.78rem;
+  color: #fca5a5;
+  line-height: 1.45;
+}
+
+/* Comparativo con el año anterior */
+.fin-comparativo__head,
+.fin-comparativo__fila {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 24px 1fr 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.55rem 0;
+}
+
+.fin-comparativo__head {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Los encabezados de los años se alinean con sus montos (que van a la derecha) */
+.fin-comparativo__head span:not(:first-child) { text-align: right; }
+
+.fin-comparativo__fila { border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+.fin-comparativo__fila:last-child { border-bottom: none; }
+
+.fin-comparativo__label { font-size: 0.85rem; font-weight: 600; color: #cbd5e1; }
+.fin-comparativo__previo { font-size: 0.82rem; color: #64748b; text-align: right; white-space: nowrap; }
+.fin-comparativo__flecha { color: #475569; text-align: center; }
+.fin-comparativo__actual { font-size: 0.85rem; font-weight: 700; color: #e2e8f0; text-align: right; white-space: nowrap; }
+
+.fin-comparativo__var {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.fin-comparativo__var--verde  { color: #34d399; }
+.fin-comparativo__var--rojo   { color: #f87171; }
+.fin-comparativo__var--neutro { color: #64748b; }
+
+/* Tablet: el desglose anual pasa a dos columnas */
+@media (max-width: 1000px) {
+  .fin-anual-desglose { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 700px) {
+  .fin-anual-desglose { grid-template-columns: 1fr; }
+  /* El selector de año ocupa su propia línea debajo del título */
+  .fin-anual-anios { margin-left: 0; width: 100%; justify-content: center; }
+  .fin-anual-titulo { font-size: 0.95rem; }
+}
+
+@media (max-width: 560px) {
+  /* Las acciones del módulo se apilan y los botones ocupan todo el ancho */
+  .fin-acciones { flex-direction: column; align-items: stretch; }
+  .fin-acciones > .admin-btn-ghost { width: 100%; }
+  .fin-acciones__botones { margin-left: 0; }
+  .fin-acciones__botones > .admin-btn { flex: 1 1 100%; }
+  .fin-apertura-chip { justify-content: space-between; }
+  .fin-apertura-acciones > .admin-btn-ghost--rojo { width: 100%; order: 2; }
+  .fin-comparativo__head,
+  .fin-comparativo__fila { grid-template-columns: 1fr 1fr 1fr; }
+  /* En celular se compara solo contra el valor nuevo: la flecha y el año
+     anterior se esconden para que quepa sin scroll. */
+  .fin-comparativo__previo,
+  .fin-comparativo__flecha,
+  .fin-comparativo__head span:nth-child(2),
+  .fin-comparativo__head span:nth-child(3) { display: none; }
+}
+
+/* ─── ANCHO DEL MÓDULO EN ESCRITORIO ──────────────────────────────────────────
+   El ancho lo da .admin-page-content (1320px, arriba del archivo), igual que
+   para el resto de Administración. Acá solo se aprovecha ese espacio extra: con
+   más ancho la dona del mes crece y las columnas del desglose respiran, y el
+   gráfico del año ya no necesita scroll horizontal. */
+@media (min-width: 1100px) {
+  .fin-ancho .fin-desglose-wrap { grid-template-columns: 1fr 320px; }
+}
+
+/* ─── RETIROS DE AHORRO ───────────────────────────────────────────────────────
+   Sacar plata del ahorro no es ingreso (no entra a `totalIngresos` ni a los
+   porcentajes) ni gasto (la plata no se fue, cambió de bolsillo). Por eso tiene
+   su propio color —azul, el mismo de "Disponible"— y nunca se pinta en verde de
+   ingreso ni en rojo de gasto. */
+
+/* Tercer botón del toggle de tipo en el modal de movimiento */
+.tipo-toggle__btn--active-blue {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+}
+
+/* Aviso dentro del modal cuando se elige "Sacar del ahorro" */
+.fin-retiro-nota {
+  background: rgba(59, 130, 246, 0.07);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-radius: 9px;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.76rem;
+  color: #93c5fd;
+  line-height: 1.45;
+}
+
+/* Tope que devolvió el 400 del backend ("Solo tenés ₡X acumulados…") */
+.fin-retiro-tope {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.45rem;
+  font-size: 0.78rem;
+  color: #93c5fd;
+}
+
+.fin-retiro-tope strong { color: #bfdbfe; }
+
+/* Monto azul en la lista de movimientos del mes */
+.mov-row__monto--azul { color: #60a5fa; }
+
+/* Bloque de ahorro del mes: lo apartado, lo sacado y el neto */
+.fin-ahorro__subtitulo {
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #93c5fd;
+}
+
+.fin-ahorro__item-monto--retiro { color: #60a5fa; }
+
+.fin-ahorro__item--neto {
+  margin-top: 0.2rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+}
+
+.fin-ahorro__item--neto .fin-ahorro__item-nombre { color: #e2e8f0; font-weight: 700; }
+
+/* Tasa de ahorro NETA: puede ser negativa (se sacó más de lo que se apartó) */
+.fin-tasa--verde { color: #34d399; }
+.fin-tasa--rojo  { color: #f87171; }
+
+/* Reporte anual: columna "Sacado" (solo en años con retiros) */
+.fin-anual-fila__monto--azul { color: #60a5fa; }
+
+.fin-anual-tabla--retiro { min-width: 700px; }
+
+.fin-anual-tabla--retiro .fin-anual-tabla__head,
+.fin-anual-tabla--retiro .fin-anual-fila {
+  grid-template-columns: 1.1fr repeat(6, 1fr);
+}
+
+/* Desglose anual con el cuarto bloque (retiros): 2x2 en escritorio en vez de
+   cuatro columnas apretadas. */
+.fin-anual-desglose--4 { grid-template-columns: repeat(2, 1fr); }
+
+/* Variante azul del desglose y de los destacados, para los retiros */
+.fin-cat__monto--azul { color: #60a5fa; }
+.fin-cat__barra-fill--azul { background: linear-gradient(90deg, #2563eb, #60a5fa); }
+.fin-destacado--azul { border-left-color: rgba(59, 130, 246, 0.6); }
+
+@media (max-width: 1000px) {
+  .fin-anual-desglose--4 { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 700px) {
+  .fin-anual-desglose--4 { grid-template-columns: 1fr; }
 }

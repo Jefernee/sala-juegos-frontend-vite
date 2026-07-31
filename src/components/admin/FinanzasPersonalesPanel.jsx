@@ -6,12 +6,20 @@
 // Estructura: selector de mes/año → estado de resultados (ingresos, egresos,
 // balance) → desglose por categoría con dona de gastos → lista de movimientos
 // del mes con alta/edición/eliminación (modal).
+//
+// Desde acá se llega también al saldo de apertura (modal) y al reporte anual,
+// que reemplaza esta vista sin salir de la pestaña de Administración.
 import { useState, useEffect, useCallback } from "react";
-import { API_URL, getAxios, formatCRC, formatFecha, nombreMes } from "./adminUtils";
+import { getAxios, formatCRC, formatFecha, nombreMes, MESES } from "./adminUtils";
+import {
+  FIN_BASE as BASE, formatCRCsigned, formatMontoInput, limpiarMontoInput,
+  PALETA, iconoCat, esAhorro, TIPOS_MOV, metaTipo,
+} from "./finanzasComunes";
 import MesSelector from "./MesSelector";
+import FinanzasAperturaModal from "./FinanzasAperturaModal";
+import FinanzasReporteAnual from "./FinanzasReporteAnual";
 import { ModalOverlay, ConfirmarEliminar, Paginacion, ErrorRecarga, EstadoVacio, Cargando } from "./Comunes";
 
-const BASE = `${API_URL}/api/finanzas-personales`;
 const LIMITE = 10;
 
 // Al pagar en dólares, el tipo de cambio del día se trae automáticamente (API
@@ -22,35 +30,8 @@ const LIMITE = 10;
 const formatUSD = (monto) =>
   "$" + (Number(monto) || 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-// Colones con signo: saldoInicial, saldoFinal y balance pueden ser negativos
-// (déficit arrastrado). formatCRC antepone "₡", así que el "-" va delante de todo
-// para no quedar "₡-73.089". "-₡73.089" para negativos, "₡73.089" para positivos.
-const formatCRCsigned = (monto) => {
-  const n = Math.round(Number(monto) || 0);
-  return (n < 0 ? "-" : "") + formatCRC(Math.abs(n));
-};
-
-// Formatea el monto MIENTRAS se escribe, con separador de miles para leerlo
-// fácil. CRC: enteros con punto ("1.000.000"). USD: miles con coma y hasta 2
-// decimales ("1,250.50"). Recibe el valor crudo (solo dígitos y punto decimal).
-const formatMontoInput = (valor, esUSD) => {
-  if (valor == null || valor === "") return "";
-  const sepMiles = esUSD ? "," : ".";
-  const partes = String(valor).split(".");
-  let ent = partes[0].replace(/^0+(?=\d)/, "").replace(/\B(?=(\d{3})+(?!\d))/g, sepMiles);
-  const dec = partes[1];
-  if (ent === "" && dec != null) ent = "0";
-  if (esUSD && dec != null) return `${ent}.${dec.slice(0, 2)}`;
-  return ent;
-};
-
-// Limpia lo tecleado dejando solo el número canónico (sin separadores de miles).
-const limpiarMontoInput = (texto, esUSD) => {
-  let raw = String(texto).replace(/[^\d.]/g, "");
-  if (!esUSD) return raw.replace(/\./g, "");        // colones: sin decimales
-  const [ent, ...rest] = raw.split(".");            // USD: un punto, máx 2 decimales
-  return rest.length ? `${ent}.${rest.join("").slice(0, 2)}` : ent;
-};
+// formatCRCsigned, formatMontoInput y limpiarMontoInput viven en
+// finanzasComunes.js: los comparte con el modal de apertura y el reporte anual.
 
 // "₡452,18" — tipo de cambio con 2 decimales (coma decimal de Costa Rica)
 const formatTC = (valor) =>
@@ -79,58 +60,22 @@ const fetchTipoCambio = async (getAuthHeaders, forzar = false) => {
   return tcCache;
 };
 
-// Tasa aplicable según el tipo: ingreso → compra, egreso → venta.
-// Tolera formas viejas del dato (ej. { valor }) cayendo a ese valor, para no
-// quedar en 0 si en memoria persiste una versión previa (hot-reload/caché).
+// Tasa aplicable según el tipo: egreso → venta, ingreso y retiro del ahorro →
+// compra (en los dos casos entran dólares que se cambian a colones y el banco te
+// los compra). Tolera formas viejas del dato (ej. { valor }) cayendo a ese valor,
+// para no quedar en 0 si en memoria persiste una versión previa (hot-reload/caché).
 const tasaSegunTipo = (tcData, tipo) => {
   if (!tcData) return 0;
   if (tcData.guardado) return Number(tcData.valor) || 0;   // registro USD ya guardado
-  const tasa = tipo === "ingreso" ? tcData.compra : tcData.venta;
+  const tasa = tipo === "egreso" ? tcData.venta : tcData.compra;
   return Number(tasa) || Number(tcData.valor) || 0;
 };
 
-// Paleta para el desglose y la dona (mismo espíritu que el estado de resultados).
-const PALETA = ["#f97316", "#ef4444", "#eab308", "#8b5cf6", "#ec4899", "#06b6d4", "#14b8a6", "#f59e0b", "#a3e635"];
-
-// Iconos por defecto de las categorías que manda el backend. Es SOLO cosmético:
-// la lista de categorías (y su orden) sale de `GET /categorias`, no de acá. Si
-// llega una categoría nueva que no está en el mapa, cae en el ícono comodín
-// según el tipo y funciona igual.
-const ICONOS_CAT = {
-  // Ingresos
-  Salario: "💼", "Salario MEP": "🏫", "Salario CreAI": "🤖",
-  Negocio: "🏪", "Ventas/Extras": "🛍️", Préstamos: "🤝",
-  // Egresos · comida y hogar
-  "Comida preparada": "🍔", "Comida de colegio": "🍱", "Comida en Batán": "🍗",
-  "Snacks y antojos": "🍩", Supermercado: "🛒",
-  "Vivienda/Alquiler": "🏠", Vivienda: "🏠",
-  Servicios: "🧾", "Internet/Celular": "📶",
-  // Egresos · transporte
-  Transporte: "🚗", Combustible: "⛽", "Viajes a Batán": "🛣️",
-  // Egresos · personales / día a día
-  Salud: "💊", Peluqueada: "💇", "Ropa y calzado": "👕",
-  "Compras personales": "🧺", Educación: "📚", Entretenimiento: "🎬",
-  Suscripciones: "🔁", Mascotas: "🐾",
-  // Egresos · ocasiones
-  Regalos: "🎁", Cumpleaños: "🎂", Rifas: "🎟️",
-  // Egresos · compromisos financieros
-  "Deudas/Préstamos": "💳", "Cuota banco (BCR)": "🏦", Seguros: "🛡️",
-  // Egresos · ahorro
-  Ahorro: "🐷", "Ahorro CreAI": "🪙", "Ahorro MEP": "💰",
-  // Comodín
-  Otros: "•",
-};
-
-const iconoCat = (categoria, tipo) =>
-  ICONOS_CAT[categoria] || (tipo === "ingreso" ? "💰" : "💸");
+// PALETA, iconoCat y esAhorro viven en finanzasComunes.js (compartidos con el
+// reporte anual).
 
 // Categorías del backend cacheadas en memoria: { ingreso: [], egreso: [] }.
 let catCache = null;
-
-// El ahorro no es consumo: cualquier categoría que empiece con "Ahorro"
-// (Ahorro, Ahorro CreAI, Ahorro MEP…) se saca del gráfico de gastos y se muestra
-// aparte, para que la distribución de gastos refleje el gasto real del mes.
-const esAhorro = (categoria) => /^ahorro/i.test(String(categoria || "").trim());
 
 // ─── DONA DE GASTOS POR CATEGORÍA (SVG puro, sin dependencias) ───────────────
 const DonutGastos = ({ items }) => {
@@ -225,10 +170,29 @@ const DesgloseBloque = ({ titulo, icono, items, colorClase }) => {
 // ─── BLOQUE DE AHORRO DEL MES ────────────────────────────────────────────────
 // El ahorro viene dentro de desglose.egreso, pero no es gasto. Se muestra aparte
 // con su total y, si hay varias metas de ahorro, un mini desglose de cada una.
-const AhorroBloque = ({ items }) => {
+// Los retiros (desglose.retiro, que el backend manda YA separado) se listan acá
+// mismo: es el único lugar donde se ve el movimiento completo del ahorro del mes
+// —lo que entró y lo que salió— y abajo el neto.
+const AhorroBloque = ({ items, retiros, neto }) => {
   const ordenado = [...(items || [])].sort((a, b) => (b.total || 0) - (a.total || 0));
-  if (ordenado.length === 0) return null;
+  const retirado = [...(retiros || [])].sort((a, b) => (b.total || 0) - (a.total || 0));
+  if (ordenado.length === 0 && retirado.length === 0) return null;
   const total = ordenado.reduce((s, it) => s + (Number(it.total) || 0), 0);
+  const totalRetirado = retirado.reduce((s, it) => s + (Number(it.total) || 0), 0);
+
+  const fila = (it, tipo) => (
+    <div key={`${tipo}-${it.categoria}`} className="fin-ahorro__item">
+      <span className="fin-ahorro__item-nombre">
+        {iconoCat(it.categoria, "egreso")} {it.categoria}
+        <span className="fin-cat__cantidad">
+          ({it.cantidad} {it.cantidad === 1 ? "mov." : "movs."})
+        </span>
+      </span>
+      <span className={`fin-ahorro__item-monto ${tipo === "retiro" ? "fin-ahorro__item-monto--retiro" : ""}`}>
+        {tipo === "retiro" ? "−" : ""}{formatCRC(it.total)}
+      </span>
+    </div>
+  );
 
   return (
     <div className="fin-ahorro">
@@ -236,23 +200,24 @@ const AhorroBloque = ({ items }) => {
         <span className="fin-ahorro__titulo">🐷 Ahorro del mes</span>
         <span className="fin-ahorro__total">{formatCRC(total)}</span>
       </div>
-      {ordenado.length > 1 && (
+      {(ordenado.length > 1 || retirado.length > 0) && (
         <div className="fin-ahorro__lista">
-          {ordenado.map((it) => (
-            <div key={it.categoria} className="fin-ahorro__item">
-              <span className="fin-ahorro__item-nombre">
-                {iconoCat(it.categoria, "egreso")} {it.categoria}
-                <span className="fin-cat__cantidad">
-                  ({it.cantidad} {it.cantidad === 1 ? "mov." : "movs."})
-                </span>
-              </span>
-              <span className="fin-ahorro__item-monto">{formatCRC(it.total)}</span>
-            </div>
-          ))}
+          {ordenado.map((it) => fila(it, "ahorro"))}
+          {retirado.length > 0 && (
+            <>
+              <div className="fin-ahorro__subtitulo">🏧 Sacado del ahorro</div>
+              {retirado.map((it) => fila(it, "retiro"))}
+              <div className="fin-ahorro__item fin-ahorro__item--neto">
+                <span className="fin-ahorro__item-nombre">Neto del mes</span>
+                <span className="fin-ahorro__item-monto">{formatCRCsigned(neto ?? total - totalRetirado)}</span>
+              </div>
+            </>
+          )}
         </div>
       )}
       <p className="fin-ahorro__nota">
         El ahorro no cuenta como gasto: queda fuera de la distribución de gastos.
+        {retirado.length > 0 && " Lo que sacaste tampoco es un ingreso: es ahorro que volvió a estar a mano."}
       </p>
     </div>
   );
@@ -286,9 +251,13 @@ const MovimientoModal = ({
   const [descripcion, setDescripcion] = useState(registro?.descripcion || "");
   const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
+  const [topeRetiro, setTopeRetiro] = useState(null); // tope que devolvió el 400
 
   const hoy = new Date();
   const esMesActual = mes === hoy.getMonth() + 1 && anio === hoy.getFullYear();
+  const esRetiro = tipo === "retiro_ahorro";
+  // El botón de "Sacar del ahorro" depende de que el backend mande sus categorías.
+  const hayRetiros = (categorias?.retiro_ahorro || []).length > 0;
   const opcionesBase = categorias?.[tipo] || [];
   // Si se edita un movimiento cuya categoría ya no está en la lista, se incluye
   // igual para que no quede en blanco el select.
@@ -390,17 +359,27 @@ const MovimientoModal = ({
       mostrarNotif(res.data?.message || (esEdicion ? "Movimiento actualizado" : "Movimiento registrado"));
       onExito();
     } catch (err) {
-      manejarError(err);
+      // Al retirar más de lo acumulado el backend responde 400 con un `message`
+      // ya redactado para el usuario y `disponible` = el tope en colones. Eso es
+      // un error DEL CAMPO monto (no de conexión), así que se muestra debajo del
+      // input en vez de en un toast que se va solo.
+      const data = err?.response?.data;
+      if (err?.response?.status === 400 && data?.disponible != null) {
+        setErrores((er) => ({ ...er, monto: data.message || "No tenés tanto ahorro acumulado" }));
+        setTopeRetiro(Number(data.disponible) || 0);
+      } else {
+        manejarError(err);
+      }
     } finally {
       setGuardando(false);
     }
   };
 
-  const color = tipo === "ingreso" ? "green" : "red";
+  const color = metaTipo(tipo).color;
 
   return (
     <ModalOverlay onCerrar={onCerrar} bloqueado={guardando}>
-      <div className={`admin-modal__header admin-panel__header--${tipo === "ingreso" ? "green" : "orange"}`}>
+      <div className={`admin-modal__header admin-panel__header--${tipo === "ingreso" ? "green" : esRetiro ? "blue" : "orange"}`}>
         <span>{esEdicion ? "✏️" : "➕"}</span>
         {esEdicion ? "Editar movimiento" : "Agregar movimiento"}
         <button className="admin-modal__cerrar" onClick={onCerrar} disabled={guardando} aria-label="Cerrar">✕</button>
@@ -412,28 +391,31 @@ const MovimientoModal = ({
           </div>
         )}
 
-        {/* Tipo: ingreso / egreso */}
+        {/* Tipo: ingreso / egreso / sacar del ahorro. El tercero solo se ofrece
+            si el backend manda sus categorías (`categorias.retiro_ahorro`), así
+            no aparece una opción que no se podría guardar. */}
         <div className="mb-3">
           <label className="admin-label">Tipo *</label>
           <div className="tipo-toggle">
-            <button
-              type="button"
-              className={`tipo-toggle__btn ${tipo === "ingreso" ? "tipo-toggle__btn--active-green" : ""}`}
-              onClick={() => cambiarTipo("ingreso")}
-              disabled={guardando}
-            >
-              💰 Ingreso
-            </button>
-            <button
-              type="button"
-              className={`tipo-toggle__btn ${tipo === "egreso" ? "tipo-toggle__btn--active-red" : ""}`}
-              onClick={() => cambiarTipo("egreso")}
-              disabled={guardando}
-            >
-              💸 Egreso
-            </button>
+            {TIPOS_MOV.filter((t) => t.id !== "retiro_ahorro" || hayRetiros).map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={`tipo-toggle__btn ${tipo === t.id ? `tipo-toggle__btn--active-${t.color}` : ""}`}
+                onClick={() => cambiarTipo(t.id)}
+                disabled={guardando}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
           {errores.tipo && <div className="campo-error">{errores.tipo}</div>}
+          {esRetiro && (
+            <div className="fin-retiro-nota mt-2">
+              🏧 Sacar del ahorro no es un ingreso del mes: la plata vuelve a estar a mano
+              y se descuenta de tu ahorro acumulado.
+            </div>
+          )}
         </div>
 
         {/* Categoría (según el tipo) */}
@@ -490,6 +472,26 @@ const MovimientoModal = ({
           </div>
           {errores.monto && <div className="campo-error">{errores.monto}</div>}
 
+          {/* Tope que devolvió el backend al rechazar el retiro: se ofrece para
+              rellenar el campo con el máximo en un click. */}
+          {topeRetiro != null && esRetiro && (
+            <div className="fin-retiro-tope">
+              Máximo disponible: <strong>{formatCRC(topeRetiro)}</strong>
+              <button
+                type="button"
+                className="moneda-tc-reintentar"
+                onClick={() => {
+                  cambiarMoneda("CRC");
+                  setMonto(String(topeRetiro));
+                  setErrores((er) => ({ ...er, monto: "" }));
+                }}
+                disabled={guardando}
+              >
+                Usar el máximo
+              </button>
+            </div>
+          )}
+
           {/* Tipo de cambio del día (solo se muestra, no se edita) + conversión */}
           {esUSD && (
             <div className="moneda-conversion mt-2">
@@ -543,9 +545,11 @@ const MovimientoModal = ({
 
               {!tcInfo?.guardado && tcListo && (
                 <div className="moneda-tc-nota">
-                  {tipo === "ingreso"
-                    ? "Ingreso en dólares: se usa la tasa de compra (lo que te dan al cambiarlos a colones)."
-                    : "Gasto en dólares: se usa la tasa de venta (lo que cuesta comprar los dólares)."}
+                  {tipo === "egreso"
+                    ? "Gasto en dólares: se usa la tasa de venta (lo que cuesta comprar los dólares)."
+                    : esRetiro
+                      ? "Retiro en dólares: se usa la tasa de compra (lo que te dan al cambiarlos a colones)."
+                      : "Ingreso en dólares: se usa la tasa de compra (lo que te dan al cambiarlos a colones)."}
                 </div>
               )}
             </div>
@@ -604,6 +608,8 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   const [modal, setModal] = useState(null);        // null | { registro: null | obj }
   const [aEliminar, setAEliminar] = useState(null); // null | registro
   const [eliminando, setEliminando] = useState(false);
+  const [modalApertura, setModalApertura] = useState(false);
+  const [vista, setVista] = useState("mes");       // "mes" | "anual"
 
   // Categorías: se cargan una sola vez (alimentan el select del modal) y quedan
   // cacheadas en memoria, así volver a la pestaña no repite la llamada.
@@ -722,22 +728,36 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
     }
   };
 
-  // saldoFinal = balance (mismo valor); ya incluye el saldo inicial arrastrado.
+  // OJO con `balance`, que significa dos cosas según el endpoint:
+  //   GET /resumen        → `balance` = saldoFinal (nombre viejo, compatibilidad)
+  //                         `balanceMes` = ingresos − egresos
+  //   GET /resumen-anual  → `totales.balance` = ingresos − egresos
+  // Acá se usa `saldoFinal` directo para no caer en la trampa. Si algún día hace
+  // falta "lo que generó el mes", es `balanceMes` — nunca `balance`.
   // Verde si queda dinero disponible, rojo si el mes cerró en déficit.
   const saldoFinalClase = (resumen?.saldoFinal ?? 0) >= 0 ? "verde" : "rojo";
 
-  // libreParaGastar = saldoFinal − saldoInicial (lo calcula el backend). El
-  // ahorro apartado ya viene restado, así que es plata realmente libre: lo que
-  // se puede gastar sin meterle mano a lo que se traía del mes anterior. Si es
-  // negativo ya se tocó el saldo inicial, y se muestra el faltante en positivo.
+  // Retiro del ahorro: plata que se sacó del ahorro este mes. NO es un ingreso
+  // (no entra en totalIngresos ni en los porcentajes) y tampoco un gasto: suma a
+  // `disponible` y se descuenta del ahorro acumulado. Solo se muestra si hubo.
+  const totalRetiro = resumen?.totalRetiroAhorro ?? 0;
+  const huboRetiro = totalRetiro > 0;
+
+  // libreParaGastar = ingresos − egresos (lo calcula el backend; cambió de
+  // fórmula al aparecer los retiros: antes era saldoFinal − saldoInicial). Es lo
+  // que el mes generó por sí solo, así que sacar del ahorro NO lo infla — que era
+  // justo el riesgo: la tarjeta habría premiado vaciar el ahorro.
   const libreParaGastar = resumen?.libreParaGastar ?? 0;
-  const tocoSaldoInicial = libreParaGastar < 0;
+  const gastoMasDeLoQueEntro = libreParaGastar < 0;
   // Con saldo inicial negativo no hay nada "que traías" que cuidar: se venía
-  // debiendo, así que el subtítulo lo dice tal cual en vez de hablar de no
-  // tocar el saldo inicial.
+  // debiendo, así que el subtítulo lo dice tal cual.
   const arrancoDebiendo = (resumen?.saldoInicial ?? 0) < 0;
-  const libreSubtitulo = tocoSaldoInicial
-    ? `le sacaste ${formatCRC(Math.abs(libreParaGastar))} a lo que traías`
+  const libreSubtitulo = gastoMasDeLoQueEntro
+    ? huboRetiro
+      ? `lo tapaste con ${formatCRC(totalRetiro)} que sacaste del ahorro`
+      : arrancoDebiendo
+        ? `y arrancaste el mes debiendo ${formatCRC(Math.abs(resumen?.saldoInicial ?? 0))}`
+        : `le sacaste ${formatCRC(Math.abs(libreParaGastar))} a lo que traías`
     : arrancoDebiendo
       ? `arrancaste el mes debiendo ${formatCRC(Math.abs(resumen?.saldoInicial ?? 0))}`
       : `sin tocar tu saldo inicial (${formatCRC(resumen?.saldoInicial)})`;
@@ -751,12 +771,75 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   const ahorros = egresoTodo.filter((it) => esAhorro(it.categoria));
   const gastosOrdenados = [...gastosReales].sort((a, b) => (b.total || 0) - (a.total || 0));
 
+  // Saldo de apertura: la plata que ya se tenía ANTES de empezar a registrar.
+  // No es un movimiento, así que no aparece en ningún ingreso ni gasto: solo
+  // alimenta el ahorro acumulado y el colchón de emergencia. El resumen del mes
+  // ya lo trae, así que el chip no necesita una llamada aparte (el modal sí hace
+  // su propio GET para precargar también la descripción).
+  const apertura = resumen?.apertura || null;
+
+  // `ahorroAcumulado` y `patrimonio` llegan en el resumen del mes, pero NO se
+  // muestran acá a propósito: la vista del mes se queda con el estado de
+  // resultados del mes y el acumulado se ve en el reporte anual (ahí sí tiene
+  // contexto: de cuánto arrancó el año y en cuánto cerró).
+
+  // El reporte anual reemplaza esta vista sin salir de la pestaña: se vuelve con
+  // "← Volver al mes" y el mes seleccionado queda intacto.
+  if (vista === "anual") {
+    return (
+      <FinanzasReporteAnual
+        anioInicial={anio}
+        getAuthHeaders={getAuthHeaders}
+        manejarError={manejarError}
+        onVolver={() => setVista("mes")}
+      />
+    );
+  }
+
   return (
-    <div className="fade-in">
+    <div className="fade-in fin-ancho">
       {/* Aviso: sección privada, aparte del negocio */}
       <div className="fin-aviso mb-3">
         🔒 <strong>Mis Finanzas Personales</strong> — control privado de tus ingresos y gastos personales.
         Es aparte de la sala de juegos: acá no se mezclan ventas, plays ni reportes del negocio.
+      </div>
+
+      {/* Acciones del módulo: saldo de apertura y reporte anual */}
+      <div className="fin-acciones mb-3">
+        {apertura ? (
+          <button
+            className="fin-apertura-chip"
+            onClick={() => setModalApertura(true)}
+            title="Editar el saldo de apertura"
+          >
+            <span className="fin-apertura-chip__texto">
+              ⭐ <strong>Saldo de apertura</strong> · {MESES[(apertura.mesCorte || 1) - 1]} {apertura.anioCorte} ·{" "}
+              {formatCRC(apertura.montoAhorro)} apartados
+              {(apertura.montoDisponible || 0) > 0 && ` · ${formatCRC(apertura.montoDisponible)} a mano`}
+              {apertura.vigente === false && " · aún no aplica a este mes"}
+            </span>
+            <span className="fin-apertura-chip__editar">✏️ Editar</span>
+          </button>
+        ) : (
+          <button className="admin-btn-ghost" onClick={() => setModalApertura(true)}>
+            ⭐ Ya tenía ahorros de antes
+          </button>
+        )}
+        {/* "Agregar movimiento" vive acá arriba a propósito: es lo que más se
+            usa y antes obligaba a bajar hasta el final de la lista. El modal
+            avisa en qué mes se va a guardar si no es el mes actual. */}
+        <div className="fin-acciones__botones">
+          <button
+            className="btn admin-btn admin-btn--green px-4 fw-bold"
+            onClick={() => setModal({ registro: null })}
+            disabled={!categorias}
+          >
+            ＋ Agregar movimiento
+          </button>
+          <button className="btn admin-btn admin-btn--blue px-4 fw-bold" onClick={() => setVista("anual")}>
+            📅 Reporte del año
+          </button>
+        </div>
       </div>
 
       {/* Selector de mes/año */}
@@ -784,6 +867,21 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                 {formatCRC(resumen?.totalIngresos)}
               </span>
             </div>
+            {/* Va antes de "Disponible" porque disponible = saldo inicial +
+                ingresos + retiro del ahorro. */}
+            {huboRetiro && (
+              <div className="fin-resumen__fila">
+                <span className="fin-resumen__label">
+                  🏧 Sacado del ahorro
+                  <small className="fin-resumen__sublabel">
+                    no es ingreso del mes: es ahorro que volvió a estar a mano
+                  </small>
+                </span>
+                <span className="fin-resumen__monto fin-resumen__monto--azul">
+                  {formatCRC(totalRetiro)}
+                </span>
+              </div>
+            )}
             <div className="fin-resumen__fila fin-resumen__fila--destacada">
               <span className="fin-resumen__label">💵 Disponible para usar</span>
               <span className="fin-resumen__monto fin-resumen__monto--azul">
@@ -797,7 +895,17 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
               </span>
             </div>
             <div className="fin-resumen__fila">
-              <span className="fin-resumen__label">🐷 Ahorro del mes</span>
+              <span className="fin-resumen__label">
+                🐷 Ahorro del mes
+                {/* totalAhorro es lo APARTADO (bruto). Si hubo retiro, el neto
+                    del mes puede ser negativo, y ese es el número que importa. */}
+                {huboRetiro && (
+                  <small className="fin-resumen__sublabel">
+                    neto del mes {formatCRCsigned(resumen?.ahorroNetoMes)} (apartaste{" "}
+                    {formatCRC(resumen?.totalAhorro)}, sacaste {formatCRC(totalRetiro)})
+                  </small>
+                )}
+              </span>
               <span className="fin-resumen__monto fin-resumen__monto--ahorro">
                 {formatCRC(resumen?.totalAhorro)}
               </span>
@@ -810,15 +918,16 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
             </div>
             <div className="fin-resumen__fila fin-resumen__fila--libre">
               <span className="fin-resumen__label">
-                {tocoSaldoInicial ? "⚠️ Ya tocaste tu saldo inicial" : "💸 Puedo gastar hasta"}
+                {gastoMasDeLoQueEntro ? "⚠️ Gastaste más de lo que entró" : "💸 Puedo gastar hasta"}
                 <small className="fin-resumen__sublabel">{libreSubtitulo}</small>
               </span>
               <span
-                className={`fin-resumen__monto fin-resumen__monto--${tocoSaldoInicial ? "rojo" : "verde"}`}
+                className={`fin-resumen__monto fin-resumen__monto--${gastoMasDeLoQueEntro ? "rojo" : "verde"}`}
               >
                 {formatCRC(Math.abs(libreParaGastar))}
               </span>
             </div>
+
           </div>
 
           {/* Resumen inteligente: recomendaciones automáticas del mes.
@@ -874,21 +983,16 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
             )}
           </div>
 
-          {/* Ahorro del mes: aparte del gráfico de gastos (no es consumo) */}
-          {ahorros.length > 0 && <AhorroBloque items={ahorros} />}
+          {/* Ahorro del mes: aparte del gráfico de gastos (no es consumo).
+              `desglose.retiro` ya viene separado del backend: no se filtra. */}
+          <AhorroBloque
+            items={ahorros}
+            retiros={resumen?.desglose?.retiro}
+            neto={resumen?.ahorroNetoMes}
+          />
 
-          {/* Botón agregar */}
-          <div className="d-flex justify-content-end mb-3">
-            <button
-              className="btn admin-btn admin-btn--green px-4 fw-bold"
-              onClick={() => setModal({ registro: null })}
-              disabled={!categorias}
-            >
-              ＋ Agregar movimiento
-            </button>
-          </div>
-
-          {/* Lista de movimientos del mes */}
+          {/* Lista de movimientos del mes. El botón de agregar no se repite acá:
+              está arriba, en las acciones del módulo. */}
           {loadingLista && movimientos.length === 0 ? (
             <Cargando />
           ) : movimientos.length === 0 ? (
@@ -912,16 +1016,19 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                   <span className="text-end">Acciones</span>
                 </div>
                 {movimientos.map((m) => {
-                  const esIngreso = m.tipo === "ingreso";
+                  // Cada tipo tiene su color y su signo (el retiro del ahorro va
+                  // en azul y con "+": la plata vuelve a estar a mano).
+                  const meta = metaTipo(m.tipo);
                   return (
-                    <div key={m._id} className={`mov-row mov-row--${esIngreso ? "green" : "red"}`}>
+                    <div key={m._id} className={`mov-row mov-row--${meta.color}`}>
                       <span className="mov-row__tipo">
-                        <span className={`registro-item__badge registro-item__badge--${esIngreso ? "green" : "red"}`}>
+                        <span className={`registro-item__badge registro-item__badge--${meta.color}`}>
                           {iconoCat(m.categoria, m.tipo)} {m.categoria}
+                          {m.tipo === "retiro_ahorro" && " (retiro)"}
                         </span>
                       </span>
-                      <span className={`mov-row__monto mov-row__monto--${esIngreso ? "verde" : "rojo"}`}>
-                        {esIngreso ? "+" : "−"}{formatCRC(m.monto)}
+                      <span className={`mov-row__monto mov-row__monto--${meta.montoClase}`}>
+                        {meta.signo}{formatCRC(m.monto)}
                         {m.moneda === "USD" && m.montoOriginal != null && (
                           <small className="mov-row__usd">
                             💵 {formatUSD(m.montoOriginal)}{m.tipoCambio ? ` × ${formatTC(m.tipoCambio)}` : ""}
@@ -970,6 +1077,22 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
           manejarError={manejarError}
           onCerrar={() => setModal(null)}
           onExito={() => handleExito(!!modal.registro)}
+        />
+      )}
+
+      {/* Saldo de apertura (crear / editar / borrar). Al guardar se recarga el
+          resumen para que el ahorro acumulado y el patrimonio se actualicen. */}
+      {modalApertura && (
+        <FinanzasAperturaModal
+          getAuthHeaders={getAuthHeaders}
+          mostrarNotif={mostrarNotif}
+          manejarError={manejarError}
+          onCerrar={() => setModalApertura(false)}
+          onGuardado={() => {
+            setModalApertura(false);
+            fetchResumen();
+            fetchRecomendaciones();
+          }}
         />
       )}
 
