@@ -123,14 +123,13 @@ function Home2() {
         <div className="container">
           <div className="row mb-5">
             <div className="col-12 shadow rounded text-center">
-              <h2 className="text-primary mt-4">Descubre la Diversión en la Sala de Juegos</h2>
+              <h2 className="text-primary mt-4">Sobre la sala de juegos</h2>
               <p className="mt-4 text-muted">
-                Nuestra sala de juegos ofrece una experiencia única para todos los amantes del entretenimiento. 
-                Contamos con una amplia variedad de opciones, desde clásicos como ping pong, futbolín y máquinas 
-                tragamonedas, hasta lo último en tecnología con consolas de videojuegos como PlayStation. 
-                Aquí encontrarás el equilibrio perfecto entre tradición y modernidad, ideal para disfrutar con 
-                amigos, familiares o para desafiar a otros jugadores. ¡Ven y vive momentos inolvidables en un 
-                ambiente lleno de diversión y emoción!
+                Ofrecemos una amplia variedad de opciones de entretenimiento: desde
+                clásicos como ping pong, futbolín y máquinas tragamonedas, hasta
+                consolas de videojuegos como PlayStation. Un espacio pensado tanto
+                para venir con amigos y familia como para competir con otros
+                jugadores.
               </p>
             </div>
           </div>
@@ -183,9 +182,9 @@ function Home2() {
       {/* Productos en Venta */}
       <section id="productos-venta" className="bg-custom py-5">
         <div className="container">
-          <h2 className="text-center mb-4">🛍️ Productos en Venta</h2>
+          <h2 className="text-center mb-4">Productos en venta</h2>
           <p className="text-center text-muted mb-5">
-            Descubre nuestra variedad de productos disponibles en la sala
+            Conozca los productos disponibles en la sala.
           </p>
 
           <div className="row align-items-center">
@@ -325,7 +324,7 @@ function Home2() {
       {/* Inscripción de Torneos (desde el backend) */}
       <section id="tournaments" className="bg-custom py-5">
         <div className="container">
-          <h2 className="text-center mb-4">Inscripción de Torneos y Competiciones</h2>
+          <h2 className="text-center mb-4">Inscripción a torneos y competiciones</h2>
           {torneosLoading ? (
             <div className="text-center py-3">
               <div className="spinner-border text-light" role="status">
@@ -334,7 +333,8 @@ function Home2() {
             </div>
           ) : torneos.length === 0 ? (
             <p className="text-center mb-0">
-              Pronto anunciaremos nuevos torneos. ¡Mantenete atento!
+              No hay torneos abiertos por el momento. Los próximos se anunciarán
+              en esta página.
             </p>
           ) : (
             <div className="row justify-content-center">
@@ -351,7 +351,7 @@ function Home2() {
                         />
                       )}
                       <div className="torneo-home-card__title">
-                        <span>🏆 {torneo.nombre}</span>
+                        <span>{torneo.nombre}</span>
                         <span
                           className={`badge torneo-home-card__title-badge ${abierto ? "bg-success" : "bg-secondary"}`}
                         >
@@ -359,9 +359,9 @@ function Home2() {
                         </span>
                       </div>
                       <div className="torneo-home-card__meta">
-                        <span className="torneo-home-card__pill">📅 {formatFecha(torneo.fecha)}</span>
+                        <span className="torneo-home-card__pill">{formatFecha(torneo.fecha)}</span>
                         <span className="torneo-home-card__pill">
-                          💰 {Number(torneo.costoInscripcion) > 0 ? formatCRC(torneo.costoInscripcion) : "Gratis"}
+                          {Number(torneo.costoInscripcion) > 0 ? formatCRC(torneo.costoInscripcion) : "Entrada gratuita"}
                         </span>
                       </div>
                       {torneo.descripcion && <p className="torneo-home-card__desc">{torneo.descripcion}</p>}

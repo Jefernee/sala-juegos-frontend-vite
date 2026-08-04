@@ -36,7 +36,7 @@ const TorneosPublic = () => {
         <div className="torneo-public__volver">
           <Link to="/" className="btn btn-sm torneo-nav-btn">← Volver al inicio</Link>
         </div>
-        <h2 className="torneo-public__titulo">🏆 Torneos y Competiciones</h2>
+        <h2 className="torneo-public__titulo">Torneos y competiciones</h2>
 
         {loading ? (
           <div className="text-center py-5">
@@ -48,7 +48,7 @@ const TorneosPublic = () => {
           <div className="alert alert-danger">No se pudieron cargar los torneos. Intentá de nuevo.</div>
         ) : torneos.length === 0 ? (
           <div className="alert alert-info text-center">
-            🎮 Por ahora no hay torneos publicados. ¡Volvé pronto!
+            No hay torneos publicados por el momento.
           </div>
         ) : (
           <div className="row g-4">
@@ -79,13 +79,13 @@ const TorneosPublic = () => {
                           </span>
                         </div>
                         <div className="torneo-pills">
-                          <span className="torneo-pill">📅 {formatFecha(t.fecha)}</span>
-                          <span className="torneo-pill">💰 {formatCosto(t.costoInscripcion)}</span>
+                          <span className="torneo-pill">{formatFecha(t.fecha)}</span>
+                          <span className="torneo-pill">{formatCosto(t.costoInscripcion)}</span>
                           <span className="torneo-pill">
-                            👥 {t.cupoMaximo == null ? "Sin límite" : `${t.cupoDisponible} cupos`}
+                            {t.cupoMaximo == null ? "Cupo sin límite" : `${t.cupoDisponible} cupos`}
                           </span>
                         </div>
-                        <span className="btn btn-primary w-100 mt-3">Ver e inscribirse →</span>
+                        <span className="btn btn-primary w-100 mt-3">Ver detalle e inscribirse</span>
                       </div>
                     </div>
                   </Link>

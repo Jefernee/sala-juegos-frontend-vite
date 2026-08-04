@@ -1,8 +1,69 @@
 // src/components/ProductForm.jsx
-import { useState, useRef, useEffect } from "react";
+//
+// Un solo formulario para crear y editar productos, ingredientes y recetas.
+//
+// Por qué es así:
+//
+// · Todo en una sola pantalla, sin pasos. Con un asistente de "Siguiente" un
+//   error podía quedar en una pantalla que ya no se estaba viendo y no había
+//   forma de saber dónde buscar. Acá está todo a la vista y, si algo falta, el
+//   formulario lleva solo hasta el campo que falta.
+//
+// · No se pregunta la unidad de medida. Se pregunta qué es la cosa (bebida,
+//   helado a granel, desechable…) y de ahí sale la unidad, el salto de los
+//   botones y el envase más probable. Nadie tiene que pensar en gramos.
+//
+// · Las cantidades tienen un solo control: menos, el número, más. El número se
+//   puede escribir o mover con los botones.
+//
+// · Dos alertas y un panel de cuentas para el caso de los 44 vasos: escribir el
+//   tamaño del paquete en vez del consumo por unidad hizo que una receta
+//   costara ₡2.173 y se vendiera en ₡700, y nada lo avisaba.
+
+import { useState, useRef, useEffect, useCallback } from "react";
 import axios from "axios";
 import ImageUploadWithCompression from "./ImageUploadWithCompression";
+import SelectorCantidad from "./inventario/SelectorCantidad";
+import PanelRentabilidad from "./inventario/PanelRentabilidad";
+import {
+  TIPOS_ENVASE,
+  TIPOS_PRODUCTO,
+  tipoProductoDe,
+  normalizarUnidad,
+  normalizarEnvase,
+  unidadInfo,
+  labelUnidad,
+  unidadSingular,
+  cuantos,
+  labelEnvase,
+  formatearMonto,
+  formatearCantidad,
+  formatearNumero,
+} from "../constants/inventario";
+import { analizarReceta } from "../utils/stock";
 import "../styles/ProductForm.css";
+
+// Cuánto mueven los botones −/+ según la unidad. El contenido de un balde se
+// mueve de 100 en 100 gramos; el stock, de 50 en 50.
+const PASO_POR_ENVASE = {
+  unidades: 1,
+  bolas: 1,
+  gramos: 100,
+  kilogramos: 1,
+  mililitros: 50,
+  litros: 1,
+};
+
+const PASO_STOCK = {
+  unidades: 5,
+  bolas: 5,
+  gramos: 50,
+  kilogramos: 1,
+  mililitros: 50,
+  litros: 1,
+};
+
+const tablaPara = (tabla, unidad) => tabla[normalizarUnidad(unidad)] || tabla.unidades;
 
 const ProductForm = ({ producto = null, onClose, onSuccess }) => {
   const isEditing = !!producto;
@@ -21,6 +82,9 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
     cantidadPorEnvase: "",
     nombreEnvase: "",
   });
+  // Qué es el producto (bebida, helado a granel, desechable…). De acá sale la
+  // unidad; el usuario nunca la elige a mano.
+  const [tipoProducto, setTipoProducto] = useState(null);
   const [mostrarConfigEnvase, setMostrarConfigEnvase] = useState(false);
   const [modoReposicion, setModoReposicion] = useState("unidades"); // "envases" | "unidades"
   const [envasesAAgregar, setEnvasesAAgregar] = useState("");
@@ -29,51 +93,69 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
   const [precioEnvase, setPrecioEnvase] = useState("");
   const [toast, setToast] = useState({ show: false, text: "", type: "" });
   const imageUploadRef = useRef(null);
+  const cuerpoRef = useRef(null);
 
-  // Estado para ingredientes de receta
+  // Receta: cada línea guarda también los datos del ingrediente (stock, costo,
+  // envase) porque son los que alimentan las alertas y el panel de cuentas.
   const [receta, setReceta] = useState([]);
-  const [ingredienteSearch, setIngredienteSearch] = useState("");
-  const [ingredientesResultados, setIngredientesResultados] = useState([]);
-  const [buscandoIngredientes, setBuscandoIngredientes] = useState(false);
-  const ingredienteTimeoutRef = useRef(null);
-  const ingredienteSearchRef = useRef(null);
-  const [mostrarDropdown, setMostrarDropdown] = useState(false);
+  const [ingredientesTodos, setIngredientesTodos] = useState([]);
+  const [cargandoIngredientes, setCargandoIngredientes] = useState(false);
+  const [ingredientesCargados, setIngredientesCargados] = useState(false);
+  const [mostrarPicker, setMostrarPicker] = useState(false);
+  const [filtroIngrediente, setFiltroIngrediente] = useState("");
+  // Solo se usa si el listado completo no está disponible: entonces sí hay que
+  // teclear para buscar contra el backend.
+  const [modoBusquedaServidor, setModoBusquedaServidor] = useState(false);
+  const busquedaTimeoutRef = useRef(null);
+
+  const esReceta = form.tipo === "receta";
+
+  // ===== CARGA INICIAL EN EDICIÓN =====
 
   useEffect(() => {
     if (isEditing && producto) {
       setForm({
         nombre: producto.nombre || "",
-        cantidad: producto.cantidad || "",
+        cantidad: producto.cantidad ?? "",
         cantidadAAgregar: "",
-        precioCompra: producto.precioCompra || "",
-        precioVenta: producto.precioVenta || "",
+        precioCompra: producto.precioCompra ?? "",
+        precioVenta: producto.precioVenta ?? "",
         imagen: null,
         seVende: producto.seVende ?? true,
         tipo: producto.tipo || "producto",
-        unidad: producto.unidad || "unidades",
+        unidad: normalizarUnidad(producto.unidad || "unidades"),
         cantidadPorEnvase: producto.cantidadPorEnvase ?? "",
-        nombreEnvase: producto.nombreEnvase || "",
+        nombreEnvase: normalizarEnvase(producto.nombreEnvase || ""),
       });
+      setTipoProducto(tipoProductoDe(producto.unidad)?.id || null);
       if (producto.cantidadPorEnvase) {
         setMostrarConfigEnvase(true);
-        // Pre-llenar precio del envase = precioCompra × cantidadPorEnvase
         if (producto.precioCompra && producto.cantidadPorEnvase) {
           setPrecioEnvase(
-            (Number(producto.precioCompra) * Number(producto.cantidadPorEnvase)).toFixed(2)
+            String(
+              Math.round(
+                Number(producto.precioCompra) * Number(producto.cantidadPorEnvase),
+              ),
+            ),
           );
         }
       }
       if (producto.tipo === "receta" && Array.isArray(producto.receta)) {
         setReceta(
           producto.receta.map((ing) => {
-            const esObjeto = ing.ingredienteId && typeof ing.ingredienteId === "object";
+            const ref = ing.ingredienteId;
+            const obj = ref && typeof ref === "object" ? ref : null;
             return {
-              ingredienteId: esObjeto ? ing.ingredienteId._id : ing.ingredienteId,
-              nombre: ing.nombre || (esObjeto ? ing.ingredienteId.nombre : ""),
-              unidad: ing.unidad || (esObjeto ? ing.ingredienteId.unidad : "") || "",
-              cantidad: ing.cantidad,
+              ingredienteId: obj ? obj._id : ref,
+              nombre: ing.nombre || obj?.nombre || "Ingrediente",
+              unidad: normalizarUnidad(ing.unidad || obj?.unidad || "unidades"),
+              cantidad: Number(ing.cantidad) || 0,
+              stock: obj ? Number(obj.cantidad) || 0 : null,
+              precioCompra: obj ? Number(obj.precioCompra) || 0 : null,
+              cantidadPorEnvase: obj?.cantidadPorEnvase ?? null,
+              nombreEnvase: obj?.nombreEnvase ?? null,
             };
-          })
+          }),
         );
       }
     }
@@ -81,18 +163,26 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
 
   const showToast = (text, type = "success") => {
     setToast({ show: true, text, type });
-    setTimeout(() => setToast({ show: false, text: "", type: "" }), 8000);
+    setTimeout(() => setToast({ show: false, text: "", type: "" }), 10000);
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((prev) => {
       const next = { ...prev, [name]: type === "checkbox" ? checked : value };
-      if (name === "seVende" && !checked) {
-        next.precioVenta = "";
-      }
+      if (name === "seVende" && !checked) next.precioVenta = "";
       return next;
     });
+  };
+
+  // Elegir el tipo fija la unidad y, si hace falta, sugiere el envase.
+  const elegirTipoProducto = (tipo) => {
+    setTipoProducto(tipo.id);
+    setForm((p) => ({
+      ...p,
+      unidad: tipo.unidad,
+      nombreEnvase: p.nombreEnvase || tipo.envaseSugerido || "",
+    }));
   };
 
   const handleImageChange = ({ file, base64 }) => {
@@ -105,180 +195,352 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
 
   // ===== INGREDIENTES =====
 
-  const buscarIngredientes = async (searchTerm) => {
-    if (!searchTerm.trim()) {
-      setIngredientesResultados([]);
-      setBuscandoIngredientes(false);
-      return;
-    }
-    setBuscandoIngredientes(true);
+  // Traemos el catálogo completo una sola vez para que elegir un ingrediente no
+  // exija teclear. Si el endpoint no devuelve la lista sin `search`, caemos a
+  // búsqueda por servidor.
+  const cargarIngredientes = useCallback(async () => {
+    if (ingredientesCargados || cargandoIngredientes) return;
+    setCargandoIngredientes(true);
     try {
       const token = localStorage.getItem("token");
       const apiUrl = import.meta.env.VITE_API_URL;
       const response = await axios.get(`${apiUrl}/api/products/ingredientes`, {
-        params: { search: searchTerm },
         headers: { Authorization: `Bearer ${token}` },
       });
-      const todos = response.data.ingredientes || [];
-      const agregadosIds = new Set(receta.map((r) => r.ingredienteId));
-      setIngredientesResultados(todos.filter((i) => !agregadosIds.has(i._id)));
-      setMostrarDropdown(true);
+      const lista = response.data.ingredientes || [];
+      setIngredientesTodos(lista);
+      setModoBusquedaServidor(lista.length === 0);
+    } catch (error) {
+      console.error("Error cargando ingredientes:", error);
+      setModoBusquedaServidor(true);
+    } finally {
+      setCargandoIngredientes(false);
+      setIngredientesCargados(true);
+    }
+  }, [ingredientesCargados, cargandoIngredientes]);
+
+  useEffect(() => {
+    if (esReceta) cargarIngredientes();
+  }, [esReceta, cargarIngredientes]);
+
+  const buscarEnServidor = useCallback(async (termino) => {
+    if (!termino.trim()) return;
+    setCargandoIngredientes(true);
+    try {
+      const token = localStorage.getItem("token");
+      const apiUrl = import.meta.env.VITE_API_URL;
+      const response = await axios.get(`${apiUrl}/api/products/ingredientes`, {
+        params: { search: termino },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setIngredientesTodos(response.data.ingredientes || []);
     } catch (error) {
       console.error("Error buscando ingredientes:", error);
     } finally {
-      setBuscandoIngredientes(false);
+      setCargandoIngredientes(false);
     }
-  };
+  }, []);
 
-  const handleIngredienteSearchChange = (e) => {
+  const handleFiltroChange = (e) => {
     const value = e.target.value;
-    setIngredienteSearch(value);
-    if (ingredienteTimeoutRef.current) clearTimeout(ingredienteTimeoutRef.current);
-    if (!value.trim()) {
-      setIngredientesResultados([]);
-      setMostrarDropdown(false);
-      return;
-    }
-    ingredienteTimeoutRef.current = setTimeout(() => buscarIngredientes(value), 400);
+    setFiltroIngrediente(value);
+    if (!modoBusquedaServidor) return;
+    if (busquedaTimeoutRef.current) clearTimeout(busquedaTimeoutRef.current);
+    busquedaTimeoutRef.current = setTimeout(() => buscarEnServidor(value), 400);
   };
 
   const agregarIngrediente = (ing) => {
     if (receta.find((r) => r.ingredienteId === ing._id)) return;
+    const unidad = normalizarUnidad(ing.unidad || "unidades");
     setReceta((prev) => [
       ...prev,
-      { ingredienteId: ing._id, nombre: ing.nombre, unidad: ing.unidad || "", cantidad: 1 },
+      {
+        ingredienteId: ing._id,
+        nombre: ing.nombre,
+        unidad,
+        // Arranca en una cantidad chica: lo normal es usar poco de cada cosa,
+        // no un paquete entero.
+        cantidad: unidadInfo(unidad).inicial,
+        stock: Number(ing.cantidad) || 0,
+        precioCompra: Number(ing.precioCompra) || 0,
+        cantidadPorEnvase: ing.cantidadPorEnvase ?? null,
+        nombreEnvase: ing.nombreEnvase ?? null,
+      },
     ]);
-    setIngredienteSearch("");
-    setIngredientesResultados([]);
-    setMostrarDropdown(false);
+    setMostrarPicker(false);
+    setFiltroIngrediente("");
   };
 
   const quitarIngrediente = (ingredienteId) => {
     setReceta((prev) => prev.filter((r) => r.ingredienteId !== ingredienteId));
   };
 
-  const actualizarCantidadIngrediente = (ingredienteId, value) => {
-    const num = parseFloat(value);
-    if (isNaN(num) || num <= 0) return;
+  const actualizarCantidadIngrediente = (ingredienteId, valor) => {
     setReceta((prev) =>
       prev.map((r) =>
-        r.ingredienteId === ingredienteId ? { ...r, cantidad: num } : r
-      )
+        r.ingredienteId === ingredienteId ? { ...r, cantidad: valor } : r,
+      ),
     );
   };
 
+  const yaAgregados = new Set(receta.map((r) => r.ingredienteId));
+  const ingredientesDisponibles = ingredientesTodos
+    .filter((i) => !yaAgregados.has(i._id))
+    .filter((i) =>
+      modoBusquedaServidor || !filtroIngrediente.trim()
+        ? true
+        : i.nombre.toLowerCase().includes(filtroIngrediente.trim().toLowerCase()),
+    );
+
+  // ===== CUENTAS EN VIVO =====
+
+  const lineasParaAnalisis = receta.map((r) => ({
+    nombre: r.nombre,
+    unidad: r.unidad,
+    cantidad: Number(r.cantidad) || 0,
+    ingredienteId: {
+      _id: r.ingredienteId,
+      nombre: r.nombre,
+      unidad: r.unidad,
+      cantidad: r.stock,
+      precioCompra: r.precioCompra,
+      cantidadPorEnvase: r.cantidadPorEnvase,
+      nombreEnvase: r.nombreEnvase,
+    },
+  }));
+
+  const analisis = analizarReceta(lineasParaAnalisis, form.precioVenta);
+
+  const costoUnitarioSimple =
+    form.cantidadPorEnvase && precioEnvase !== "" && Number(form.cantidadPorEnvase) > 0
+      ? Number(precioEnvase) / Number(form.cantidadPorEnvase)
+      : Number(form.precioCompra) || 0;
+
+  const gananciaSimple =
+    form.precioVenta === "" ? null : Number(form.precioVenta) - costoUnitarioSimple;
+
+  // ===== ALERTAS DE UNA LÍNEA DE RECETA =====
+
+  const alertasDeLinea = (linea) => {
+    const alertas = [];
+    const cantidad = Number(linea.cantidad) || 0;
+    const u = labelUnidad(linea.unidad);
+
+    // Alerta 1 — la que faltaba el día de los 44 vasos.
+    if (
+      linea.cantidadPorEnvase &&
+      Number(linea.cantidadPorEnvase) > 0 &&
+      cantidad >= Number(linea.cantidadPorEnvase)
+    ) {
+      const envase = (labelEnvase(linea.nombreEnvase) || "envase").toLowerCase();
+      const veces = cantidad / Number(linea.cantidadPorEnvase);
+      alertas.push({
+        tipo: "envase",
+        texto:
+          veces >= 2
+            ? `¿Seguro? Cada unidad se llevaría ${formatearCantidad(veces)} ${envase}s enteros de ${linea.nombre} (${formatearCantidad(linea.cantidadPorEnvase)} ${u} cada uno).`
+            : `¿Seguro que cada unidad se lleva un ${envase} entero de ${linea.nombre}? Un ${envase} trae ${formatearCantidad(linea.cantidadPorEnvase)} ${u}.`,
+      });
+    }
+
+    // Alerta 2 — el stock no alcanza ni para una.
+    if (linea.stock !== null && cantidad > linea.stock) {
+      alertas.push({
+        tipo: "agotado",
+        texto: `No alcanza: solo quedan ${formatearCantidad(linea.stock)} ${u} de ${linea.nombre}. La receta va a quedar agotada y no se va a poder vender.`,
+      });
+    }
+
+    return alertas;
+  };
+
   // ===== VALIDACIÓN =====
+  // Cada problema sabe a qué campo pertenece, para poder llevar al usuario ahí.
 
-  const validateForm = () => {
-    const errors = [];
-    const esReceta = form.tipo === "receta";
+  const unidadFueraDeCatalogo = isEditing && !tipoProductoDe(form.unidad);
 
-    if (!form.nombre.trim()) errors.push("El nombre es obligatorio.");
+  // Al editar, ¿la opción elegida cambiaría la unidad con la que ya está
+  // guardado el producto?
+  const cambiaLaUnidad =
+    isEditing &&
+    !esReceta &&
+    normalizarUnidad(producto.unidad) !== normalizarUnidad(form.unidad);
 
-    if (!esReceta) {
-      if (!form.unidad.trim()) errors.push("La unidad es obligatoria.");
+  const revisarTodo = () => {
+    const problemas = [];
+    const agregar = (texto, ancla) => problemas.push({ texto, ancla });
+
+    if (!form.nombre.trim()) agregar("Escribí el nombre.", "nombre");
+
+    if (esReceta) {
+      if (receta.length === 0) {
+        agregar("Agregá al menos una cosa a la receta.", "campo-ingredientes");
+      } else {
+        const sinCantidad = receta.filter((r) => !(Number(r.cantidad) > 0));
+        if (sinCantidad.length > 0) {
+          agregar(
+            `Poné cuánto lleva de: ${sinCantidad.map((r) => r.nombre).join(", ")}.`,
+            "campo-ingredientes",
+          );
+        }
+      }
+    } else {
+      if (!tipoProducto && !unidadFueraDeCatalogo) {
+        agregar("Elegí qué es (bebida, helado, desechable…).", "campo-que-es");
+      }
+
+      if (mostrarConfigEnvase) {
+        if (!form.nombreEnvase) agregar("Elegí en qué viene.", "nombreEnvase");
+        if (!(Number(form.cantidadPorEnvase) > 0)) {
+          agregar(
+            `Poné ${cuantos(form.unidad).toLowerCase()} ${labelUnidad(form.unidad)} trae cada ${(labelEnvase(form.nombreEnvase) || "envase").toLowerCase()}.`,
+            "campo-envase-contenido",
+          );
+        }
+      }
 
       if (!isEditing) {
         if (modoCreacion === "envases") {
-          if (!cantidadEnvasesCrear || Number(cantidadEnvasesCrear) <= 0)
-            errors.push("La cantidad de envases debe ser mayor a 0.");
-        } else {
-          if (!form.cantidad || Number(form.cantidad) <= 0)
-            errors.push("La cantidad debe ser mayor a 0.");
+          if (!(Number(cantidadEnvasesCrear) > 0)) {
+            agregar(
+              `Poné cuántos ${(labelEnvase(form.nombreEnvase) || "envase").toLowerCase()}s tenés.`,
+              "campo-stock",
+            );
+          }
+        } else if (!(Number(form.cantidad) > 0)) {
+          agregar(
+            `Poné ${cuantos(form.unidad).toLowerCase()} ${labelUnidad(form.unidad)} tenés.`,
+            "campo-stock",
+          );
+        }
+      } else if (modoReposicion === "envases") {
+        const env = Number(envasesAAgregar);
+        if (envasesAAgregar !== "" && (isNaN(env) || env < 0)) {
+          agregar("Lo que compraste no puede ser negativo.", "campo-stock");
         }
       } else {
-        if (modoReposicion === "envases") {
-          const env = Number(envasesAAgregar);
-          if (envasesAAgregar !== "" && (isNaN(env) || env < 0))
-            errors.push("Los envases a agregar no pueden ser negativos.");
-        } else {
-          const aAgregar = Number(form.cantidadAAgregar);
-          if (form.cantidadAAgregar !== "" && (isNaN(aAgregar) || aAgregar < 0))
-            errors.push("La cantidad a agregar no puede ser negativa.");
+        const aAgregar = Number(form.cantidadAAgregar);
+        if (form.cantidadAAgregar !== "" && (isNaN(aAgregar) || aAgregar < 0)) {
+          agregar("Lo que compraste no puede ser negativo.", "campo-stock");
         }
       }
+
       if (form.cantidadPorEnvase) {
-        if (precioEnvase === "")
-          errors.push("El precio del envase es obligatorio.");
-        else if (Number(precioEnvase) < 0)
-          errors.push("El precio del envase no puede ser negativo.");
-      } else {
-        if (form.precioCompra === "")
-          errors.push("El precio de compra es obligatorio.");
-        else if (Number(form.precioCompra) < 0)
-          errors.push("El precio de compra no puede ser negativo.");
+        if (precioEnvase === "") {
+          agregar(
+            `Poné cuánto pagaste por el ${(labelEnvase(form.nombreEnvase) || "envase").toLowerCase()}.`,
+            "precioEnvase",
+          );
+        } else if (Number(precioEnvase) < 0) {
+          agregar("El precio no puede ser negativo.", "precioEnvase");
+        }
+      } else if (form.precioCompra === "") {
+        agregar(`Poné cuánto te cuesta cada ${unidadSingular(form.unidad)}.`, "precioCompra");
+      } else if (Number(form.precioCompra) < 0) {
+        agregar("El precio no puede ser negativo.", "precioCompra");
       }
     }
 
     if (form.seVende) {
-      if (form.precioVenta === "")
-        errors.push("El precio de venta es obligatorio.");
-      else if (Number(form.precioVenta) < 0)
-        errors.push("El precio de venta no puede ser negativo.");
-    } else {
-      if (form.precioVenta !== "" && Number(form.precioVenta) < 0)
-        errors.push("El precio de venta no puede ser negativo.");
-    }
-
-    if (esReceta) {
-      if (receta.length === 0)
-        errors.push("La receta debe tener al menos 1 ingrediente.");
-    } else {
-      if (!isEditing) {
-        if (!form.imagen?.base64) {
-          errors.push("Debes seleccionar una imagen.");
-        } else if (form.imagen.file.size > 5 * 1024 * 1024) {
-          const mb = (form.imagen.file.size / (1024 * 1024)).toFixed(2);
-          errors.push(`La imagen es demasiado grande (${mb} MB). El límite es 5 MB.`);
-        }
-      } else {
-        if (form.imagen?.file && form.imagen.file.size > 5 * 1024 * 1024) {
-          const mb = (form.imagen.file.size / (1024 * 1024)).toFixed(2);
-          errors.push(`La imagen es demasiado grande (${mb} MB). El límite es 5 MB.`);
-        }
+      if (form.precioVenta === "") {
+        agregar('Poné a cuánto lo vendés, o apagá "Se vende en el mostrador".', "precioVenta");
+      } else if (Number(form.precioVenta) < 0) {
+        agregar("El precio de venta no puede ser negativo.", "precioVenta");
       }
     }
 
-    if (esReceta && form.imagen?.file && form.imagen.file.size > 5 * 1024 * 1024) {
+    if (!isEditing && !esReceta && !form.imagen?.base64) {
+      agregar("Elegí una foto.", "campo-imagen");
+    }
+    if (form.imagen?.file && form.imagen.file.size > 5 * 1024 * 1024) {
       const mb = (form.imagen.file.size / (1024 * 1024)).toFixed(2);
-      errors.push(`La imagen es demasiado grande (${mb} MB). El límite es 5 MB.`);
+      agregar(`La foto es muy grande (${mb} MB). El límite es 5 MB.`, "campo-imagen");
     }
 
-    return errors;
+    return problemas;
   };
+
+  // Lleva la vista al primer campo que falta, lo resalta y le pone el foco.
+  // Es lo que evita el "algo falló y no sé dónde".
+  const irAlProblema = (ancla) => {
+    if (!ancla) return;
+    const el = document.getElementById(ancla);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("campo-con-error");
+    setTimeout(() => el.classList.remove("campo-con-error"), 2500);
+    const enfocable = el.matches("input, select, textarea")
+      ? el
+      : el.querySelector("input, select, textarea, button");
+    if (enfocable) setTimeout(() => enfocable.focus({ preventScroll: true }), 400);
+  };
+
+  // ===== GUARDAR =====
 
   const getUserFriendlyErrorMessage = (error) => {
     if (!error.response) {
-      if (error.code === "ECONNABORTED") return "La petición tardó demasiado. Intenta con una imagen más pequeña.";
-      if (error.code === "ERR_NETWORK" || error.message === "Network Error") return "Error de red. Verifica tu conexión.";
-      return "No se pudo completar la petición. Verifica tu conexión.";
+      if (error.code === "ECONNABORTED")
+        return "Tardó demasiado. Probá con una foto más pequeña.";
+      if (error.code === "ERR_NETWORK" || error.message === "Network Error")
+        return "No hay conexión con el servidor. Revisá el internet.";
+      return "No se pudo guardar. Revisá la conexión.";
     }
     const status = error.response.status;
     const errorData = error.response.data;
     switch (status) {
-      case 400: return errorData?.error ? `Error de validación: ${errorData.error}` : "Datos inválidos. Revisa todos los campos.";
-      case 401: return "Tu sesión ha expirado. Por favor inicia sesión nuevamente.";
-      case 403: return "No tienes permisos para realizar esta acción.";
-      case 413: return "El archivo es demasiado grande. Usa una imagen más pequeña.";
-      case 415: return "Formato de imagen no soportado. Usa JPG, PNG o WebP.";
-      case 500: return errorData?.error ? `Error del servidor: ${errorData.error}` : "Error interno del servidor.";
-      default: return errorData?.error ? `Error: ${errorData.error}` : `Error inesperado (${status}).`;
+      case 400:
+        return errorData?.error
+          ? `No se pudo guardar: ${errorData.error}`
+          : "Hay algo mal en los datos. Revisá los campos.";
+      case 401:
+        return "Se cerró tu sesión. Volvé a iniciar sesión.";
+      case 403:
+        return "No tenés permiso para hacer esto.";
+      case 413:
+        return "La foto es demasiado grande. Usá una más pequeña.";
+      case 415:
+        return "Ese tipo de foto no sirve. Usá JPG, PNG o WebP.";
+      case 500:
+        return errorData?.error
+          ? `Error del servidor: ${errorData.error}`
+          : "Error del servidor. Intentá de nuevo.";
+      default:
+        return errorData?.error ? `Error: ${errorData.error}` : `Error inesperado (${status}).`;
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (uploading) return;
-    const validationErrors = validateForm();
-    if (validationErrors.length > 0) { showToast(validationErrors.join("\n"), "error"); return; }
+
+    const problemas = revisarTodo();
+    if (problemas.length > 0) {
+      showToast(
+        problemas.length === 1
+          ? problemas[0].texto
+          : `Falta esto:\n${problemas.map((p) => `• ${p.texto}`).join("\n")}`,
+        "error",
+      );
+      if (cuerpoRef.current) cuerpoRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      // Primero se lee el aviso arriba, después se va al campo que falta.
+      setTimeout(() => irAlProblema(problemas[0].ancla), 700);
+      return;
+    }
+
     setUploading(true);
     try {
       const token = localStorage.getItem("token");
-      if (!token) { showToast("Debes iniciar sesión.", "error"); return; }
+      if (!token) {
+        showToast("Tenés que iniciar sesión.", "error");
+        setUploading(false);
+        return;
+      }
       const apiUrl = import.meta.env.VITE_API_URL;
-      if (!apiUrl) { showToast("URL del API no definida.", "error"); return; }
-
-      const esReceta = form.tipo === "receta";
+      if (!apiUrl) {
+        showToast("Falta configurar la dirección del servidor.", "error");
+        setUploading(false);
+        return;
+      }
 
       const payload = {
         nombre: form.nombre,
@@ -289,35 +551,36 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
       if (esReceta) {
         payload.tipo = "receta";
         payload.receta = receta.map(({ ingredienteId, cantidad }) => ({
-          ingredienteId: typeof ingredienteId === "object" ? ingredienteId._id : ingredienteId,
-          cantidad,
+          ingredienteId:
+            typeof ingredienteId === "object" ? ingredienteId._id : ingredienteId,
+          cantidad: Number(cantidad),
         }));
       } else {
         if (form.cantidadPorEnvase && precioEnvase !== "") {
-          payload.precioCompra = Math.round(Number(precioEnvase) / Number(form.cantidadPorEnvase));
+          payload.precioCompra = Math.round(
+            Number(precioEnvase) / Number(form.cantidadPorEnvase),
+          );
         } else {
           payload.precioCompra = form.precioCompra;
         }
-        payload.unidad = form.unidad || "unidades";
-        if (form.cantidadPorEnvase !== "" && form.cantidadPorEnvase !== null) {
-          payload.cantidadPorEnvase = Number(form.cantidadPorEnvase);
-        } else {
-          payload.cantidadPorEnvase = null;
-        }
-        payload.nombreEnvase = form.nombreEnvase || "";
+        // Se guarda el valor canónico en minúscula: es lo que evita que en la
+        // base vuelvan a convivir "Gramos" y "gramos".
+        payload.unidad = normalizarUnidad(form.unidad) || "unidades";
+        payload.cantidadPorEnvase =
+          form.cantidadPorEnvase !== "" && form.cantidadPorEnvase !== null
+            ? Number(form.cantidadPorEnvase)
+            : null;
+        payload.nombreEnvase = normalizarEnvase(form.nombreEnvase) || "";
 
         if (!isEditing) {
-          if (modoCreacion === "envases" && form.cantidadPorEnvase) {
-            payload.cantidad = Number(cantidadEnvasesCrear) * Number(form.cantidadPorEnvase);
-          } else {
-            payload.cantidad = form.cantidad;
-          }
+          payload.cantidad =
+            modoCreacion === "envases" && form.cantidadPorEnvase
+              ? Number(cantidadEnvasesCrear) * Number(form.cantidadPorEnvase)
+              : form.cantidad;
+        } else if (modoReposicion === "envases" && envasesAAgregar !== "") {
+          payload.envasesAAgregar = Number(envasesAAgregar) || 0;
         } else {
-          if (modoReposicion === "envases" && envasesAAgregar !== "") {
-            payload.envasesAAgregar = Number(envasesAAgregar) || 0;
-          } else {
-            payload.cantidadAAgregar = Number(form.cantidadAAgregar) || 0;
-          }
+          payload.cantidadAAgregar = Number(form.cantidadAAgregar) || 0;
         }
       }
 
@@ -325,38 +588,46 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
         payload.imagenBase64 = form.imagen.base64;
         payload.imagenNombre = form.imagen.file.name;
         payload.imagenMimeType = form.imagen.file.type;
-      } else if (!isEditing && !esReceta) {
-        showToast("Debes seleccionar una imagen.", "error");
-        setUploading(false);
-        return;
       }
 
       const config = {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         timeout: 120000,
       };
 
-      let response;
       if (isEditing) {
-        response = await axios.put(`${apiUrl}/api/products/${producto._id}`, payload, config);
-        showToast(esReceta ? "Receta actualizada correctamente" : "Producto actualizado correctamente");
+        await axios.put(`${apiUrl}/api/products/${producto._id}`, payload, config);
+        showToast(esReceta ? "Receta guardada." : "Producto guardado.");
       } else {
-        response = await axios.post(`${apiUrl}/api/products`, payload, config);
-        showToast(esReceta ? "Receta agregada correctamente" : "Producto agregado correctamente");
+        await axios.post(`${apiUrl}/api/products`, payload, config);
+        showToast(esReceta ? "Receta creada." : "Producto creado.");
       }
-      console.log("Operación exitosa:", response.data);
-      setTimeout(() => { if (onSuccess) onSuccess(); }, 1000);
+      setTimeout(() => onSuccess && onSuccess(), 1000);
     } catch (error) {
       console.error("Error al guardar:", error);
       showToast(getUserFriendlyErrorMessage(error), "error");
+      if (cuerpoRef.current) cuerpoRef.current.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setUploading(false);
     }
   };
 
-  const esReceta = form.tipo === "receta";
+  // ===== TEXTOS QUE DEPENDEN DE LA UNIDAD =====
 
-  // Equivalencia en tiempo real para reposición por envases
+  const uLabel = labelUnidad(form.unidad);
+  const uSingular = unidadSingular(form.unidad);
+  const uCuantos = cuantos(form.unidad);
+  const envaseLabel = (labelEnvase(form.nombreEnvase) || "envase").toLowerCase();
+
+  const envaseActual = normalizarEnvase(form.nombreEnvase);
+  const opcionesEnvase =
+    !envaseActual || TIPOS_ENVASE.some((en) => en.id === envaseActual)
+      ? TIPOS_ENVASE
+      : [...TIPOS_ENVASE, { id: envaseActual, label: labelEnvase(envaseActual) }];
+
   const equivalenciaEnvases =
     modoReposicion === "envases" &&
     envasesAAgregar !== "" &&
@@ -365,72 +636,149 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
       ? Number(envasesAAgregar) * Number(form.cantidadPorEnvase)
       : null;
 
+  const tituloModal = isEditing
+    ? esReceta
+      ? "Editar receta"
+      : "Editar producto"
+    : "Producto nuevo";
+
   return (
     <div className="product-form-overlay">
       <div className="product-form-modal">
         <div className="product-form-header">
-          <h2 className="product-form-title">
-            {isEditing
-              ? esReceta ? "✏️ Editar Receta" : "✏️ Editar Producto"
-              : "➕ Agregar Producto"}
-          </h2>
-          <button className="btn-close" onClick={onClose} aria-label="Cerrar" disabled={uploading} />
+          <h2 className="product-form-title">{tituloModal}</h2>
+          <button
+            className="btn-close"
+            onClick={onClose}
+            aria-label="Cerrar"
+            disabled={uploading}
+          />
         </div>
 
-        <form className="product-form-body" onSubmit={handleSubmit}>
+        <form
+          className="product-form-body"
+          onSubmit={handleSubmit}
+          ref={cuerpoRef}
+          noValidate
+        >
           {toast.show && (
-            <div className={`toast-custom ${toast.type}`} style={{ whiteSpace: "pre-line", maxHeight: "200px", overflowY: "auto", fontSize: "0.9rem", lineHeight: "1.6", padding: "12px", marginBottom: "1rem" }}>
-              {toast.text}
-            </div>
+            <div className={`toast-custom ${toast.type} toast-form`}>{toast.text}</div>
           )}
 
-          <div className="row g-3">
+          {/* ══════════ 1 · QUÉ VAS A GUARDAR ══════════ */}
+          <section className="bloque-form">
+            <h3 className="bloque-titulo">
+              <span className="bloque-numero">1</span> Qué vas a guardar
+            </h3>
 
-            {/* Tipo de producto — solo en creación */}
-            {!isEditing && (
-              <div className="col-12">
-                <label className="form-label">Tipo de producto</label>
-                <div className="btn-group w-100" role="group" aria-label="Tipo de producto">
-                  <input type="radio" className="btn-check" name="tipo" id="tipo-producto" value="producto" checked={form.tipo === "producto"} onChange={handleChange} disabled={uploading} />
-                  <label className="btn btn-outline-primary" htmlFor="tipo-producto">📦 Producto simple</label>
-                  <input type="radio" className="btn-check" name="tipo" id="tipo-receta" value="receta" checked={form.tipo === "receta"} onChange={handleChange} disabled={uploading} />
-                  <label className="btn btn-outline-warning" htmlFor="tipo-receta">🍽️ Receta</label>
+            <div className="bloque-campos">
+              {!isEditing ? (
+                <div className="campo-bloque">
+                  <div className="tarjetas-tipo">
+                    <button
+                      type="button"
+                      className={`tarjeta-tipo ${!esReceta ? "activa" : ""}`}
+                      onClick={() => setForm((p) => ({ ...p, tipo: "producto" }))}
+                      disabled={uploading}
+                    >
+                      <span className="tarjeta-tipo-titulo">Algo que comprás</span>
+                      <span className="tarjeta-tipo-desc">
+                        Vasos, gaseosas, un balde de helado. Tiene su propio stock.
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`tarjeta-tipo ${esReceta ? "activa" : ""}`}
+                      onClick={() => setForm((p) => ({ ...p, tipo: "receta" }))}
+                      disabled={uploading}
+                    >
+                      <span className="tarjeta-tipo-titulo">Algo que preparás</span>
+                      <span className="tarjeta-tipo-desc">
+                        Se arma con varias cosas. El stock se calcula solo.
+                      </span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="campo-bloque">
+                  <span className={`etiqueta-tipo ${esReceta ? "receta" : ""}`}>
+                    {esReceta ? "Se prepara con ingredientes" : "Producto"}
+                  </span>
+                </div>
+              )}
 
-            {/* Badge de tipo cuando se está editando */}
-            {isEditing && esReceta && (
-              <div className="col-12">
-                <span className="badge bg-warning text-dark fs-6 px-3 py-2">🍽️ Receta</span>
-                <small className="text-muted ms-2">Las recetas calculan su stock automáticamente a partir de los ingredientes.</small>
+              <div className="campo-bloque">
+                <label htmlFor="nombre" className="form-label">
+                  ¿Cómo se llama?
+                </label>
+                <input
+                  id="nombre"
+                  name="nombre"
+                  type="text"
+                  className="form-control form-control-lg"
+                  value={form.nombre}
+                  onChange={handleChange}
+                  disabled={uploading}
+                  placeholder={esReceta ? "Cono de vainilla" : "Vasos"}
+                  autoComplete="off"
+                />
               </div>
-            )}
-
-            {/* Nombre */}
-            <div className="col-md-6">
-              <label htmlFor="nombre" className="form-label">Nombre <span className="text-danger">*</span></label>
-              <input id="nombre" name="nombre" type="text" className="form-control" value={form.nombre} onChange={handleChange} required disabled={uploading} placeholder={esReceta ? "Ej: Cono de vainilla" : "Ej: Coca Cola 600ml"} />
             </div>
+          </section>
 
-            {/* Unidad — solo para productos simples */}
-            {!esReceta && (
-              <div className="col-md-6">
-                <label htmlFor="unidad" className="form-label">Unidad <span className="text-danger">*</span></label>
-                <input id="unidad" name="unidad" type="text" className="form-control" value={form.unidad} onChange={handleChange} disabled={uploading} placeholder="unidades" />
-                <small className="text-muted">¿En qué unidad medís este ingrediente? Ej: ml, bolas, gr, kg, unidades.</small>
-              </div>
-            )}
+          {/* ══════════ 2 · QUÉ ES Y CUÁNTO TENÉS (productos) ══════════ */}
+          {!esReceta && (
+            <section className="bloque-form">
+              <h3 className="bloque-titulo">
+                <span className="bloque-numero">2</span> Qué es y cuánto tenés
+              </h3>
 
-            {/* Envase — checkbox justo después de unidad */}
-            {!esReceta && (
-              <>
-                <div className="col-12">
-                  <div className="form-check">
+              <div className="bloque-campos">
+                <div className="campo-bloque" id="campo-que-es">
+                  <label className="form-label">¿Qué es?</label>
+                  <div className="tarjetas-tipo tarjetas-tipo--compacto">
+                    {TIPOS_PRODUCTO.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={`tarjeta-tipo ${tipoProducto === t.id ? "activa" : ""}`}
+                        onClick={() => elegirTipoProducto(t)}
+                        disabled={uploading}
+                      >
+                        <span className="tarjeta-tipo-titulo">{t.label}</span>
+                        <span className="tarjeta-tipo-desc">{t.ejemplo}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {/* Cambiar la unidad de algo que ya se usa en recetas cambia el
+                      significado de las cantidades guardadas: si "Helado" pasa de
+                      gramos a unidades, una receta que usaba 100 pasa a querer
+                      100 unidades. Avisamos antes de que se guarde. */}
+                  {cambiaLaUnidad ? (
+                    <small className="texto-aviso">
+                      Ojo: esto se contaba en {labelUnidad(producto.unidad)} y ahora
+                      pasaría a {uLabel}. Las recetas que lo usan van a leer sus
+                      cantidades en {uLabel}. Si no querés eso, dejá la opción como
+                      estaba.
+                    </small>
+                  ) : tipoProducto ? (
+                    <small className="texto-apoyo">Se va a contar en {uLabel}.</small>
+                  ) : unidadFueraDeCatalogo ? (
+                    <small className="texto-apoyo">
+                      Hoy se cuenta en {uLabel}. Si elegís una opción de arriba, esa
+                      medida cambia.
+                    </small>
+                  ) : (
+                    <small className="texto-apoyo">
+                      Con esto el sistema sabe si se cuenta de una en una o si se pesa.
+                    </small>
+                  )}
+                </div>
+
+                <div className="campo-bloque">
+                  <label className="interruptor">
                     <input
                       type="checkbox"
-                      className="form-check-input"
-                      id="tieneEnvase"
                       checked={mostrarConfigEnvase}
                       onChange={(e) => {
                         if (!e.target.checked) {
@@ -439,216 +787,414 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
                           setModoCreacion("unidades");
                           setCantidadEnvasesCrear("");
                           setPrecioEnvase("");
-                          setForm((p) => ({ ...p, cantidadPorEnvase: "", nombreEnvase: "" }));
+                          setForm((p) => ({
+                            ...p,
+                            cantidadPorEnvase: "",
+                            nombreEnvase: "",
+                          }));
                         }
                         setMostrarConfigEnvase(e.target.checked);
                       }}
                       disabled={uploading}
                     />
-                    <label className="form-check-label fw-semibold" htmlFor="tieneEnvase">
-                      Lo comprás en caja, balde, botella u otro envase
-                    </label>
-                  </div>
-                  <small className="text-muted d-block" style={{ paddingLeft: "1.5rem" }}>
-                    Activá esto si comprás el ingrediente por envase completo.
-                    Ej: un balde de helado de 40 bolas, una botella de sirope de 500 ml.
-                    El sistema calculará el precio por {form.unidad || "unidad"} automáticamente.
-                  </small>
+                    <span className="interruptor-visual" aria-hidden="true" />
+                    <span className="interruptor-texto">
+                      <strong>Lo compro por paquete, caja o balde</strong>
+                      <small>Si lo comprás de a uno, dejalo apagado.</small>
+                    </span>
+                  </label>
                 </div>
 
                 {mostrarConfigEnvase && (
-                  <>
-                    <div className="col-md-6">
+                  <div className="envase-config-panel campo-bloque">
+                    <div className="campo-bloque">
                       <label htmlFor="nombreEnvase" className="form-label">
-                        ¿Cómo se llama el envase? <span className="text-danger">*</span>
+                        ¿En qué viene?
                       </label>
-                      <input
+                      <select
                         id="nombreEnvase"
                         name="nombreEnvase"
-                        type="text"
-                        className="form-control"
-                        value={form.nombreEnvase}
-                        onChange={handleChange}
+                        className="form-select"
+                        value={envaseActual}
+                        onChange={(e) =>
+                          setForm((p) => ({ ...p, nombreEnvase: e.target.value }))
+                        }
                         disabled={uploading}
-                        placeholder="Ej: balde, botella, paquete, caja"
+                      >
+                        <option value="">Elegí una opción…</option>
+                        {opcionesEnvase.map((en) => (
+                          <option key={en.id} value={en.id}>
+                            {en.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="campo-bloque" id="campo-envase-contenido">
+                      <label className="form-label">
+                        ¿{uCuantos} {uLabel} trae cada {envaseLabel}?
+                      </label>
+                      <SelectorCantidad
+                        valor={form.cantidadPorEnvase}
+                        onChange={(v) => setForm((p) => ({ ...p, cantidadPorEnvase: v }))}
+                        unidad={form.unidad}
+                        paso={tablaPara(PASO_POR_ENVASE, form.unidad)}
+                        min={0}
+                        disabled={uploading}
                       />
                     </div>
-                    <div className="col-md-6">
-                      <label htmlFor="cantidadPorEnvase" className="form-label">
-                        ¿Cuántas {form.unidad || "unidades"} trae {form.nombreEnvase ? `cada ${form.nombreEnvase}` : "cada envase"}?
-                        <span className="text-danger"> *</span>
-                      </label>
-                      <div className="input-group">
-                        <input
-                          id="cantidadPorEnvase"
-                          name="cantidadPorEnvase"
-                          type="number"
-                          min="1"
-                          step="any"
-                          className="form-control"
-                          value={form.cantidadPorEnvase}
-                          onChange={handleChange}
+                  </div>
+                )}
+
+                {!isEditing ? (
+                  <div className="campo-bloque" id="campo-stock">
+                    <label className="form-label">
+                      ¿{uCuantos} {uLabel} tenés?
+                    </label>
+
+                    {mostrarConfigEnvase && Number(form.cantidadPorEnvase) > 0 && (
+                      <div className="toggle-modo">
+                        <button
+                          type="button"
+                          className={`btn-modo ${modoCreacion === "envases" ? "activo" : ""}`}
+                          onClick={() => {
+                            setModoCreacion("envases");
+                            setForm((p) => ({ ...p, cantidad: "" }));
+                          }}
                           disabled={uploading}
-                          placeholder="Ej: 40"
-                        />
-                        <span className="input-group-text">{form.unidad || "unidades"}</span>
+                        >
+                          Contar {envaseLabel}s
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn-modo ${modoCreacion === "unidades" ? "activo" : ""}`}
+                          onClick={() => {
+                            setModoCreacion("unidades");
+                            setCantidadEnvasesCrear("");
+                          }}
+                          disabled={uploading}
+                        >
+                          Contar {uLabel}
+                        </button>
                       </div>
+                    )}
+
+                    {modoCreacion === "envases" &&
+                    mostrarConfigEnvase &&
+                    Number(form.cantidadPorEnvase) > 0 ? (
+                      <SelectorCantidad
+                        valor={cantidadEnvasesCrear}
+                        onChange={setCantidadEnvasesCrear}
+                        unidad={form.unidad}
+                        paso={1}
+                        sufijo={envaseLabel}
+                        disabled={uploading}
+                        ayuda={
+                          Number(cantidadEnvasesCrear) > 0
+                            ? `Son ${formatearCantidad(Number(cantidadEnvasesCrear) * Number(form.cantidadPorEnvase))} ${uLabel} en total.`
+                            : null
+                        }
+                      />
+                    ) : (
+                      <SelectorCantidad
+                        valor={form.cantidad}
+                        onChange={(v) => setForm((p) => ({ ...p, cantidad: v }))}
+                        unidad={form.unidad}
+                        paso={tablaPara(PASO_STOCK, form.unidad)}
+                        disabled={uploading}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="campo-bloque campo-medio dato-solo-lectura">
+                      <span className="dato-label">Tenés ahora</span>
+                      <span className="dato-valor">
+                        {formatearCantidad(producto.cantidad)} {uLabel}
+                        {Number(form.cantidadPorEnvase) > 0 && (
+                          <small className="texto-apoyo">
+                            {" "}
+                            ≈{" "}
+                            {formatearNumero(
+                              producto.cantidad / Number(form.cantidadPorEnvase),
+                              1,
+                            )}{" "}
+                            {envaseLabel}
+                          </small>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="campo-bloque campo-medio" id="campo-stock">
+                      <label className="form-label">¿Compraste más?</label>
+
+                      {Number(form.cantidadPorEnvase) > 0 && (
+                        <div className="toggle-modo">
+                          <button
+                            type="button"
+                            className={`btn-modo ${modoReposicion === "envases" ? "activo" : ""}`}
+                            onClick={() => {
+                              setModoReposicion("envases");
+                              setForm((p) => ({ ...p, cantidadAAgregar: "" }));
+                            }}
+                            disabled={uploading}
+                          >
+                            Contar {envaseLabel}s
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn-modo ${modoReposicion === "unidades" ? "activo" : ""}`}
+                            onClick={() => {
+                              setModoReposicion("unidades");
+                              setEnvasesAAgregar("");
+                            }}
+                            disabled={uploading}
+                          >
+                            Contar {uLabel}
+                          </button>
+                        </div>
+                      )}
+
+                      {modoReposicion === "envases" &&
+                      Number(form.cantidadPorEnvase) > 0 ? (
+                        <SelectorCantidad
+                          valor={envasesAAgregar}
+                          onChange={setEnvasesAAgregar}
+                          unidad={form.unidad}
+                          paso={1}
+                          sufijo={envaseLabel}
+                          disabled={uploading}
+                          ayuda={
+                            equivalenciaEnvases !== null
+                              ? `Suma ${formatearCantidad(equivalenciaEnvases)} ${uLabel} al stock.`
+                              : "Dejalo en 0 si no compraste más."
+                          }
+                        />
+                      ) : (
+                        <SelectorCantidad
+                          valor={form.cantidadAAgregar}
+                          onChange={(v) => setForm((p) => ({ ...p, cantidadAAgregar: v }))}
+                          unidad={form.unidad}
+                          paso={tablaPara(PASO_STOCK, form.unidad)}
+                          disabled={uploading}
+                          ayuda="Dejalo en 0 si no compraste más."
+                        />
+                      )}
                     </div>
                   </>
                 )}
-              </>
-            )}
+              </div>
+            </section>
+          )}
 
-            {/* Cantidad / Reposición — solo para productos simples */}
-            {!esReceta && (
-              !isEditing ? (
-                <div className="col-md-6">
-                  <label htmlFor="cantidad" className="form-label">
-                    Cantidad inicial <span className="text-danger">*</span>
+          {/* ══════════ 2 · INGREDIENTES (recetas) ══════════ */}
+          {esReceta && (
+            <section className="bloque-form">
+              <h3 className="bloque-titulo">
+                <span className="bloque-numero">2</span> Con qué se prepara
+              </h3>
+
+              <div className="bloque-campos">
+                <div className="campo-bloque" id="campo-ingredientes">
+                  <label className="form-label">
+                    ¿Qué lleva {form.nombre ? `un ${form.nombre}` : "cada uno"}?
                   </label>
+                  <small className="texto-apoyo d-block mb-2">
+                    Poné lo que se gasta al preparar <strong>uno solo</strong>, no lo
+                    que trae el paquete que compraste.
+                  </small>
 
-                  {/* Si ya configuró envase, mostrar toggle igual que en edición */}
-                  {mostrarConfigEnvase && form.cantidadPorEnvase ? (
-                    <>
-                      <div className="btn-group w-100 mb-2" role="group">
-                        <input type="radio" className="btn-check" name="modoCreacion" id="crear-modo-envases" checked={modoCreacion === "envases"} onChange={() => { setModoCreacion("envases"); setForm(p => ({ ...p, cantidad: "" })); }} disabled={uploading} />
-                        <label className="btn btn-outline-primary btn-sm" htmlFor="crear-modo-envases">
-                          Por {form.nombreEnvase || "envase"}
-                        </label>
-                        <input type="radio" className="btn-check" name="modoCreacion" id="crear-modo-unidades" checked={modoCreacion === "unidades"} onChange={() => { setModoCreacion("unidades"); setCantidadEnvasesCrear(""); }} disabled={uploading} />
-                        <label className="btn btn-outline-primary btn-sm" htmlFor="crear-modo-unidades">
-                          Por {form.unidad || "unidad"} exacta
-                        </label>
+                  {receta.length === 0 ? (
+                    <div className="aviso-vacio">Todavía no hay nada agregado.</div>
+                  ) : (
+                    <div className="ingredientes-receta">
+                      {receta.map((linea) => {
+                        const alertas = alertasDeLinea(linea);
+                        const u = labelUnidad(linea.unidad);
+                        const costoLinea =
+                          (linea.precioCompra || 0) * (Number(linea.cantidad) || 0);
+                        const alcanzan =
+                          linea.stock !== null && Number(linea.cantidad) > 0
+                            ? Math.floor(linea.stock / Number(linea.cantidad))
+                            : null;
+
+                        return (
+                          <div
+                            key={linea.ingredienteId}
+                            className={`ingrediente-card ${alertas.some((a) => a.tipo === "agotado") ? "con-error" : alertas.length > 0 ? "con-aviso" : ""}`}
+                          >
+                            <div className="ingrediente-card-head">
+                              <div>
+                                <span className="ingrediente-card-nombre">
+                                  {linea.nombre}
+                                </span>
+                                <small className="ingrediente-card-meta">
+                                  Quedan {formatearCantidad(linea.stock ?? 0)} {u}
+                                  {linea.precioCompra !== null &&
+                                    ` · ${formatearMonto(linea.precioCompra)} por ${unidadSingular(linea.unidad)}`}
+                                </small>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn-quitar"
+                                onClick={() => quitarIngrediente(linea.ingredienteId)}
+                                disabled={uploading}
+                                aria-label={`Quitar ${linea.nombre}`}
+                              >
+                                Quitar
+                              </button>
+                            </div>
+
+                            <SelectorCantidad
+                              valor={linea.cantidad}
+                              onChange={(v) =>
+                                actualizarCantidadIngrediente(linea.ingredienteId, v)
+                              }
+                              unidad={linea.unidad}
+                              disabled={uploading}
+                            />
+
+                            <div className="ingrediente-card-cuentas">
+                              <span>Cuesta {formatearMonto(costoLinea)}</span>
+                              {alcanzan !== null && (
+                                <span>
+                                  Alcanza para {formatearNumero(alcanzan)}{" "}
+                                  {alcanzan === 1 ? "unidad" : "unidades"}
+                                </span>
+                              )}
+                            </div>
+
+                            {alertas.map((a) => (
+                              <div
+                                key={a.tipo}
+                                className={`alerta-receta ${a.tipo === "agotado" ? "grave" : ""}`}
+                              >
+                                {a.texto}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {!mostrarPicker ? (
+                    <button
+                      type="button"
+                      className="btn-agregar-ingrediente"
+                      onClick={() => setMostrarPicker(true)}
+                      disabled={uploading}
+                    >
+                      + Agregar algo
+                    </button>
+                  ) : (
+                    <div className="picker-ingredientes">
+                      <div className="picker-head">
+                        <strong>¿Qué le agregás?</strong>
+                        <button
+                          type="button"
+                          className="btn-quitar"
+                          onClick={() => {
+                            setMostrarPicker(false);
+                            setFiltroIngrediente("");
+                          }}
+                        >
+                          Cerrar
+                        </button>
                       </div>
 
-                      {modoCreacion === "envases" ? (
-                        <>
-                          <div className="input-group">
-                            <input
-                              type="number"
-                              min="1"
-                              step="any"
-                              className="form-control"
-                              value={cantidadEnvasesCrear}
-                              onChange={(e) => setCantidadEnvasesCrear(e.target.value)}
-                              disabled={uploading}
-                              placeholder="1"
-                            />
-                            <span className="input-group-text">{form.nombreEnvase || "envases"}</span>
-                          </div>
-                          {cantidadEnvasesCrear && Number(cantidadEnvasesCrear) > 0 && (
-                            <small className="text-success fw-semibold">
-                              = {Number(cantidadEnvasesCrear) * Number(form.cantidadPorEnvase)} {form.unidad}
-                            </small>
-                          )}
-                        </>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm mb-2"
+                        placeholder={
+                          modoBusquedaServidor
+                            ? "Escribí para buscar…"
+                            : "Buscar en la lista (opcional)"
+                        }
+                        value={filtroIngrediente}
+                        onChange={handleFiltroChange}
+                        autoComplete="off"
+                      />
+
+                      {cargandoIngredientes ? (
+                        <div className="picker-estado">
+                          <span className="spinner-border spinner-border-sm me-2" />
+                          Cargando…
+                        </div>
+                      ) : ingredientesDisponibles.length === 0 ? (
+                        <div className="picker-estado">
+                          {modoBusquedaServidor && !filtroIngrediente.trim()
+                            ? "Escribí el nombre de lo que buscás."
+                            : "No hay nada con ese nombre."}
+                        </div>
                       ) : (
-                        <div className="input-group">
-                          <input id="cantidad" name="cantidad" type="number" min="1" step="any" className="form-control" value={form.cantidad} onChange={handleChange} disabled={uploading} placeholder="1" />
-                          <span className="input-group-text">{form.unidad}</span>
+                        <div className="picker-lista">
+                          {ingredientesDisponibles.map((ing) => {
+                            const u = labelUnidad(ing.unidad);
+                            return (
+                              <button
+                                key={ing._id}
+                                type="button"
+                                className="picker-item"
+                                onClick={() => agregarIngrediente(ing)}
+                              >
+                                <span className="picker-item-nombre">{ing.nombre}</span>
+                                <span className="picker-item-meta">
+                                  Quedan {formatearCantidad(ing.cantidad)} {u} ·{" "}
+                                  {formatearMonto(ing.precioCompra)} por{" "}
+                                  {unidadSingular(ing.unidad)}
+                                </span>
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
-                    </>
-                  ) : (
-                    <div className="input-group">
-                      <input id="cantidad" name="cantidad" type="number" min="1" step="any" className="form-control" value={form.cantidad} onChange={handleChange} disabled={uploading} placeholder="1" />
-                      {form.unidad && <span className="input-group-text">{form.unidad}</span>}
                     </div>
                   )}
                 </div>
-              ) : (
-                <>
-                  {/* Stock actual */}
-                  <div className="col-md-3">
-                    <label className="form-label">Tenés actualmente</label>
-                    <div className="input-group">
-                      <input type="number" className="form-control" value={producto.cantidad} disabled style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed" }} />
-                      {form.unidad && <span className="input-group-text" style={{ backgroundColor: "#f3f4f6" }}>{form.unidad}</span>}
-                    </div>
-                    <small className="text-muted">Solo lectura</small>
-                  </div>
+              </div>
+            </section>
+          )}
 
-                  {/* ¿Compraste más? */}
-                  {form.cantidadPorEnvase ? (
-                    <div className="col-md-9">
-                      <label className="form-label">¿Compraste más?</label>
-                      <div className="btn-group w-100 mb-2" role="group">
-                        <input type="radio" className="btn-check" name="modoReposicion" id="modo-envases" checked={modoReposicion === "envases"} onChange={() => { setModoReposicion("envases"); setForm(p => ({ ...p, cantidadAAgregar: "" })); }} disabled={uploading} />
-                        <label className="btn btn-outline-primary btn-sm" htmlFor="modo-envases">
-                          Por {form.nombreEnvase || "envase"}
-                        </label>
-                        <input type="radio" className="btn-check" name="modoReposicion" id="modo-unidades" checked={modoReposicion === "unidades"} onChange={() => { setModoReposicion("unidades"); setEnvasesAAgregar(""); }} disabled={uploading} />
-                        <label className="btn btn-outline-primary btn-sm" htmlFor="modo-unidades">
-                          Por {form.unidad || "unidad"} exacta
-                        </label>
-                      </div>
+          {/* ══════════ 3 · PRECIO Y VENTA ══════════ */}
+          <section className="bloque-form">
+            <h3 className="bloque-titulo">
+              <span className="bloque-numero">3</span> Precio y venta
+            </h3>
 
-                      {modoReposicion === "envases" ? (
-                        <>
-                          <div className="input-group">
-                            <input
-                              type="number"
-                              min="0"
-                              step="any"
-                              className="form-control"
-                              value={envasesAAgregar}
-                              onChange={(e) => setEnvasesAAgregar(e.target.value)}
-                              disabled={uploading}
-                              placeholder="0"
-                            />
-                            <span className="input-group-text">{form.nombreEnvase || "envases"}</span>
-                          </div>
-                          {equivalenciaEnvases !== null ? (
-                            <small className="text-success fw-semibold">
-                              {envasesAAgregar} {form.nombreEnvase || "envases"} × {form.cantidadPorEnvase} {form.unidad} = <strong>{equivalenciaEnvases} {form.unidad}</strong> en total
-                            </small>
-                          ) : (
-                            <small className="text-muted">Dejá en 0 si no compraste más.</small>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <div className="input-group">
-                            <input id="cantidadAAgregar" name="cantidadAAgregar" type="number" min="0" step="any" className="form-control" value={form.cantidadAAgregar} onChange={handleChange} disabled={uploading} placeholder="0" />
-                            {form.unidad && <span className="input-group-text">{form.unidad}</span>}
-                          </div>
-                          <small className="text-muted">Dejá en 0 si no compraste más.</small>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="col-md-5">
-                      <label htmlFor="cantidadAAgregar" className="form-label">
-                        ¿Compraste más {form.unidad || "unidades"}?
-                      </label>
-                      <div className="input-group">
-                        <input id="cantidadAAgregar" name="cantidadAAgregar" type="number" min="0" step="any" className="form-control" value={form.cantidadAAgregar} onChange={handleChange} disabled={uploading} placeholder="0" />
-                        {form.unidad && <span className="input-group-text">{form.unidad}</span>}
-                      </div>
-                      <small className="text-muted">Dejá en 0 si no compraste más.</small>
-                    </div>
-                  )}
-                </>
-              )
-            )}
+            <div className="bloque-campos">
+              <div className="campo-bloque">
+                <label className="interruptor">
+                  <input
+                    id="seVende"
+                    name="seVende"
+                    type="checkbox"
+                    checked={form.seVende}
+                    onChange={handleChange}
+                    disabled={uploading}
+                  />
+                  <span className="interruptor-visual" aria-hidden="true" />
+                  <span className="interruptor-texto">
+                    <strong>Se vende en el mostrador</strong>
+                    <small>Apagalo si solo se usa para preparar otras cosas.</small>
+                  </span>
+                </label>
+              </div>
 
-
-            {/* Precio Compra: solo para productos simples */}
-            {!esReceta && (
-              form.cantidadPorEnvase ? (
-                <>
-                  {/* Modo envase: precio del envase + precio por unidad calculado */}
-                  <div className="col-md-5">
+              {!esReceta &&
+                (Number(form.cantidadPorEnvase) > 0 ? (
+                  <div className="campo-bloque campo-medio">
                     <label htmlFor="precioEnvase" className="form-label">
-                      ¿Cuánto pagaste por {form.nombreEnvase ? `el ${form.nombreEnvase}` : "el envase"}? <span className="text-danger">*</span>
+                      ¿Cuánto pagaste por el {envaseLabel}?
                     </label>
-                    <div className="input-group">
+                    <div className="input-group input-group-lg">
                       <span className="input-group-text">₡</span>
                       <input
                         id="precioEnvase"
                         type="number"
                         min="0"
-                        step="0.01"
+                        step="1"
+                        inputMode="numeric"
                         className="form-control"
                         value={precioEnvase}
                         onChange={(e) => setPrecioEnvase(e.target.value)}
@@ -656,212 +1202,165 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
                         placeholder="0"
                       />
                     </div>
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">
-                      Precio por {form.unidad || "unidad"}
-                      <span className="text-muted fw-normal"> (automático)</span>
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text">₡</span>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={
-                          precioEnvase !== "" && Number(form.cantidadPorEnvase) > 0
-                            ? Math.round(Number(precioEnvase) / Number(form.cantidadPorEnvase)).toLocaleString("es-CR")
-                            : "0"
-                        }
-                        disabled
-                        style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed" }}
-                        readOnly
-                      />
-                    </div>
                     {precioEnvase !== "" && Number(form.cantidadPorEnvase) > 0 && (
-                      <small className="text-muted">
-                        ₡{Number(precioEnvase).toLocaleString("es-CR")} ÷ {form.cantidadPorEnvase} {form.unidad} = ₡{Math.round(Number(precioEnvase) / Number(form.cantidadPorEnvase)).toLocaleString("es-CR")} por {form.unidad}
+                      <small className="texto-apoyo">
+                        {formatearMonto(precioEnvase)} entre{" "}
+                        {formatearCantidad(form.cantidadPorEnvase)} {uLabel} ={" "}
+                        <strong>{formatearMonto(costoUnitarioSimple)}</strong> por{" "}
+                        {uSingular}
                       </small>
                     )}
                   </div>
-                </>
-              ) : (
-                /* Modo simple: precio unitario directo */
-                <div className="col-md-4">
-                  <label htmlFor="precioCompra" className="form-label">
-                    Precio de compra <span className="text-danger">*</span>
-                  </label>
-                  <div className="input-group">
-                    <span className="input-group-text">₡</span>
-                    <input id="precioCompra" name="precioCompra" type="number" min="0" step="0.01" className="form-control" value={form.precioCompra} onChange={handleChange} disabled={uploading} placeholder="0" />
-                  </div>
-                </div>
-              )
-            )}
-
-            {/* Precio Venta */}
-            <div className={esReceta ? "col-md-6" : "col-md-4"}>
-              <label htmlFor="precioVenta" className="form-label">
-                Precio Venta {form.seVende && <span className="text-danger">*</span>}
-              </label>
-              <input
-                id="precioVenta"
-                name="precioVenta"
-                type="number"
-                min="0"
-                step="0.01"
-                className="form-control"
-                value={form.precioVenta}
-                onChange={handleChange}
-                disabled={uploading || !form.seVende}
-                placeholder={form.seVende ? "0.00" : "No aplica"}
-                style={!form.seVende ? { backgroundColor: "#f3f4f6", cursor: "not-allowed" } : {}}
-              />
-              {!form.seVende ? (
-                <small className="text-muted">Este producto no se vende directamente, no necesita precio de venta.</small>
-              ) : esReceta ? (
-                <small className="text-muted">Las recetas no tienen precio de compra — su costo viene de los ingredientes.</small>
-              ) : null}
-            </div>
-
-            {/* Disponible para venta */}
-            <div className={`${esReceta ? "col-md-6" : "col-md-4"} d-flex align-items-end`}>
-              <div className="form-check">
-                <input id="seVende" name="seVende" type="checkbox" className="form-check-input" checked={form.seVende} onChange={handleChange} disabled={uploading} />
-                <label className="form-check-label" htmlFor="seVende">Disponible para venta</label>
-              </div>
-            </div>
-
-            {/* Editor de ingredientes: solo para recetas */}
-            {esReceta && (
-              <div className="col-12">
-                <label className="form-label">
-                  Ingredientes <span className="text-danger">*</span>
-                  <small className="text-muted fw-normal ms-2">(mínimo 1, solo productos simples)</small>
-                </label>
-
-                {/* Buscador */}
-                <div className="ingredient-search-wrapper mb-2" ref={ingredienteSearchRef}>
-                  <div className="input-group">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Buscar ingrediente por nombre..."
-                      value={ingredienteSearch}
-                      onChange={handleIngredienteSearchChange}
-                      disabled={uploading}
-                      autoComplete="off"
-                      onFocus={() => ingredientesResultados.length > 0 && setMostrarDropdown(true)}
-                      onBlur={() => setTimeout(() => setMostrarDropdown(false), 200)}
-                    />
-                    {buscandoIngredientes && (
-                      <span className="input-group-text">
-                        <span className="spinner-border spinner-border-sm" role="status" />
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Dropdown de resultados */}
-                  {mostrarDropdown && ingredientesResultados.length > 0 && (
-                    <div className="ingredient-dropdown">
-                      {ingredientesResultados.map((ing) => (
-                        <button
-                          key={ing._id}
-                          type="button"
-                          className="ingredient-dropdown-item"
-                          onMouseDown={() => agregarIngrediente(ing)}
-                        >
-                          <span className="ing-nombre">
-                            {ing.nombre}
-                            {ing.unidad && <span className="ing-unidad"> ({ing.unidad})</span>}
-                          </span>
-                          <span className="ing-stock">Stock: {ing.cantidad}{ing.unidad ? ` ${ing.unidad}` : ""}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {mostrarDropdown && !buscandoIngredientes && ingredienteSearch.trim() && ingredientesResultados.length === 0 && (
-                    <div className="ingredient-dropdown">
-                      <div className="ingredient-dropdown-empty">Sin resultados para "{ingredienteSearch}"</div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Lista de ingredientes añadidos */}
-                {receta.length === 0 ? (
-                  <div className="alert alert-warning py-2 mb-0" style={{ fontSize: "0.88rem" }}>
-                    Aún no hay ingredientes. Usa el buscador para agregar al menos uno.
-                  </div>
                 ) : (
-                  <div className="ingredients-list">
-                    {receta.map((ing) => (
-                      <div key={ing.ingredienteId} className="ingredient-list-item">
-                        <span className="ingredient-list-nombre">{ing.nombre}</span>
-                        <div className="ingredient-list-controls">
-                          <input
-                            type="number"
-                            min="0.001"
-                            step="any"
-                            className="form-control form-control-sm ingredient-qty-input"
-                            value={ing.cantidad}
-                            onChange={(e) => actualizarCantidadIngrediente(ing.ingredienteId, e.target.value)}
-                            disabled={uploading}
-                          />
-                          {ing.unidad && (
-                            <span className="ingredient-unidad-label">{ing.unidad}</span>
-                          )}
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => quitarIngrediente(ing.ingredienteId)}
-                            disabled={uploading}
-                            title="Quitar ingrediente"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="campo-bloque campo-medio">
+                    <label htmlFor="precioCompra" className="form-label">
+                      ¿Cuánto te cuesta cada {uSingular}?
+                    </label>
+                    <div className="input-group input-group-lg">
+                      <span className="input-group-text">₡</span>
+                      <input
+                        id="precioCompra"
+                        name="precioCompra"
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputMode="numeric"
+                        className="form-control"
+                        value={form.precioCompra}
+                        onChange={handleChange}
+                        disabled={uploading}
+                        placeholder="0"
+                      />
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+                ))}
 
-            {/* Imagen */}
-            <div className="col-12">
-              <label className="form-label">
-                Imagen{" "}
-                {!isEditing && !esReceta && <span className="text-danger">*</span>}
-                {(isEditing || esReceta) && (
-                  <span className="text-muted" style={{ fontSize: "0.85rem" }}>
-                    {" "}(opcional{isEditing && !esReceta ? " - deja vacío para mantener la actual" : ""})
-                  </span>
-                )}
-              </label>
-              {isEditing && producto?.imagen && !form.imagen?.file && (
-                <div className="current-image-preview mb-2">
-                  <img src={producto.imagenOptimizada || producto.imagen} alt="Imagen actual" style={{ maxWidth: "150px", maxHeight: "150px", objectFit: "contain", border: "2px solid #e5e7eb", borderRadius: "8px", padding: "4px" }} />
-                  <small className="d-block text-muted mt-1">📷 Imagen actual</small>
+              {form.seVende && (
+                <div className="campo-bloque campo-medio">
+                  <label htmlFor="precioVenta" className="form-label">
+                    ¿A cuánto lo vendés?
+                  </label>
+                  <div className="input-group input-group-lg">
+                    <span className="input-group-text">₡</span>
+                    <input
+                      id="precioVenta"
+                      name="precioVenta"
+                      type="number"
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
+                      className="form-control"
+                      value={form.precioVenta}
+                      onChange={handleChange}
+                      disabled={uploading}
+                      placeholder="0"
+                    />
+                  </div>
                 </div>
               )}
-              <ImageUploadWithCompression onChange={handleImageChange} onError={handleImageError} required={!isEditing && !esReceta} disabled={uploading} showPreview={true} ref={imageUploadRef} />
-              <small className="form-text text-muted d-block mt-1">📷 Formatos: JPG, PNG, WebP · Tamaño máximo: 5 MB</small>
-            </div>
 
-            {/* Botones */}
-            <div className="col-12">
-              <div className="d-flex gap-2">
-                <button type="submit" className="btn btn-primary flex-fill" disabled={uploading}>
-                  {uploading ? (
-                    <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />{isEditing ? "Actualizando..." : "Guardando..."}</>
+              {esReceta ? (
+                <PanelRentabilidad
+                  costo={analisis.costo}
+                  precioVenta={form.precioVenta}
+                  ganancia={analisis.ganancia}
+                  margen={analisis.margen}
+                  preparables={analisis.preparables}
+                  conPerdida={analisis.conPerdida}
+                  sinGanancia={analisis.sinGanancia}
+                  costoIncompleto={analisis.costoIncompleto}
+                  vacio={receta.length === 0}
+                  mostrarVenta={form.seVende}
+                />
+              ) : (
+                <PanelRentabilidad
+                  titulo="Cuentas de este producto"
+                  contexto="producto"
+                  costo={costoUnitarioSimple}
+                  precioVenta={form.precioVenta}
+                  ganancia={gananciaSimple}
+                  margen={
+                    Number(form.precioVenta) > 0 && gananciaSimple !== null
+                      ? (gananciaSimple / Number(form.precioVenta)) * 100
+                      : null
+                  }
+                  conPerdida={
+                    form.seVende &&
+                    Number(form.precioVenta) > 0 &&
+                    gananciaSimple !== null &&
+                    gananciaSimple < 0
+                  }
+                  sinGanancia={
+                    form.seVende && Number(form.precioVenta) > 0 && gananciaSimple === 0
+                  }
+                  mostrarVenta={form.seVende}
+                />
+              )}
+
+              <div className="campo-bloque" id="campo-imagen">
+                <label className="form-label">
+                  Foto{" "}
+                  {!isEditing && !esReceta ? (
+                    <span className="text-danger">*</span>
                   ) : (
-                    <>{isEditing ? (esReceta ? "💾 Actualizar Receta" : "💾 Actualizar Producto") : (esReceta ? "➕ Agregar Receta" : "➕ Agregar Producto")}</>
+                    <span className="texto-apoyo">(se puede dejar sin foto)</span>
                   )}
-                </button>
-                <button type="button" className="btn btn-secondary" onClick={onClose} disabled={uploading}>✕ Cancelar</button>
+                </label>
+                {isEditing && producto?.imagen && !form.imagen?.file && (
+                  <div className="current-image-preview mb-2">
+                    <img
+                      src={producto.imagenOptimizada || producto.imagen}
+                      alt="Foto actual"
+                      style={{
+                        maxWidth: "150px",
+                        maxHeight: "150px",
+                        objectFit: "contain",
+                        border: "2px solid #e5e7eb",
+                        borderRadius: "8px",
+                        padding: "4px",
+                      }}
+                    />
+                    <small className="d-block texto-apoyo mt-1">
+                      Foto actual — si no elegís otra, se queda esta.
+                    </small>
+                  </div>
+                )}
+                <ImageUploadWithCompression
+                  onChange={handleImageChange}
+                  onError={handleImageError}
+                  required={!isEditing && !esReceta}
+                  disabled={uploading}
+                  showPreview={true}
+                  ref={imageUploadRef}
+                />
               </div>
             </div>
+          </section>
 
+          {/* ══════════ ACCIONES ══════════ */}
+          <div className="form-acciones">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onClose}
+              disabled={uploading}
+            >
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={uploading}>
+              {uploading ? (
+                <>
+                  <span
+                    className="spinner-border spinner-border-sm me-2"
+                    role="status"
+                    aria-hidden="true"
+                  />
+                  Guardando…
+                </>
+              ) : (
+                "Guardar"
+              )}
+            </button>
           </div>
         </form>
       </div>

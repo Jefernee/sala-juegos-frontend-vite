@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import "../styles/SalesDashboard.css";
 import Navbar from "../components/NavBar2";
 import { puedeVerModulo } from "../utils/auth";
+import { resolverDisponibilidad } from "../utils/stock";
+import { formatearMonto } from "../constants/inventario";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -188,24 +190,36 @@ const SalesDashboard = () => {
     fetchProductos("", false);
   };
 
+  // Aviso corto arriba a la derecha. Se usa para todo lo que bloquea una venta.
+  const avisar = (mensaje, detalle) => {
+    setMostrarNotificacion(true);
+    setVentaExitosa({ esError: true, mensaje, detalle, tipo: "warning" });
+    setTimeout(() => setMostrarNotificacion(false), 3500);
+  };
+
   const agregarAlCarrito = (producto) => {
     // ✅ Quitar el foco del input de búsqueda al agregar productos
     if (searchInputRef.current) {
       searchInputRef.current.blur();
     }
 
+    // El stock manda: para una receta es lo que alcanza según sus ingredientes,
+    // no un número guardado en el producto.
+    const disp = resolverDisponibilidad(producto);
+
+    if (disp.agotado) {
+      avisar("Agotado", disp.motivo || `No queda "${producto.nombre}"`);
+      return;
+    }
+
     const existe = carrito.find((item) => item._id === producto._id);
 
     if (existe) {
-      if (existe.cantidadVenta >= producto.cantidad) {
-        setMostrarNotificacion(true);
-        setVentaExitosa({
-          esError: true,
-          mensaje: `Stock insuficiente`,
-          detalle: `Solo ${producto.cantidad === 1 ? "hay 1 unidad disponible" : `hay ${producto.cantidad} unidades disponibles`} de "${producto.nombre}"`,
-          tipo: "warning",
-        });
-        setTimeout(() => setMostrarNotificacion(false), 3500);
+      if (existe.cantidadVenta >= disp.stock) {
+        avisar(
+          "Stock insuficiente",
+          `Solo ${disp.stock === 1 ? "hay 1 unidad disponible" : `hay ${disp.stock} unidades disponibles`} de "${producto.nombre}"`,
+        );
         return;
       }
       setCarrito(
@@ -222,17 +236,19 @@ const SalesDashboard = () => {
   };
 
   const cambiarCantidad = (id, nuevaCantidad) => {
-    const producto = productos.find((p) => p._id === id);
+    // Si la búsqueda cambió, el producto puede no estar en la lista visible; en
+    // ese caso el tope lo pone la copia que quedó en el carrito.
+    const producto =
+      productos.find((p) => p._id === id) || carrito.find((i) => i._id === id);
+    if (!producto) return;
 
-    if (nuevaCantidad > producto.cantidad) {
-      setMostrarNotificacion(true);
-      setVentaExitosa({
-        esError: true,
-        mensaje: `Stock insuficiente`,
-        detalle: `Solo ${producto.cantidad === 1 ? "hay 1 unidad disponible" : `hay ${producto.cantidad} unidades disponibles`}`,
-        tipo: "warning",
-      });
-      setTimeout(() => setMostrarNotificacion(false), 3500);
+    const { stock } = resolverDisponibilidad(producto);
+
+    if (nuevaCantidad > stock) {
+      avisar(
+        "Stock insuficiente",
+        `Solo ${stock === 1 ? "hay 1 unidad disponible" : `hay ${stock} unidades disponibles`}`,
+      );
       return;
     }
 
@@ -328,7 +344,10 @@ const SalesDashboard = () => {
         }
       }, 100);
 
-      fetchProductos(search, false); // ⭐ Recargar sin pantalla negra
+      // Recarga desde el backend, no resta local. Vender un cono baja el helado,
+      // y eso cambia cuántos helados con gelatina se pueden preparar: el número
+      // nuevo solo lo sabe el backend. Restar acá daría un stock equivocado.
+      fetchProductos(search, false);
     } catch (error) {
       console.error("❌ ERROR:", error);
       if (error.response?.status === 401) {
@@ -464,49 +483,72 @@ const SalesDashboard = () => {
                       </div>
                     ) : (
                       <>
-                        {productosVisibles.map((producto) => (
-                          <div key={producto._id} className="producto-item">
-                            <img
-                              src={
-                                producto.imagenOptimizada ||
-                                producto.imagen ||
-                                "https://via.placeholder.com/60"
-                              }
-                              alt={producto.nombre}
-                              className="producto-img"
-                              loading="lazy"
-                            />
-                            <div className="producto-info">
-                              <h6 className="producto-nombre">
-                                {producto.nombre}
-                                {producto.tipo === "receta" && (
-                                  <span
-                                    className="badge bg-warning text-dark ms-1"
-                                    style={{ fontSize: "0.65rem", verticalAlign: "middle" }}
-                                    title="Receta — stock calculado a partir de ingredientes"
-                                  >
-                                    🍽️
-                                  </span>
-                                )}
-                              </h6>
-                              <p className="producto-detalles">
-                                <span className="precio">
-                                  ₡{producto.precioVenta}
-                                </span>
-                                <span className="stock">
-                                  Stock: {producto.cantidad}
-                                </span>
-                              </p>
-                            </div>
-                            <button
-                              className="btn btn-success btn-sm"
-                              onClick={() => agregarAlCarrito(producto)}
-                              type="button"
+                        {productosVisibles.map((producto) => {
+                          // Los agotados NO se esconden: se muestran apagados y
+                          // con el motivo. Filtrarlos acá haría desaparecer
+                          // productos igual que antes, y sin dejar rastro.
+                          const disp = resolverDisponibilidad(producto);
+
+                          return (
+                            <div
+                              key={producto._id}
+                              className={`producto-item ${disp.agotado ? "producto-agotado" : ""}`}
                             >
-                              + Agregar
-                            </button>
-                          </div>
-                        ))}
+                              <img
+                                src={
+                                  producto.imagenOptimizada ||
+                                  producto.imagen ||
+                                  "https://via.placeholder.com/60"
+                                }
+                                alt={producto.nombre}
+                                className="producto-img"
+                                loading="lazy"
+                              />
+                              <div className="producto-info">
+                                <h6 className="producto-nombre">
+                                  {producto.nombre}
+                                  {producto.tipo === "receta" && (
+                                    <span
+                                      className="badge bg-warning text-dark ms-1"
+                                      style={{ fontSize: "0.65rem", verticalAlign: "middle" }}
+                                      title="Receta — stock calculado a partir de ingredientes"
+                                    >
+                                      🍽️
+                                    </span>
+                                  )}
+                                  {disp.agotado && (
+                                    <span
+                                      className="badge bg-danger ms-1"
+                                      style={{ fontSize: "0.65rem", verticalAlign: "middle" }}
+                                    >
+                                      Agotado
+                                    </span>
+                                  )}
+                                </h6>
+                                <p className="producto-detalles">
+                                  <span className="precio">
+                                    {formatearMonto(producto.precioVenta)}
+                                  </span>
+                                  <span className="stock">
+                                    Stock: {disp.stock}
+                                  </span>
+                                </p>
+                                {disp.agotado && disp.motivo && (
+                                  <p className="producto-motivo">{disp.motivo}</p>
+                                )}
+                              </div>
+                              <button
+                                className={`btn btn-sm ${disp.agotado ? "btn-outline-secondary" : "btn-success"}`}
+                                onClick={() => agregarAlCarrito(producto)}
+                                disabled={disp.agotado}
+                                title={disp.agotado ? disp.motivo || "Agotado" : undefined}
+                                type="button"
+                              >
+                                {disp.agotado ? "Agotado" : "+ Agregar"}
+                              </button>
+                            </div>
+                          );
+                        })}
 
                         {hasMore && (
                           <div
@@ -589,7 +631,7 @@ const SalesDashboard = () => {
                                     )
                                   }
                                   min="1"
-                                  max={item.cantidad}
+                                  max={resolverDisponibilidad(item).stock}
                                   inputMode="numeric"
                                   pattern="[0-9]*"
                                 />

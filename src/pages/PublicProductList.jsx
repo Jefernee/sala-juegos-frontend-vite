@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import "../styles/PublicProductList.css";
 import NavBar from "../components/NavBar";
+import { resolverDisponibilidad } from "../utils/stock";
+import { formatearMonto, formatearNumero } from "../constants/inventario";
 
 const PublicProductsList = () => {
   const [productos, setProductos] = useState([]);
@@ -108,22 +110,25 @@ const PublicProductsList = () => {
 
     // Validaciones básicas
     if (!pedidoForm.nombreCliente.trim()) {
-      alert("Por favor ingresa tu nombre");
+      alert("Indique su nombre para continuar.");
       return;
     }
 
     if (!pedidoForm.telefono.trim()) {
-      alert("Por favor ingresa tu teléfono");
+      alert("Indique un número de teléfono para poder contactarle.");
       return;
     }
 
     if (pedidoForm.cantidad < 1) {
-      alert("La cantidad debe ser al menos 1");
+      alert("La cantidad debe ser de al menos 1 unidad.");
       return;
     }
 
-    if (pedidoForm.cantidad > selectedProduct.cantidad) {
-      alert(`Solo hay ${selectedProduct.cantidad} unidades disponibles`);
+    const { stock } = resolverDisponibilidad(selectedProduct);
+    if (pedidoForm.cantidad > stock) {
+      alert(
+        `La cantidad solicitada supera la disponibilidad actual (${formatearNumero(stock)} unidades).`,
+      );
       return;
     }
 
@@ -148,16 +153,27 @@ const PublicProductsList = () => {
       );
 
       alert(
-        "¡Pedido enviado exitosamente! Nos pondremos en contacto contigo pronto.",
+        "Su solicitud fue registrada. Le contactaremos para confirmar el pedido.",
       );
       handleCerrarModal();
     } catch (error) {
       console.error("Error al enviar pedido:", error);
-      alert("Error al enviar el pedido. Por favor, intenta de nuevo.");
+      alert("No fue posible registrar la solicitud. Intente de nuevo.");
     } finally {
       setEnviandoPedido(false);
     }
   };
+
+  // El catálogo público solo muestra lo que se puede pedir hoy: si algo se
+  // agotó, no aparece. Ojo: esto vale SOLO acá, que es la vitrina del cliente.
+  // En Ventas y en Inventario los agotados se siguen viendo, con el motivo a la
+  // vista — ahí esconderlos es justo lo que hizo desaparecer un producto sin
+  // dejar rastro.
+  const disponibles = (productos || [])
+    .map((producto) => ({ producto, ...resolverDisponibilidad(producto) }))
+    .filter((p) => !p.agotado);
+
+  const hayOcultos = (productos || []).length > disponibles.length;
 
   if (firstLoad) {
     return (
@@ -165,11 +181,8 @@ const PublicProductsList = () => {
         <NavBar /> {/* 🎯 USA EL COMPONENTE en lugar de todo el <nav> */}
         <div className="loading-container">
           <div className="loading-content">
-            <div className="loading-icon">🎮</div>
-            <h2 className="loading-title">Cargando productos...</h2>
-            <p className="loading-subtitle">
-              Preparando el mejor catálogo para ti
-            </p>
+            <h2 className="loading-title">Cargando el catálogo</h2>
+            <p className="loading-subtitle">Un momento, por favor.</p>
             <div className="loading-spinner-custom"></div>
           </div>
         </div>
@@ -183,7 +196,7 @@ const PublicProductsList = () => {
       {/* Contenido principal */}
       <div className="public-products-content">
         <div className="container py-4">
-          <h2 className="public-products-title mb-4">🎯 Nuestro Catálogo</h2>
+          <h2 className="public-products-title mb-4">Catálogo de productos</h2>
 
           {/* Buscador */}
           <form onSubmit={handleSearch} className="mb-4">
@@ -196,7 +209,7 @@ const PublicProductsList = () => {
                 onChange={(e) => setSearch(e.target.value)}
               />
               <button className="btn btn-primary" type="submit">
-                🔍 Buscar
+                Buscar
               </button>
               {search && (
                 <button
@@ -204,7 +217,7 @@ const PublicProductsList = () => {
                   type="button"
                   onClick={() => setSearch("")}
                 >
-                  ✕ Limpiar
+                  Limpiar
                 </button>
               )}
             </div>
@@ -221,22 +234,25 @@ const PublicProductsList = () => {
             )}
             <span>
               {loading
-                ? "Buscando..."
-                : pagination?.totalProducts > 0
-                  ? `Mostrando ${productos?.length || 0} de ${pagination.totalProducts} productos${search ? ` para "${search}"` : ""}`
+                ? "Buscando…"
+                : disponibles.length > 0
+                  ? hayOcultos
+                    ? `Mostrando ${disponibles.length} ${disponibles.length === 1 ? "producto disponible" : "productos disponibles"}${search ? ` para "${search}"` : ""}`
+                    : `Mostrando ${disponibles.length} de ${pagination?.totalProducts ?? disponibles.length} productos${search ? ` para "${search}"` : ""}`
                   : ""}
             </span>
           </p>
 
           {/* Grid de productos */}
-          {!productos || productos.length === 0 ? (
+          {disponibles.length === 0 ? (
             <div className="alert alert-info">
-              📦 No se encontraron productos{" "}
-              {search && `con el término "${search}"`}
+              {hayOcultos
+                ? "Por el momento no hay productos disponibles."
+                : `No se encontraron productos${search ? ` para "${search}"` : ""}.`}
             </div>
           ) : (
             <div className="row g-4">
-              {productos.map((producto) => (
+              {disponibles.map(({ producto, stock }) => (
                 <div
                   key={producto._id}
                   className="col-12 col-sm-6 col-md-4 col-lg-3"
@@ -252,16 +268,8 @@ const PublicProductsList = () => {
                         onClick={() =>
                           window.open(producto.imagen, "_blank")
                         }
-                        title="Click para ver imagen completa"
+                        title="Ver la imagen completa"
                       />
-                      {/* Badge de disponibilidad */}
-                      <div className="availability-badge">
-                        {producto.cantidad > 0 ? (
-                          <span className="badge bg-success">Disponible</span>
-                        ) : (
-                          <span className="badge bg-danger">Agotado</span>
-                        )}
-                      </div>
                     </div>
 
                     <div className="card-body">
@@ -274,31 +282,27 @@ const PublicProductsList = () => {
 
                       <div className="public-product-info">
                         <div className="info-row">
-                          <span className="info-label">Stock:</span>
+                          <span className="info-label">Disponibilidad</span>
                           <span className="badge bg-secondary">
-                            {producto.cantidad > 0
-                              ? `${producto.cantidad} unidades`
-                              : "Agotado"}
+                            {formatearNumero(stock)}{" "}
+                            {stock === 1 ? "unidad" : "unidades"}
                           </span>
                         </div>
 
                         <div className="info-row price-row">
-                          <span className="info-label">Precio:</span>
+                          <span className="info-label">Precio</span>
                           <span className="info-value text-success fw-bold">
-                            ₡{producto.precioVenta.toLocaleString("es-CR")}
+                            {formatearMonto(producto.precioVenta)}
                           </span>
                         </div>
                       </div>
 
                       {/* Botón de pedido */}
                       <button
-                        className={`btn ${producto.cantidad > 0 ? "btn-primary" : "btn-secondary"} w-100 mt-3`}
+                        className="btn btn-primary w-100 mt-3"
                         onClick={() => handleAbrirPedido(producto)}
-                        disabled={producto.cantidad === 0}
                       >
-                        {producto.cantidad > 0
-                          ? "🛒 Hacer Pedido"
-                          : "No disponible"}
+                        Solicitar pedido
                       </button>
                     </div>
                   </div>
@@ -378,7 +382,7 @@ const PublicProductsList = () => {
         <div className="modal-overlay" onClick={handleCerrarModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>🛒 Hacer Pedido</h3>
+              <h3>Solicitud de pedido</h3>
               <button className="btn-close" onClick={handleCerrarModal}>
                 ×
               </button>
@@ -394,10 +398,12 @@ const PublicProductsList = () => {
                 <div>
                   <h5>{selectedProduct.nombre}</h5>
                   <p className="precio-modal">
-                    ₡{selectedProduct.precioVenta.toLocaleString("es-CR")}
+                    {formatearMonto(selectedProduct.precioVenta)}
                   </p>
                   <p className="stock-modal">
-                    Stock disponible: {selectedProduct.cantidad} unidades
+                    Disponibles:{" "}
+                    {formatearNumero(resolverDisponibilidad(selectedProduct).stock)}{" "}
+                    unidades
                   </p>
                 </div>
               </div>
@@ -428,7 +434,9 @@ const PublicProductsList = () => {
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label">Email (opcional)</label>
+                  <label className="form-label">
+                    Correo electrónico (opcional)
+                  </label>
                   <input
                     type="email"
                     className="form-control"
@@ -445,7 +453,7 @@ const PublicProductsList = () => {
                     className="form-control"
                     name="cantidad"
                     min="1"
-                    max={selectedProduct.cantidad}
+                    max={resolverDisponibilidad(selectedProduct).stock}
                     value={pedidoForm.cantidad}
                     onChange={handleFormChange}
                     required
@@ -453,25 +461,23 @@ const PublicProductsList = () => {
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label">
-                    Notas adicionales (opcional)
-                  </label>
+                  <label className="form-label">Comentarios (opcional)</label>
                   <textarea
                     className="form-control"
                     name="notas"
                     rows="3"
                     value={pedidoForm.notas}
                     onChange={handleFormChange}
-                    placeholder="Alguna información adicional sobre tu pedido..."
+                    placeholder="Información adicional sobre el pedido"
                   ></textarea>
                 </div>
 
                 <div className="total-pedido">
                   <strong>
-                    Total: ₡
-                    {(
-                      selectedProduct.precioVenta * pedidoForm.cantidad
-                    ).toLocaleString("es-CR")}
+                    Total:{" "}
+                    {formatearMonto(
+                      selectedProduct.precioVenta * pedidoForm.cantidad,
+                    )}
                   </strong>
                 </div>
 
@@ -489,7 +495,7 @@ const PublicProductsList = () => {
                     className="btn btn-primary"
                     disabled={enviandoPedido}
                   >
-                    {enviandoPedido ? "Enviando..." : "✓ Confirmar Pedido"}
+                    {enviandoPedido ? "Enviando…" : "Confirmar pedido"}
                   </button>
                 </div>
               </form>

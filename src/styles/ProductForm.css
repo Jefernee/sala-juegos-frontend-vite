@@ -290,6 +290,721 @@
 }
 
 /* ========================================
+   FORMULARIO EN UNA SOLA PANTALLA
+   ======================================== */
+
+/* Cada bloque numerado. Reemplaza al asistente de "Siguiente": con pasos, un
+   error podía quedar escondido en una pantalla que ya no se veía. */
+.bloque-form {
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.bloque-form:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.bloque-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.bloque-numero {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #38bdf8, #22d3ee);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Resalte temporal del campo que falta, después de intentar guardar. */
+.campo-con-error {
+  animation: latido-error 2.4s ease;
+  border-radius: 10px;
+}
+
+@keyframes latido-error {
+  0%, 100% { box-shadow: none; }
+  15%, 60% { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.45); }
+}
+
+/* El aviso de errores va arriba del formulario, no flotando. */
+.toast-form {
+  white-space: pre-line;
+  line-height: 1.6;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 1.25rem;
+}
+
+.bloque-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.campo-bloque {
+  display: flex;
+  flex-direction: column;
+}
+
+.texto-apoyo {
+  color: #6b7280;
+  font-size: 0.82rem;
+  margin-top: 0.35rem;
+  line-height: 1.45;
+}
+
+/* Aviso de consecuencia, no error: algo que conviene leer antes de guardar. */
+.texto-aviso {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  background: #fffbeb;
+  border-left: 4px solid #f59e0b;
+  border-radius: 6px;
+  color: #78350f;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+.form-acciones {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.form-acciones .btn {
+  min-height: 48px;
+}
+
+/* ── Tarjetas de tipo (paso 1) ───────────────────────────────────────────── */
+
+.tarjetas-tipo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.tarjeta-tipo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  text-align: left;
+  padding: 0.9rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tarjeta-tipo:hover:not(:disabled) {
+  border-color: #7dd3fc;
+}
+
+.tarjeta-tipo.activa {
+  border-color: #22d3ee;
+  background: #f0fdff;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
+}
+
+.tarjeta-tipo-titulo {
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 0.95rem;
+}
+
+.tarjeta-tipo-desc {
+  font-size: 0.8rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+/* Rejilla de "¿Qué es?": son siete opciones cortas, entran de a dos o tres. */
+.tarjetas-tipo--compacto {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.tarjetas-tipo--compacto .tarjeta-tipo {
+  padding: 0.7rem 0.8rem;
+  gap: 0.1rem;
+}
+
+.tarjetas-tipo--compacto .tarjeta-tipo-titulo {
+  font-size: 0.9rem;
+}
+
+.tarjetas-tipo--compacto .tarjeta-tipo-desc {
+  font-size: 0.75rem;
+}
+
+.etiqueta-tipo {
+  align-self: flex-start;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.etiqueta-tipo.receta {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* ── Interruptores (en vez de casillas) ──────────────────────────────────── */
+
+.interruptor {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.interruptor input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.interruptor-visual {
+  flex-shrink: 0;
+  width: 48px;
+  height: 28px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  position: relative;
+  transition: background 0.2s ease;
+  margin-top: 2px;
+}
+
+.interruptor-visual::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.interruptor input:checked + .interruptor-visual {
+  background: linear-gradient(135deg, #38bdf8, #22d3ee);
+}
+
+.interruptor input:checked + .interruptor-visual::after {
+  transform: translateX(20px);
+}
+
+.interruptor input:focus-visible + .interruptor-visual {
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35);
+}
+
+.interruptor-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.interruptor-texto strong {
+  color: #1f2937;
+  font-size: 0.93rem;
+}
+
+.interruptor-texto small {
+  color: #6b7280;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+/* ── Selector de cantidad a botones ──────────────────────────────────────── */
+
+.selector-cantidad {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.selector-campo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 170px;
+}
+
+.selector-campo .form-control {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding-right: 2.6rem;
+}
+
+.selector-campo-unidad {
+  position: absolute;
+  right: 0.7rem;
+  font-size: 0.82rem;
+  color: #6b7280;
+  pointer-events: none;
+}
+
+.selector-stepper {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
+.btn-stepper {
+  min-width: 64px;
+  min-height: 48px;
+  background: #f1f5f9;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-stepper:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.btn-stepper:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.selector-ayuda {
+  color: #047857;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+/* ── Toggle de modo (por envase / por unidad) ────────────────────────────── */
+
+.toggle-modo {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.btn-modo {
+  flex: 1;
+  min-height: 44px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-modo.activo {
+  border-color: #22d3ee;
+  background: #f0fdff;
+  color: #0e7490;
+}
+
+/* ── Dato de solo lectura ────────────────────────────────────────────────── */
+
+.dato-solo-lectura {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.dato-label {
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.dato-valor {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* ── Ingredientes de la receta ───────────────────────────────────────────── */
+
+.aviso-vacio {
+  padding: 0.9rem;
+  background: #fffbeb;
+  border: 1px dashed #fcd34d;
+  border-radius: 10px;
+  color: #92400e;
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.ingredientes-receta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.ingrediente-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.ingrediente-card.con-aviso {
+  border-color: #fbbf24;
+  background: #fffdf5;
+}
+
+.ingrediente-card.con-error {
+  border-color: #f87171;
+  background: #fffafa;
+}
+
+.ingrediente-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.ingrediente-card-nombre {
+  display: block;
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 0.98rem;
+}
+
+.ingrediente-card-meta {
+  display: block;
+  color: #6b7280;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  margin-top: 0.15rem;
+}
+
+.btn-quitar {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0.25rem 0.7rem;
+  background: white;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  color: #b91c1c;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-quitar:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.ingrediente-card-cuentas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  font-size: 0.8rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.alerta-receta {
+  padding: 0.6rem 0.75rem;
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  border-radius: 6px;
+  color: #78350f;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.alerta-receta.grave {
+  background: #fee2e2;
+  border-left-color: #dc2626;
+  color: #7f1d1d;
+  font-weight: 600;
+}
+
+.btn-agregar-ingrediente {
+  min-height: 48px;
+  background: #f0fdff;
+  border: 2px dashed #67e8f9;
+  border-radius: 12px;
+  color: #0e7490;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-agregar-ingrediente:hover:not(:disabled) {
+  background: #e0f9fd;
+  border-color: #22d3ee;
+}
+
+/* ── Selector de ingredientes ────────────────────────────────────────────── */
+
+.picker-ingredientes {
+  padding: 0.85rem;
+  background: #f8fafc;
+  border: 2px solid #22d3ee;
+  border-radius: 12px;
+}
+
+.picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+  color: #1f2937;
+}
+
+.picker-lista {
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.picker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-height: 52px;
+  padding: 0.6rem 0.85rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  cursor: pointer;
+}
+
+.picker-item:last-child {
+  border-bottom: none;
+}
+
+.picker-item:hover {
+  background: #f0f9ff;
+}
+
+.picker-item-nombre {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.92rem;
+}
+
+.picker-item-meta {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.picker-estado {
+  padding: 0.9rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.86rem;
+}
+
+/* ── Panel de rentabilidad ───────────────────────────────────────────────── */
+
+/* Neutro por defecto: el color aparece solo cuando hay algo que mirar (empate o
+   pérdida). Si el panel siempre estuviera verde, el rojo no resaltaría. */
+.panel-rentabilidad {
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.panel-rentabilidad.empate {
+  border: 2px solid #fcd34d;
+  background: #fffbeb;
+}
+
+.panel-rentabilidad.perdida {
+  border: 2px solid #f87171;
+  background: #fef2f2;
+}
+
+.panel-rentabilidad-titulo {
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 0.92rem;
+  margin-bottom: 0.75rem;
+}
+
+.panel-rentabilidad-vacio {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.panel-rentabilidad-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+
+.rent-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.rent-label {
+  font-size: 0.76rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.rent-valor {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.rent-negativo {
+  color: #b91c1c;
+}
+
+.rent-margen {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.panel-rentabilidad-aviso {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: white;
+  border-left: 4px solid #dc2626;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #7f1d1d;
+  font-weight: 600;
+}
+
+.panel-rentabilidad.ok .panel-rentabilidad-aviso {
+  border-left-color: #f59e0b;
+  color: #78350f;
+}
+
+.panel-rentabilidad-nota {
+  display: block;
+  margin-top: 0.5rem;
+  color: #6b7280;
+  font-size: 0.78rem;
+}
+
+/* ========================================
+   ESCRITORIO
+   ========================================
+   El asistente se diseñó para dedo, así que por defecto es una sola columna.
+   En pantalla grande eso deja media ventana vacía y obliga a hacer scroll de
+   más, cuando el resto de los módulos sí aprovechan el ancho. Acá los campos
+   cortos se emparejan de dos en dos: los que llevan `campo-medio` ocupan media
+   fila, el resto ocupa la fila completa. */
+@media (min-width: 769px) {
+  .product-form-modal {
+    max-width: 880px;
+  }
+
+  .bloque-campos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem 1.5rem;
+    align-items: start;
+  }
+
+  .bloque-campos > * {
+    grid-column: 1 / -1;
+  }
+
+  .bloque-campos > .campo-medio {
+    grid-column: span 1;
+  }
+
+  /* "¿En qué viene?" y "¿cuántos trae?" son una sola pregunta partida en dos. */
+  .envase-config-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.5rem;
+    align-items: start;
+  }
+
+  /* Las recetas suelen tener 3 o 4 ingredientes: en dos columnas entran todos
+     sin scroll, y el panel de cuentas queda a la vista mientras se editan. */
+  .ingredientes-receta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    align-items: start;
+  }
+
+  .tarjetas-tipo--compacto {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .picker-lista {
+    max-height: 320px;
+  }
+
+  /* Botones de tamaño normal y a la derecha, no estirados de lado a lado. */
+  .form-acciones {
+    justify-content: flex-end;
+  }
+
+  .form-acciones .btn {
+    flex: 0 0 auto !important;
+    min-width: 170px;
+  }
+}
+
+/* ========================================
    RESPONSIVE - TABLETS
    ======================================== */
 @media (max-width: 768px) {
@@ -340,5 +1055,20 @@
   .product-form-body .btn {
     padding: 0.65rem;
     font-size: 0.9rem;
+  }
+
+  /* Una tarjeta por fila: en el teléfono el texto de dos columnas no se lee. */
+  .tarjetas-tipo {
+    grid-template-columns: 1fr;
+  }
+
+  /* Las de "¿Qué es?" son cortas y sí entran de a dos. */
+  .tarjetas-tipo--compacto {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Los botones de cantidad no se encogen: son el control principal. */
+    .btn-stepper {
+    min-width: 56px;
   }
 }

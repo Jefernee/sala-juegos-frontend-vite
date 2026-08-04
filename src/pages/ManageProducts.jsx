@@ -12,6 +12,16 @@ import { Helmet } from "react-helmet";
 import "../styles/ManageProducts.css";
 import Navbar from "../components/NavBar2";
 import ProductForm from "../components/ProductForm";
+import { resolverDisponibilidad } from "../utils/stock";
+import {
+  conUnidad,
+  sufijoUnidad,
+  unidadSingular,
+  labelEnvase,
+  formatearMonto,
+  formatearCantidad,
+  formatearNumero,
+} from "../constants/inventario";
 
 const PRODUCTOS_POR_PAGINA = 10;
 
@@ -34,16 +44,6 @@ const ManageProducts = () => {
   // Formulario modal
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-
-  // Guía de uso
-  const [mostrarGuia, setMostrarGuia] = useState(
-    () => localStorage.getItem("guia-productos-cerrada") !== "1"
-  );
-
-  const cerrarGuia = () => {
-    setMostrarGuia(false);
-    localStorage.setItem("guia-productos-cerrada", "1");
-  };
 
   const timeoutRef = useRef(null);
 
@@ -262,90 +262,19 @@ const ManageProducts = () => {
             </p>
           </div>
 
-          {/* ===== GUÍA DE USO ===== */}
-          {mostrarGuia ? (
-            <div className="guia-card mb-4">
-              <div className="guia-header">
-                <span className="guia-titulo">📖 ¿Cómo funciona el inventario?</span>
-                <button
-                  className="guia-cerrar"
-                  onClick={cerrarGuia}
-                  title="Cerrar guía"
-                >
-                  ✕ Entendido, no mostrar más
-                </button>
-              </div>
-              <div className="guia-body">
-                <div className="guia-paso">
-                  <div className="guia-paso-icono guia-icono-1">1</div>
-                  <div>
-                    <strong>Creá los ingredientes primero</strong>
-                    <p>
-                      Son las cosas que comprás físicamente: helado, conos, sirope, etc.
-                      Elegí la unidad en que los medís (bolas, ml, gr) y configurá el envase
-                      si lo comprás en balde, botella o caja. El sistema calcula el precio
-                      por unidad automáticamente.
-                    </p>
-                    <span className="guia-tip">
-                      💡 Ejemplo: "Helado de vainilla" — unidad: bolas — 1 balde trae 40 bolas — pagaste ₡5 000 por balde → ₡125 por bola
-                    </span>
-                  </div>
-                </div>
-
-                <div className="guia-paso">
-                  <div className="guia-paso-icono guia-icono-2">2</div>
-                  <div>
-                    <strong>Creá las recetas</strong>
-                    <p>
-                      Una receta combina ingredientes para formar un producto vendible.
-                      Buscás los ingredientes, indicás cuánto usa cada unidad vendida,
-                      y el sistema calcula cuántas podés vender según el stock disponible.
-                    </p>
-                    <span className="guia-tip">
-                      💡 Ejemplo: "Cono de vainilla" = 2 bolas de helado + 1 cono wafer.
-                      Si tenés 40 bolas y 50 conos, podés vender 20 conos de vainilla.
-                    </span>
-                  </div>
-                </div>
-
-                <div className="guia-paso">
-                  <div className="guia-paso-icono guia-icono-3">3</div>
-                  <div>
-                    <strong>Al vender, el stock se descuenta solo</strong>
-                    <p>
-                      Cuando registrás una venta, el sistema descuenta los ingredientes
-                      usados automáticamente. Para reponer, editá el ingrediente y
-                      decile cuántos envases o unidades compraste.
-                    </p>
-                    <span className="guia-tip">
-                      💡 Para reponer: Editar → "¿Compraste más?" → ingresá cuántos baldes compraste.
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <button
-              className="guia-reabrir mb-3"
-              onClick={() => setMostrarGuia(true)}
-            >
-              📖 Ver guía de uso
-            </button>
-          )}
-
           {/* ===== BOTÓN AGREGAR + BARRA DE BÚSQUEDA ===== */}
-          <div className="mb-4">
-            <div className="d-flex gap-2 mb-3">
-              <button
-                className="btn btn-add-product"
-                onClick={handleOpenAddForm}
-                title="Agregar nuevo producto"
-              >
-                ➕ Agregar Producto
-              </button>
-            </div>
+          {/* En escritorio los dos van en una sola fila: apilados desperdiciaban
+              media pantalla de alto antes de llegar a los productos. */}
+          <div className="manage-toolbar mb-4">
+            <button
+              className="btn btn-add-product"
+              onClick={handleOpenAddForm}
+              title="Agregar nuevo producto"
+            >
+              ➕ Agregar Producto
+            </button>
 
-            <form onSubmit={handleSearchSubmit}>
+            <form onSubmit={handleSearchSubmit} className="manage-toolbar__buscar">
               <div className="input-group search-bar">
                 <input
                   type="text"
@@ -412,7 +341,13 @@ const ManageProducts = () => {
           ) : (
             <>
               <div className="products-list">
-                {productos.map((producto) => (
+                {productos.map((producto) => {
+                  // El agotado se ve acá mismo, con la causa. Antes había que
+                  // abrir la receta y hacer la división a mano para entender por
+                  // qué un producto no aparecía en Ventas.
+                  const disp = resolverDisponibilidad(producto);
+                
+                  return (
                   <div key={producto._id} className="product-item">
                     {/* IMAGEN */}
                     <div className="product-image-wrapper">
@@ -448,13 +383,18 @@ const ManageProducts = () => {
                             🍽️ Receta
                           </span>
                         )}
+                        {/* "Disponible" y "Agotado" al mismo tiempo se
+                            contradicen, así que cuando no hay existencias manda
+                            el de agotado. */}
                         {producto.seVende ? (
-                          <span
-                            className="badge bg-success ms-2"
-                            style={{ fontSize: "0.7rem" }}
-                          >
-                            ✓ Disponible
-                          </span>
+                          !disp.agotado && (
+                            <span
+                              className="badge bg-success ms-2"
+                              style={{ fontSize: "0.7rem" }}
+                            >
+                              ✓ Disponible
+                            </span>
+                          )
                         ) : (
                           <span
                             className="badge bg-secondary ms-2"
@@ -463,11 +403,39 @@ const ManageProducts = () => {
                             ✕ No disponible
                           </span>
                         )}
+                        {disp.agotado && (
+                          <span
+                            className="badge bg-danger ms-2"
+                            style={{ fontSize: "0.7rem" }}
+                            title={disp.motivo || "Sin existencias"}
+                          >
+                            Agotado
+                          </span>
+                        )}
                       </h5>
+
+                      {disp.agotado && disp.motivo && (
+                        <p className="product-motivo">{disp.motivo}</p>
+                      )}
 
                       <div className="product-meta">
                         {producto.tipo === "receta" ? (
                           <>
+                            {/* Mismo rótulo que un producto simple: "Stock". El
+                                ingrediente que pone el techo va en el tooltip, y
+                                si de verdad se agotó ya se explica en rojo arriba. */}
+                            <span
+                              className="meta-item meta-stock"
+                              title={
+                                disp.limitante?.nombre
+                                  ? `El ingrediente que pone el límite es ${disp.limitante.nombre}`
+                                  : undefined
+                              }
+                            >
+                              <strong>Stock:</strong>{" "}
+                              {conUnidad(disp.stock, "unidades")}
+                            </span>
+
                             <span className="meta-item meta-ingredientes">
                               <strong>Ingredientes:</strong>{" "}
                               {Array.isArray(producto.receta) ? producto.receta.length : "—"}
@@ -478,7 +446,8 @@ const ManageProducts = () => {
                                   const esObjeto = ing.ingredienteId && typeof ing.ingredienteId === "object";
                                   const nombre = ing.nombre || (esObjeto ? ing.ingredienteId.nombre : "");
                                   const unidad = ing.unidad || (esObjeto ? ing.ingredienteId.unidad : "") || "";
-                                  return `${nombre} (${ing.cantidad}${unidad ? ` ${unidad}` : ""})`;
+                                  const suf = sufijoUnidad(unidad);
+                                  return `${nombre} (${formatearCantidad(ing.cantidad)}${suf ? ` ${suf}` : ""})`;
                                 }).join(" · ")}
                               </span>
                             )}
@@ -487,10 +456,11 @@ const ManageProducts = () => {
                           <>
                             <span className="meta-item meta-stock">
                               <strong>Stock:</strong>{" "}
-                              {producto.cantidad}{producto.unidad ? ` ${producto.unidad}` : ""}
+                              {conUnidad(producto.cantidad, producto.unidad)}
                               {producto.cantidadPorEnvase && producto.nombreEnvase && (
                                 <span style={{ opacity: 0.75, marginLeft: "0.25rem" }}>
-                                  ≈ {(producto.cantidad / producto.cantidadPorEnvase).toFixed(1)} {producto.nombreEnvase}s
+                                  ≈ {formatearNumero(producto.cantidad / producto.cantidadPorEnvase, 1)}{" "}
+                                  {labelEnvase(producto.nombreEnvase).toLowerCase()}
                                 </span>
                               )}
                             </span>
@@ -498,16 +468,21 @@ const ManageProducts = () => {
                             {producto.cantidadPorEnvase && producto.nombreEnvase && (
                               <span className="meta-item meta-envase">
                                 <strong>Envase:</strong>{" "}
-                                1 {producto.nombreEnvase} = {producto.cantidadPorEnvase} {producto.unidad}
+                                1 {labelEnvase(producto.nombreEnvase).toLowerCase()} ={" "}
+                                {conUnidad(producto.cantidadPorEnvase, producto.unidad)}
                               </span>
                             )}
 
                             <span className="meta-item meta-compra">
                               <strong>Costo:</strong>{" "}
-                              ₡{Number(producto.precioCompra).toLocaleString("es-CR")}/{producto.unidad || "u"}
+                              {formatearMonto(producto.precioCompra)}/{unidadSingular(producto.unidad)}
                               {producto.cantidadPorEnvase && producto.nombreEnvase && (
                                 <span style={{ opacity: 0.75, marginLeft: "0.25rem" }}>
-                                  · ₡{Math.round(producto.precioCompra * producto.cantidadPorEnvase).toLocaleString("es-CR")}/{producto.nombreEnvase}
+                                  ·{" "}
+                                  {formatearMonto(
+                                    producto.precioCompra * producto.cantidadPorEnvase,
+                                  )}
+                                  /{labelEnvase(producto.nombreEnvase).toLowerCase()}
                                 </span>
                               )}
                             </span>
@@ -516,7 +491,8 @@ const ManageProducts = () => {
 
                         {producto.seVende && (
                           <span className="meta-item meta-venta">
-                            <strong>Venta:</strong> ₡{Number(producto.precioVenta).toLocaleString("es-CR")}
+                            <strong>Venta:</strong>{" "}
+                            {formatearMonto(producto.precioVenta)}
                           </span>
                         )}
 
@@ -569,7 +545,8 @@ const ManageProducts = () => {
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* ===== PAGINACIÓN ===== */}

@@ -73,7 +73,7 @@ const TorneoPublicDetalle = () => {
         ...(form.nombreEquipo.trim() && { nombreEquipo: form.nombreEquipo.trim() }),
       };
       const res = await axios.post(`${API_URL}/api/torneos/${id}/inscripciones`, payload);
-      setResultado({ tipo: "success", mensaje: res.data?.message || "¡Inscripción registrada!" });
+      setResultado({ tipo: "success", mensaje: res.data?.message || "Inscripción registrada." });
       setForm(FORM_VACIO);
       setInscrito(true);
       fetchTorneo(); // refresca cupo disponible
@@ -166,7 +166,7 @@ const TorneoPublicDetalle = () => {
                   ) : inscrito ? (
                     <div className="text-center py-3">
                       <div style={{ fontSize: "2.5rem" }}>✅</div>
-                      <p className="mb-3">¡Listo! Ya quedaste inscrito. Te contactaremos con los detalles.</p>
+                      <p className="mb-3">Su inscripción quedó registrada. Le contactaremos con los detalles.</p>
                       <button className="btn btn-outline-primary" onClick={() => setInscrito(false)}>
                         Inscribir a otra persona
                       </button>
