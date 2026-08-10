@@ -3,6 +3,7 @@ import {
   TrendingUp, TrendingDown, Wallet, Activity, Scale, CalendarDays,
   ChevronLeft, ChevronRight, Download, Printer, RefreshCw,
 } from "lucide-react";
+import { authFetch } from "../utils/authFetch";
 import "../styles/ReportesEstado.css";
 
 const API_URL = import.meta.env.VITE_API_URL + "/api/estado-resultados";
@@ -27,17 +28,9 @@ const fmtFechaHora = (f) =>
       })
     : "";
 
-const authFetch = (url, opts = {}) => {
-  const token = localStorage.getItem("token");
-  return fetch(url, {
-    ...opts,
-    headers: {
-      ...(opts.body ? { "Content-Type": "application/json" } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(opts.headers || {}),
-    },
-  });
-};
+// Este módulo tenía su propia copia de authFetch: ponía el token pero no hacía
+// nada con el 401/403, así que una sesión vencida terminaba como "no hay datos"
+// en vez de mandar al login. Ahora usa el helper central (src/utils/authFetch).
 
 // ── Piezas visuales ─────────────────────────────────────────────────────────
 function KPICard({ label, value, sub, icon: Icon, color = "#1d4ed8", valueClass, trend }) {
@@ -379,6 +372,8 @@ export default function ReportesEstadoResultados() {
         setData({ tipo: "mensual", payload: d.reporte });
       }
     } catch (e) {
+      // Sesión vencida o sin permiso: authFetch ya está redirigiendo.
+      if (e?.esSesion) return;
       setError(
         selectedMes === 0
           ? "No hay datos para este año todavía."
@@ -405,6 +400,7 @@ export default function ReportesEstadoResultados() {
       setData({ tipo: "mensual", payload: d.reporte });
       setError(null);
     } catch (e) {
+      if (e?.esSesion) return;
       setError(e.message || "No se pudo generar el reporte.");
     } finally {
       setRegenerando(false);

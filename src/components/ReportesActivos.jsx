@@ -4,6 +4,7 @@ import {
   Printer, Download, Layers, Tag, RefreshCw,
 } from "lucide-react";
 import { formatPlaca } from "./admin/adminUtils";
+import { authFetchJson } from "../utils/authFetch";
 import "../styles/ReportesActivos.css";
 
 const API_URL = import.meta.env.VITE_API_URL + "/api/activos-reports";
@@ -86,14 +87,13 @@ export default function ReportesActivos() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(API_URL, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const d = await res.json();
-      if (!res.ok || !d.ok) throw new Error();
+      const d = await authFetchJson(API_URL);
+      if (!d.ok) throw new Error();
       setReporte(d.reporte);
-    } catch {
+    } catch (e) {
+      // Sesión vencida o sin permiso: authFetch ya está redirigiendo, no
+      // pintamos el error sobre una pantalla que está por desaparecer.
+      if (e?.esSesion) return;
       setError("No se pudo cargar el reporte de activos.");
       setReporte(null);
     } finally {

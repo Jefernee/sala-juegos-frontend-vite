@@ -3,6 +3,7 @@
 // Se importa una sola vez en main.jsx. Como axios es un singleton de módulo,
 // estos ajustes aplican también a los `await import("axios")` de cada página.
 import axios from "axios";
+import { manejarNoAutorizado } from "./sesion";
 
 // Quitamos barras finales para no generar "//api/health" (que da 404).
 const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
@@ -29,20 +30,19 @@ axios.interceptors.response.use(null, async (error) => {
   return Promise.reject(error);
 });
 
-// ── Acceso por rol (403) ─────────────────────────────────────────────────────
-// Red de seguridad: si el backend rechaza por rol (el vendedor tocó una API que
-// no le corresponde), lo avisamos y lo mandamos a Ventas. En condiciones
-// normales la UI ya oculta esos módulos, así que esto casi no debería dispararse.
-const RUTA_VENTAS = "/dashboard/sales";
+// ── Sesión y permisos (401 / 403) ────────────────────────────────────────────
+// Red de seguridad para todas las llamadas por axios (ventas, plays, productos,
+// administración). Delega en src/utils/sesion.js, la misma lógica que usa
+// authFetch, para que un token vencido se comporte igual venga por donde venga:
+//   403 ROL_NO_AUTORIZADO         → de vuelta a Ventas
+//   401 INVALID_TOKEN/EXPIRED     → cerrar sesión y al login
+//   401 NO_TOKEN/EMPTY/FORMAT     → al login (y queda anotado en consola)
+// Un 401 sin `code` conocido no se toca: es el caso de la contraseña equivocada
+// en el login, que tiene que mostrar su mensaje en la pantalla.
 axios.interceptors.response.use(null, (error) => {
-  const esRolNoAutorizado =
-    error?.response?.status === 403 &&
-    error?.response?.data?.code === "ROL_NO_AUTORIZADO";
-
-  if (esRolNoAutorizado && window.location.pathname !== RUTA_VENTAS) {
-    // Mensaje de una sola vez que la pantalla de Ventas mostrará al cargar.
-    sessionStorage.setItem("accesoDenegado", "No tenés permiso para este módulo.");
-    window.location.replace(RUTA_VENTAS);
+  const status = error?.response?.status;
+  if (status === 401 || status === 403) {
+    manejarNoAutorizado(status, error.response?.data, error.config?.url);
   }
   return Promise.reject(error);
 });
