@@ -422,211 +422,6 @@
 .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ========================================
-   PANEL DE FILTROS — NUEVO
-   ======================================== */
-
-.filtros-panel {
-  background: white;
-  border-radius: 16px !important;
-  border: none !important;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1) !important;
-  overflow: hidden;
-  animation: fadeIn 0.5s ease-out;
-}
-
-.filtros-panel .card-header {
-  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
-  border: none !important;
-  padding: 0.8rem 1.25rem;
-}
-
-.filtros-panel .card-header span {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #1f2937;
-  letter-spacing: 0.3px;
-}
-
-.filtros-panel .card-body {
-  padding: 1rem 1.25rem !important;
-}
-
-/* Layout horizontal del cuerpo del panel */
-.filtros-body {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem;
-}
-
-/* Switch */
-.filtro-switch-wrapper {
-  display: flex;
-  align-items: center;
-  min-width: fit-content;
-}
-
-.filtros-panel .form-check-input {
-  width: 2.5em;
-  height: 1.4em;
-  cursor: pointer;
-  border: 2px solid #d1d5db;
-  transition: all 0.3s ease;
-  margin-top: 0;
-}
-
-.filtros-panel .form-check-input:checked {
-  background-color: #10b981;
-  border-color: #10b981;
-}
-
-.filtros-panel .form-check-input:focus {
-  box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
-  border-color: #10b981;
-}
-
-.filtros-panel .form-check-label {
-  font-weight: 600;
-  color: #1f2937;
-  cursor: pointer;
-  padding-left: 0.5rem;
-  font-size: 0.92rem;
-  white-space: nowrap;
-}
-
-/* Sección de inputs de mínimo */
-.filtro-minimo-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.filtro-label {
-  font-weight: 600;
-  color: #374151;
-  font-size: 0.88rem;
-  white-space: nowrap;
-}
-
-.filtro-inputs-row {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.filtro-input-group {
-  width: 90px !important;
-}
-
-.filtro-input-group .form-control {
-  border: 2px solid #e5e7eb;
-  border-right: none;
-  border-radius: 8px 0 0 8px;
-  font-size: 0.9rem;
-  padding: 0.45rem 0.5rem;
-  transition: border-color 0.2s;
-  /* ✅ No transform al hacer focus para no saltar el layout */
-}
-
-.filtro-input-group .form-control:focus {
-  border-color: #10b981;
-  box-shadow: none;
-  outline: none;
-  transform: none !important;
-}
-
-.filtro-input-group .input-group-text {
-  border: 2px solid #e5e7eb;
-  border-left: none;
-  border-radius: 0 8px 8px 0;
-  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-  font-size: 0.78rem;
-  padding: 0.45rem 0.55rem;
-  color: #374151;
-  font-weight: 700;
-}
-
-.filtro-input-group:focus-within .input-group-text {
-  border-color: #10b981;
-  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-}
-
-/* Botones del filtro */
-.filtro-botones {
-  display: flex;
-  gap: 0.5rem;
-  margin-left: auto;
-}
-
-.btn-filtro-buscar,
-.btn-filtro-limpiar {
-  padding: 0.48rem 1.1rem;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 0.88rem;
-  border: none;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  white-space: nowrap;
-}
-
-.btn-filtro-buscar {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #1f2937;
-  box-shadow: 0 3px 10px rgba(245, 158, 11, 0.35);
-}
-
-.btn-filtro-buscar:hover {
-  background: linear-gradient(135deg, #d97706, #b45309);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 14px rgba(245, 158, 11, 0.45);
-  color: white;
-}
-
-.btn-filtro-limpiar {
-  background: white;
-  color: #6b7280;
-  border: 2px solid #d1d5db !important;
-}
-
-.btn-filtro-limpiar:hover:not(:disabled) {
-  background: #f3f4f6;
-  border-color: #9ca3af !important;
-  color: #374151;
-  transform: translateY(-2px);
-}
-
-.btn-filtro-limpiar:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* Badge "filtro activo" */
-.filtro-activo-badge {
-  margin-top: 0.65rem;
-  padding: 0.4rem 0.85rem;
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
-  border: 1.5px solid #f59e0b;
-  border-radius: 8px;
-  display: inline-block;
-}
-
-.filtro-activo-badge span {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #92400e;
-}
-
-/* ========================================
-   RESPONSIVE — TABLETS (768px - 992px)
-   ======================================== */
-
-@media (max-width: 992px) {
-  .filtros-body { gap: 0.75rem; }
-  .filtro-botones { margin-left: 0; }
-}
-
-/* ========================================
    RESPONSIVE — MÓVILES (< 768px)
    ======================================== */
 
@@ -662,13 +457,6 @@
   .pagination { flex-wrap: wrap; justify-content: center; gap: 3px; }
   .pagination .page-link { padding: 0.4rem 0.65rem; font-size: 0.85rem; margin: 2px; }
 
-  /* Filtros en móvil: apilados */
-  .filtros-body { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
-  .filtro-botones { width: 100%; margin-left: 0; }
-  .btn-filtro-buscar,
-  .btn-filtro-limpiar { flex: 1; text-align: center; }
-  .filtro-minimo-wrapper { flex-wrap: wrap; gap: 0.5rem; }
-  .filtro-input-group { width: 80px !important; }
 }
 
 /* ========================================
@@ -698,8 +486,6 @@
   .notificacion-texto p { font-size: 0.85rem; }
   .notificacion-icono { font-size: 1.8rem; }
 
-  .filtro-input-group { width: 75px !important; }
-  .filtro-label { font-size: 0.82rem; }
 }
 
 /* ========================================
@@ -760,3 +546,209 @@ textarea { font-size: 16px !important; }
 .btn:hover,
 .pagination .page-link:hover,
 .tabla-panel tbody tr:hover { will-change: transform; }
+/* ========================================
+   BARRA DE BUSCAR + FILTRAR (una sola tira)
+   ======================================== */
+
+.pm-barra {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* En escritorio el buscador y los chips comparten la misma línea */
+.pm-buscador {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 240px;
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0 0.35rem 0 0.6rem;
+  background: #f9fafb;
+}
+
+.pm-buscador:focus-within {
+  border-color: #10b981;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+}
+
+.pm-buscador-icono { font-size: 0.95rem; line-height: 1; flex-shrink: 0; opacity: 0.7; }
+
+.pm-buscador-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.95rem;
+  padding: 0.55rem 0.2rem;
+  color: #1f2937;
+}
+
+.pm-buscador-input::placeholder { color: #9ca3af; }
+.pm-buscador-input::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+.pm-buscador-limpiar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #4b5563;
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.pm-buscador-limpiar:hover { background: #d1d5db; color: #1f2937; }
+
+/* Título de la barra: que se sepa de un vistazo qué hace esta parte */
+.pm-barra-titulo {
+  width: 100%;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+/* Chips de filtro */
+.pm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.pm-chip {
+  min-height: 38px;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: white;
+  color: #374151;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.pm-chip:hover:not(:disabled) { background: #f3f4f6; }
+.pm-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Los dos filtros de pendiente son botones de color: ámbar suave cuando están
+   apagados y ámbar sólido cuando están puestos. Así se ven botones en los dos
+   estados y se nota de lejos cuál está activo. */
+.pm-chip--filtro {
+  background: #fef3c7;
+  border-color: #fbbf24;
+  color: #92400e;
+}
+.pm-chip--filtro:hover:not(:disabled) { background: #fde68a; border-color: #f59e0b; }
+
+/* Abierto (los campos de h/min están desplegados) pero todavía sin aplicar:
+   se hunde y se marca el borde, para que tocarlo se note de una. El estado
+   "aplicado" de abajo le gana, porque tiene la misma especificidad y va después. */
+.pm-chip--filtro.pm-chip--abierto {
+  background: #fde68a;
+  border-color: #d97706;
+  color: #78350f;
+  box-shadow: inset 0 2px 5px rgba(180, 83, 9, 0.25);
+}
+
+/* Flechita: indica que el botón despliega algo */
+.pm-flecha {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 0.7rem;
+  transition: transform 0.2s ease;
+}
+.pm-flecha--abierta { transform: rotate(180deg); }
+
+.pm-chip--filtro.pm-chip--activo {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-color: #d97706;
+  color: white;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35);
+}
+.pm-chip--filtro.pm-chip--activo:hover:not(:disabled) {
+  background: linear-gradient(135deg, #d97706, #b45309);
+}
+
+.pm-chip--limpiar { border-color: #fca5a5; color: #b91c1c; }
+.pm-chip--limpiar:hover { background: #fef2f2; }
+
+.pm-chip--aplicar {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #059669;
+  color: white;
+}
+.pm-chip--aplicar:hover { background: linear-gradient(135deg, #059669, #047857); }
+
+/* Campos de pendiente mínimo (plegados por defecto) */
+.pm-minimo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  width: 100%;
+  padding-top: 0.15rem;
+}
+
+.pm-minimo-campo {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 0 0.5rem 0 0.15rem;
+  background: white;
+}
+
+.pm-minimo-campo input {
+  width: 56px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.95rem;
+  text-align: center;
+  padding: 0.42rem 0;
+  color: #1f2937;
+}
+
+.pm-minimo-campo span { font-size: 0.8rem; color: #6b7280; font-weight: 600; }
+
+/* Línea de estado: qué se buscó y qué filtro quedó puesto */
+.pm-estado {
+  width: 100%;
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+/* Recarga en curso: la lista anterior se atenúa en vez de desaparecer */
+.lista-cargando {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+@media (max-width: 575px) {
+  /* En el celular el buscador toma toda la línea y los chips van debajo */
+  .pm-buscador { flex: 1 1 100%; }
+  .pm-chips { width: 100%; }
+  .pm-chip { flex: 1 1 auto; text-align: center; }
+}

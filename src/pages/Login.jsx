@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import "../styles/Login.css";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +8,18 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [aviso, setAviso] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Aviso de una sola vez que dejó authFetch al expulsar al usuario
+  // ("Tu sesión expiró, volvé a entrar."), para que sepa por qué volvió acá.
+  useEffect(() => {
+    const msg = sessionStorage.getItem("avisoSesion");
+    if (msg) {
+      setAviso(msg);
+      sessionStorage.removeItem("avisoSesion");
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -56,6 +67,7 @@ export default function Login() {
     <div className="login-container">
       <form className="login-form" onSubmit={handleLogin}>
         <h2>Iniciar Sesión</h2>
+        {aviso && <p className="aviso-sesion">{aviso}</p>}
         <input
           type="email"
           placeholder="Correo"

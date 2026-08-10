@@ -161,6 +161,19 @@
   font-weight: 500;
 }
 
+/* Aviso al volver expulsado del dashboard (sesión vencida o sin permiso) */
+.aviso-sesion {
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 0 0 18px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  text-align: left;
+}
+
 /* Responsivo */
 @media (max-width: 480px) {
   .login-form {

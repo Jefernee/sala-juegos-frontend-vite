@@ -84,6 +84,9 @@ const CAMPOS_ORDEN = [
   "horaInicio", "totalControles", "estadoPago",
 ];
 
+// Punto como separador de miles (estándar de Costa Rica): 1.234
+const fmtMiles = (n) => Math.round(n || 0).toLocaleString("es-CR").replace(/\s/g, ".");
+
 // Precio por hora según el lugar de juego
 const precioPorHora = (lugar) => {
   if (!lugar) return 0;
@@ -218,6 +221,19 @@ const PlaysManagement = () => {
   // filtrosAplicados: los que están realmente activos (se actualizan solo al hacer clic en Buscar)
   const [filtrosAplicados, setFiltrosAplicados] = useState(FILTROS_VACIOS);
 
+  // Búsqueda por nombre de cliente. `busqueda` es lo que se está tecleando;
+  // `busquedaAplicada` es la que ya viajó al servidor (se sincronizan con un
+  // debounce de 300 ms). `busquedaServidor` es el texto que el backend dice
+  // haber usado, para el cartel de "N resultados para «jose»".
+  const [busqueda, setBusqueda] = useState("");
+  const [busquedaAplicada, setBusquedaAplicada] = useState("");
+  const [busquedaServidor, setBusquedaServidor] = useState(null);
+  // La pantalla completa de carga solo se muestra la primera vez. Después, la
+  // lista anterior se queda atenuada mientras llega la nueva.
+  const [primeraCarga, setPrimeraCarga] = useState(true);
+  // Los campos de "pendiente mínimo" viven plegados: se abren solo si se piden.
+  const [mostrarMinimo, setMostrarMinimo] = useState(false);
+
   const [formData, setFormData] = useState({
     fecha: new Date().toISOString().split("T")[0],
     cliente: "",
@@ -260,6 +276,10 @@ const PlaysManagement = () => {
     hasNextPage: false,
     hasPrevPage: false,
   });
+
+  // Contador de peticiones: al teclear rápido pueden quedar dos consultas en
+  // vuelo y contestar en desorden. Solo la última pintada manda.
+  const peticionRef = useRef(0);
 
   const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem("token");
@@ -355,11 +375,17 @@ const PlaysManagement = () => {
   // ✅ fetchPlays NO tiene filtros en sus dependencias
   //    Siempre recibe filtrosActuales como parámetro → tipear en el panel no recarga nada
   const fetchPlays = useCallback(
-    async (page = 1, filtrosActuales = FILTROS_VACIOS) => {
+    async (page = 1, filtrosActuales = FILTROS_VACIOS, textoBusqueda = "") => {
+      const idPeticion = ++peticionRef.current;
       setLoading(true);
       try {
         const axios = await getAxios();
         const params = new URLSearchParams({ page, limit: 5 });
+
+        // Solo espacios equivale a no buscar: el backend ignora el filtro, así
+        // que ni lo mandamos.
+        const cliente = (textoBusqueda || "").trim();
+        if (cliente) params.append("cliente", cliente);
 
         if (filtrosActuales.soloPendiente) {
           params.append("soloPendiente", "true");
@@ -374,7 +400,10 @@ const PlaysManagement = () => {
           `${API_URL}/api/plays?${params.toString()}`,
           getAuthHeaders(),
         );
+        // Si mientras tanto salió otra consulta, esta ya no sirve.
+        if (idPeticion !== peticionRef.current) return;
         setPlays(response.data.data || []);
+        setBusquedaServidor(response.data.busqueda ?? null);
         setPaginacion(
           response.data.pagination || {
             page: 1,
@@ -386,6 +415,7 @@ const PlaysManagement = () => {
           },
         );
       } catch (error) {
+        if (idPeticion !== peticionRef.current) return;
         console.error("❌ Error al cargar plays:", error);
         let mensajeError = "Error al cargar los registros";
         let detalle = "";
@@ -400,7 +430,11 @@ const PlaysManagement = () => {
         }
         mostrarNotif(mensajeError, "error", detalle);
       } finally {
-        setLoading(false);
+        // La consulta vieja no apaga el "cargando" de la nueva.
+        if (idPeticion === peticionRef.current) {
+          setLoading(false);
+          setPrimeraCarga(false);
+        }
       }
     },
     [getAuthHeaders],
@@ -412,6 +446,19 @@ const PlaysManagement = () => {
     document.title = "Gestión de Plays - Sala de Juegos Ruiz";
   }, [fetchPlays]);
 
+  // Debounce de la búsqueda: espera 300 ms sin teclas antes de consultar, para
+  // no pegarle al servidor en cada letra. Siempre vuelve a la página 1: la
+  // página en la que estaba puede no existir dentro del resultado filtrado.
+  useEffect(() => {
+    const temporizador = setTimeout(() => {
+      const limpio = busqueda.trim();
+      if (limpio === busquedaAplicada) return;
+      setBusquedaAplicada(limpio);
+      fetchPlays(1, filtrosAplicados, limpio);
+    }, 300);
+    return () => clearTimeout(temporizador);
+  }, [busqueda, busquedaAplicada, filtrosAplicados, fetchPlays]);
+
   const mostrarNotif = (mensaje, tipo = "success", detalle = "") => {
     setNotificacion({ mensaje, tipo, detalle });
     setMostrarNotificacion(true);
@@ -421,14 +468,22 @@ const PlaysManagement = () => {
   // ✅ Solo al hacer clic en Buscar se aplican los filtros
   const aplicarFiltros = () => {
     setFiltrosAplicados(filtros);
-    fetchPlays(1, filtros);
+    fetchPlays(1, filtros, busquedaAplicada);
   };
 
-  // ✅ Limpiar: resetea panel y búsqueda
+  // ✅ Limpiar: resetea el panel de pendientes (la búsqueda por nombre tiene
+  //    su propio botón ✕, así que no se toca acá)
   const limpiarFiltros = () => {
     setFiltros(FILTROS_VACIOS);
     setFiltrosAplicados(FILTROS_VACIOS);
-    fetchPlays(1, FILTROS_VACIOS);
+    fetchPlays(1, FILTROS_VACIOS, busquedaAplicada);
+  };
+
+  // Limpiar la búsqueda por nombre: vuelve a la lista completa, página 1.
+  const limpiarBusqueda = () => {
+    setBusqueda("");
+    setBusquedaAplicada("");
+    fetchPlays(1, filtrosAplicados, "");
   };
 
   const hayFiltroActivo =
@@ -440,6 +495,12 @@ const PlaysManagement = () => {
     filtros.soloPendiente ||
     filtros.minPendienteHoras !== "" ||
     filtros.minPendienteMinutos !== "";
+
+  // Minutos del filtro de pendiente mínimo que están realmente aplicados
+  // (0 si no hay ninguno). Sirve para el texto del chip y el de estado.
+  const minimoAplicado =
+    (parseInt(filtrosAplicados.minPendienteHoras) || 0) * 60 +
+    (parseInt(filtrosAplicados.minPendienteMinutos) || 0);
 
   // Valores para el "Resumen de Cobro" (funciona en ambos modos: tiempo y monto).
   // El costo de controles es independiente del tiempo (los 2 primeros gratis) y
@@ -671,7 +732,7 @@ const PlaysManagement = () => {
         mostrarNotif("Play registrado exitosamente", "success");
       }
       limpiarFormulario();
-      fetchPlays(paginacion.page, filtrosAplicados);
+      fetchPlays(paginacion.page, filtrosAplicados, busquedaAplicada);
     } catch (error) {
       console.error("❌ Error:", error);
       let mensajeError = "Error al guardar el play";
@@ -737,6 +798,7 @@ const PlaysManagement = () => {
           ? paginacion.page - 1
           : paginacion.page,
         filtrosAplicados,
+        busquedaAplicada,
       );
     } catch (error) {
       console.error("❌ Error:", error);
@@ -756,7 +818,7 @@ const PlaysManagement = () => {
   };
 
   const irAPagina = (num) => {
-    fetchPlays(num, filtrosAplicados);
+    fetchPlays(num, filtrosAplicados, busquedaAplicada);
     document
       .querySelector(".tabla-panel")
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -771,7 +833,10 @@ const PlaysManagement = () => {
     return `${h}h ${m}min`;
   };
 
-  if (loading) {
+  // Solo la primera carga tapa la pantalla. En las siguientes (buscar, paginar,
+  // guardar) la lista anterior se queda visible pero atenuada, para que la
+  // pantalla no parpadee en blanco mientras se teclea.
+  if (loading && primeraCarga) {
     return (
       <div className="plays-container">
         <nav className="navbar navbar-expand-lg navbar-dark bg-dark w-100">
@@ -1206,119 +1271,134 @@ const PlaysManagement = () => {
             </div>
           )}
 
-          {/* ✅ Panel de Filtros */}
-          <div className="filtros-panel card mb-3">
-            <div className="card-header">
-              <span>🔍 Filtrar por Tiempo Pendiente</span>
-            </div>
-            <div className="card-body">
-              <div className="filtros-body">
-                {/* Switch */}
-                <div className="filtro-switch-wrapper">
-                  <div className="form-check form-switch mb-0">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      id="soloPendiente"
-                      checked={filtros.soloPendiente}
-                      onChange={(e) => {
-                        const nuevosFiltros = {
-                          ...filtros,
-                          soloPendiente: e.target.checked,
-                          minPendienteHoras: "",
-                          minPendienteMinutos: "",
-                        };
-                        setFiltros(nuevosFiltros);
-                        // Al ser un toggle binario, aplica inmediatamente sin necesitar "Buscar"
-                        setFiltrosAplicados(nuevosFiltros);
-                        fetchPlays(1, nuevosFiltros);
-                      }}
-                    />
-                    <label className="form-check-label" htmlFor="soloPendiente">
-                      ⏳ Solo con pendiente
-                    </label>
-                  </div>
-                </div>
-
-                {/* Inputs mínimo */}
-                {!filtros.soloPendiente && (
-                  <div className="filtro-minimo-wrapper">
-                    <span className="filtro-label">Pendiente mínimo:</span>
-                    <div className="filtro-inputs-row">
-                      <div className="input-group filtro-input-group">
-                        <input
-                          type="number"
-                          className="form-control"
-                          min="0"
-                          max="12"
-                          placeholder="0"
-                          value={filtros.minPendienteHoras}
-                          onChange={(e) =>
-                            setFiltros((prev) => ({
-                              ...prev,
-                              minPendienteHoras: e.target.value,
-                            }))
-                          }
-                        />
-                        <span className="input-group-text">h</span>
-                      </div>
-                      <div className="input-group filtro-input-group">
-                        <input
-                          type="number"
-                          className="form-control"
-                          min="0"
-                          max="59"
-                          placeholder="0"
-                          value={filtros.minPendienteMinutos}
-                          onChange={(e) =>
-                            setFiltros((prev) => ({
-                              ...prev,
-                              minPendienteMinutos: e.target.value,
-                            }))
-                          }
-                        />
-                        <span className="input-group-text">min</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Botones */}
-                <div className="filtro-botones">
-                  <button
-                    className="btn-filtro-buscar"
-                    onClick={aplicarFiltros}
-                  >
-                    🔍 Buscar
-                  </button>
-                  <button
-                    className="btn-filtro-limpiar"
-                    onClick={limpiarFiltros}
-                    disabled={!hayFiltroActivo && !hayAlgoEscrito}
-                  >
-                    ✕ Limpiar
-                  </button>
-                </div>
-              </div>
-
-              {/* Badge filtro activo */}
-              {hayFiltroActivo && (
-                <div className="filtro-activo-badge">
-                  <span>
-                    ⚠️ Filtro activo —{" "}
-                    {filtrosAplicados.soloPendiente
-                      ? "Solo con tiempo pendiente"
-                      : `Pendiente ≥ ${minutosATexto(
-                          (parseInt(filtrosAplicados.minPendienteHoras) || 0) *
-                            60 +
-                            (parseInt(filtrosAplicados.minPendienteMinutos) ||
-                              0),
-                        )}`}{" "}
-                    · {paginacion.total} resultado(s)
-                  </span>
-                </div>
+          {/* 🔎 Barra de herramientas: buscar y filtrar en una sola tira.
+              Antes eran dos tarjetas apiladas (buscador + panel de filtros con
+              su encabezado) y se comían media pantalla del celular. */}
+          <div className="pm-barra">
+            <p className="pm-barra-titulo">🔍 Buscar y filtrar registros</p>
+            <div className="pm-buscador">
+              <span className="pm-buscador-icono" aria-hidden="true">🔍</span>
+              <input
+                type="search"
+                className="pm-buscador-input"
+                placeholder="Buscar cliente…"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                aria-label="Buscar plays por nombre de cliente"
+              />
+              {busqueda && (
+                <button
+                  type="button"
+                  className="pm-buscador-limpiar"
+                  onClick={limpiarBusqueda}
+                  aria-label="Limpiar búsqueda"
+                >
+                  ✕
+                </button>
               )}
             </div>
+
+            {/* Filtros como botones: se tocan, no se escriben */}
+            <div className="pm-chips">
+              <button
+                type="button"
+                className={`pm-chip pm-chip--filtro${filtros.soloPendiente ? " pm-chip--activo" : ""}`}
+                aria-pressed={filtros.soloPendiente}
+                onClick={() => {
+                  const nuevosFiltros = {
+                    ...filtros,
+                    soloPendiente: !filtros.soloPendiente,
+                    minPendienteHoras: "",
+                    minPendienteMinutos: "",
+                  };
+                  setFiltros(nuevosFiltros);
+                  // Al ser un toggle binario, aplica de una sin botón "Buscar"
+                  setFiltrosAplicados(nuevosFiltros);
+                  setMostrarMinimo(false);
+                  fetchPlays(1, nuevosFiltros, busquedaAplicada);
+                }}
+              >
+                ⏳ Solo con pendiente
+              </button>
+              <button
+                type="button"
+                className={`pm-chip pm-chip--filtro${mostrarMinimo ? " pm-chip--abierto" : ""}${minimoAplicado > 0 ? " pm-chip--activo" : ""}`}
+                aria-expanded={mostrarMinimo}
+                disabled={filtros.soloPendiente}
+                onClick={() => setMostrarMinimo((v) => !v)}
+              >
+                ⏱️ {minimoAplicado > 0 ? `Mínimo ${minutosATexto(minimoAplicado)}` : "Pendiente mínimo"}
+                <span className={`pm-flecha${mostrarMinimo ? " pm-flecha--abierta" : ""}`} aria-hidden="true">▾</span>
+              </button>
+              {(hayFiltroActivo || hayAlgoEscrito) && (
+                <button
+                  type="button"
+                  className="pm-chip pm-chip--limpiar"
+                  onClick={() => { setMostrarMinimo(false); limpiarFiltros(); }}
+                >
+                  ✕ Quitar filtros
+                </button>
+              )}
+            </div>
+
+            {/* Los campos de horas/minutos solo aparecen si se piden */}
+            {mostrarMinimo && !filtros.soloPendiente && (
+              <div className="pm-minimo">
+                <div className="pm-minimo-campo">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    max="12"
+                    placeholder="0"
+                    aria-label="Horas de pendiente mínimo"
+                    value={filtros.minPendienteHoras}
+                    onChange={(e) =>
+                      setFiltros((prev) => ({ ...prev, minPendienteHoras: e.target.value }))
+                    }
+                  />
+                  <span>h</span>
+                </div>
+                <div className="pm-minimo-campo">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    max="59"
+                    placeholder="0"
+                    aria-label="Minutos de pendiente mínimo"
+                    value={filtros.minPendienteMinutos}
+                    onChange={(e) =>
+                      setFiltros((prev) => ({ ...prev, minPendienteMinutos: e.target.value }))
+                    }
+                  />
+                  <span>min</span>
+                </div>
+                <button
+                  type="button"
+                  className="pm-chip pm-chip--aplicar"
+                  onClick={() => { aplicarFiltros(); setMostrarMinimo(false); }}
+                >
+                  Aplicar
+                </button>
+              </div>
+            )}
+
+            {/* Una sola línea de estado: qué se buscó y qué filtro está puesto */}
+            {(busquedaServidor || hayFiltroActivo) && (
+              <p className="pm-estado">
+                {fmtMiles(paginacion.total)} resultado{paginacion.total === 1 ? "" : "s"}
+                {busquedaServidor && <> para «{busquedaServidor}»</>}
+                {hayFiltroActivo && (
+                  <>
+                    {" · "}
+                    {filtrosAplicados.soloPendiente
+                      ? "solo con pendiente"
+                      : `pendiente ≥ ${minutosATexto(minimoAplicado)}`}
+                  </>
+                )}
+              </p>
+            )}
           </div>
 
           {/* Tabla */}
@@ -1326,22 +1406,34 @@ const PlaysManagement = () => {
             <div className="card-header bg-gradient-primary">
               <h5 className="mb-0 text-white">📋 Registros de Plays</h5>
             </div>
-            <div className="card-body p-0">
+            <div className={`card-body p-0${loading ? " lista-cargando" : ""}`}>
               {plays.length === 0 ? (
                 <div className="text-center py-5 text-muted">
                   <div className="mb-3">
                     <i className="fs-1">🎮</i>
                   </div>
                   <p className="fs-4 mb-2">
-                    {hayFiltroActivo
-                      ? "No hay registros con ese tiempo pendiente"
-                      : "No hay registros aún"}
+                    {busquedaAplicada
+                      ? `No hay plays de «${busquedaAplicada}»`
+                      : hayFiltroActivo
+                        ? "No hay registros con ese tiempo pendiente"
+                        : "No hay registros aún"}
                   </p>
-                  <small>
-                    {hayFiltroActivo
-                      ? "Prueba con otros valores o limpia el filtro"
-                      : "Agrega tu primer registro usando el botón superior"}
-                  </small>
+                  {busquedaAplicada ? (
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm mt-2"
+                      onClick={limpiarBusqueda}
+                    >
+                      ✕ Limpiar la búsqueda
+                    </button>
+                  ) : (
+                    <small>
+                      {hayFiltroActivo
+                        ? "Prueba con otros valores o limpia el filtro"
+                        : "Agrega tu primer registro usando el botón superior"}
+                    </small>
+                  )}
                 </div>
               ) : (
                 <div className="table-responsive">

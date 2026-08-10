@@ -642,3 +642,299 @@
     width: 50px;
   }
 }
+
+/* ── Tarjeta "Clientes que más jugaron" (punto 3) ──────────────────────────── */
+.rp-cliente-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rp-cliente-sub {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rp-ver-todos {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border: none;
+  border-top: 1px solid #f3f4f6;
+  background: transparent;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 0 0 8px 8px;
+  transition: background 0.15s;
+}
+.rp-ver-todos:hover { background: #f8fafc; }
+
+/* ── Ranking de clientes (punto 2) ─────────────────────────────────────────── */
+
+/* Chips del selector de periodo y de orden: pensados para el dedo */
+.rp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.rp-chips--sub,
+.rp-chips--orden { margin-bottom: 12px; }
+
+.rp-chip {
+  min-height: 42px;
+  padding: 9px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.rp-chip:hover { background: #f3f4f6; }
+.rp-chip--num { min-width: 52px; }
+.rp-chip--activo {
+  background: #1e3a8a;
+  border-color: #1e3a8a;
+  color: #ffffff;
+}
+.rp-chip--activo:hover { background: #1e40af; }
+.rp-chip--orden.rp-chip--activo {
+  background: #047857;
+  border-color: #047857;
+}
+
+/* Qué periodo se está viendo, en palabras */
+.rp-periodo-etiqueta {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 12px;
+}
+
+/* Rango de fechas personalizado */
+.rp-fechas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.rp-fecha-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 140px;
+}
+.rp-fecha-campo span {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+}
+.rp-fecha-campo input {
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1f2937;
+  background: #ffffff;
+}
+.rp-fecha-campo input:focus { outline: none; border-color: #1e3a8a; }
+
+/* Buscador del ranking */
+.rp-buscador {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 0 8px 0 12px;
+  margin-bottom: 12px;
+  background: #ffffff;
+}
+.rp-buscador:focus-within { border-color: #1e3a8a; }
+.rp-buscador-icono { color: #9ca3af; flex-shrink: 0; }
+.rp-buscador-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  padding: 11px 0;
+  color: #1f2937;
+}
+.rp-buscador-input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.rp-buscador-limpiar {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 13px;
+  cursor: pointer;
+}
+.rp-buscador-limpiar:hover { background: #e5e7eb; }
+
+/* Totales del periodo completo */
+.rp-rank-totales {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 0;
+  border-top: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f3f4f6;
+}
+.rp-rank-total { text-align: center; }
+.rp-rank-total-val {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2937;
+  overflow-wrap: anywhere;
+}
+.rp-rank-total-lbl {
+  display: block;
+  font-size: 10px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+@media (max-width: 480px) {
+  .rp-rank-totales { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.rp-rank-aviso {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0 0 10px;
+}
+
+/* Lista completa: sin paginar. Si es larga, hace scroll dentro de la tarjeta. */
+.rp-rank-lista {
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.rp-rank-item { border-bottom: 1px solid #f3f4f6; }
+.rp-rank-item:last-child { border-bottom: none; }
+.rp-rank-item--podio { background: #fffdf5; }
+
+.rp-rank-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 6px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+.rp-rank-fila:hover { background: #f8fafc; }
+.rp-rank-pos {
+  font-size: 18px;
+  width: 28px;
+  flex-shrink: 0;
+  text-align: center;
+  line-height: 1;
+}
+.rp-rank-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.rp-rank-nombre {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rp-rank-datos {
+  font-size: 12px;
+  color: #6b7280;
+  overflow-wrap: anywhere;
+}
+.rp-rank-flecha {
+  flex-shrink: 0;
+  color: #9ca3af;
+  transition: transform 0.2s ease;
+}
+.rp-rank-flecha--abierta { transform: rotate(180deg); }
+
+/* Detalle desplegable */
+.rp-rank-detalle {
+  padding: 4px 6px 14px 44px;
+}
+.rp-rank-datos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px 14px;
+}
+.rp-rank-dato {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.rp-rank-dato-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9ca3af;
+}
+.rp-rank-dato-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  overflow-wrap: anywhere;
+}
+.rp-rank-juegos { margin-top: 12px; }
+.rp-rank-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 5px;
+}
+.rp-rank-chip-juego {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  color: #374151;
+  background: #f3f4f6;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+.rp-rank-chip-juego strong { color: #1e3a8a; }
+
+@media (max-width: 480px) {
+  .rp-rank-detalle { padding-left: 12px; }
+}
+
+/* Vacío */
+.rp-rank-vacio {
+  text-align: center;
+  padding: 1.5rem 0 0.5rem;
+}
+.rp-rank-vacio p {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
