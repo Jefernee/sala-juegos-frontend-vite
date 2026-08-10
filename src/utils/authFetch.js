@@ -43,7 +43,7 @@ const irALogin = (aviso) => {
 
 // Traduce la respuesta del middleware a una acción de navegación.
 // Devuelve el mensaje que se usará para el ErrorDeSesion.
-const manejarNoAutorizado = (status, data) => {
+const manejarNoAutorizado = (status, data, url) => {
   const code = data?.code;
 
   if (status === 403 && code === "ROL_NO_AUTORIZADO") {
@@ -66,6 +66,17 @@ const manejarNoAutorizado = (status, data) => {
     }
     // NO_TOKEN / EMPTY_TOKEN / INVALID_TOKEN_FORMAT: no hay sesión válida que
     // cerrar, solo hay que mandar al login.
+    //
+    // Ojo: esto NO es una sesión vencida (eso es EXPIRED_TOKEN, arriba). Como
+    // authFetch siempre adjunta el header cuando hay token, un NO_TOKEN que
+    // venga del servidor significa que alguna llamada se hizo por fuera de este
+    // helper. Lo dejamos anotado en consola para poder encontrarla, en vez de
+    // que parezca "se deslogueó sola".
+    console.error(
+      `[authFetch] ${code}: el backend dice que no le llegó el token. ` +
+        `Si estás logueado, hay una llamada hecha con fetch/axios a mano, ` +
+        `por fuera de authFetch. URL: ${url}`,
+    );
     const aviso = "Tenés que iniciar sesión para ver esta pantalla.";
     irALogin(aviso);
     return aviso;
@@ -99,7 +110,7 @@ export async function authFetch(url, opts = {}) {
 
   if (res.status === 401 || res.status === 403) {
     const data = await res.json().catch(() => ({}));
-    const mensaje = manejarNoAutorizado(res.status, data);
+    const mensaje = manejarNoAutorizado(res.status, data, url);
     throw new ErrorDeSesion(mensaje, data?.code);
   }
 

@@ -5,8 +5,12 @@ import {
   ReceiptText, Layers, ArrowUp, ArrowDown,
   BarChart2, Percent, CircleDollarSign
 } from "lucide-react";
+import { authFetchJson } from "../utils/authFetch";
 import "../styles/ReportesVentas.css";
 
+// Todo /api/ventas-reports exige token. Las llamadas pasan por authFetchJson
+// (el mismo cliente que usan monthly-reports), no por fetch a mano: así el día
+// que cambie la forma de guardar el token, no hay que acordarse de este archivo.
 const API_URL = import.meta.env.VITE_API_URL + "/api/ventas-reports";
 const MESES       = ["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const MESES_SHORT = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
@@ -354,24 +358,26 @@ export default function ReportesVentas() {
   const [error,       setError]       = useState(null);
 
   useEffect(() => {
-    fetch(`${API_URL}/anos-disponibles`).then((r)=>r.json()).then((d)=>{ if(d.años?.length) setAños(d.años); }).catch(()=>{});
+    authFetchJson(`${API_URL}/anos-disponibles`)
+      .then((d) => { if (d.años?.length) setAños(d.años); })
+      .catch(() => {});
   }, []);
 
   const cargarDatos = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       if (selectedMes === 0) {
-        const r = await fetch(`${API_URL}/${selectedAño}`);
-        const d = await r.json();
+        const d = await authFetchJson(`${API_URL}/${selectedAño}`);
         if (!d.ok) throw new Error();
         setData({ tipo:"anual", payload:d });
       } else {
-        const r = await fetch(`${API_URL}/${selectedAño}/${selectedMes}`);
-        if (!r.ok) throw new Error();
-        const d = await r.json();
+        const d = await authFetchJson(`${API_URL}/${selectedAño}/${selectedMes}`);
         setData({ tipo:"mensual", payload:d.reporte });
       }
-    } catch {
+    } catch (e) {
+      // Sesión vencida o sin permiso: authFetch ya está redirigiendo, así que
+      // no pintamos el error sobre una pantalla que está por desaparecer.
+      if (e?.esSesion) return;
       setError("No hay datos para este período todavía.");
       setData(null);
     } finally { setLoading(false); }
