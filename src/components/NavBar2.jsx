@@ -5,6 +5,12 @@ import "../styles/NavBar2.css";
 
 // Cada ítem del menú declara su `modulo`, que decide si el rol actual lo ve.
 // El vendedor solo ve "sales" y "plays"; administrador y colaborador ven todo.
+//
+// La barra tiene una ranura (`children`) para que una pantalla ponga un atajo
+// suyo al lado del nombre, en vez de gastar una fila propia debajo. La usa
+// Ventas con el historial: en el celular esa fila es una hilera de productos
+// menos, y acá arriba el botón no cuesta nada porque la barra ya existía. Las
+// demás pantallas no pasan nada y la barra se ve igual que siempre.
 const ITEMS = [
   { to: "/dashboard/administracion", modulo: "administracion", label: "🏦 Administración" },
   { to: "/dashboard/plays", modulo: "plays", label: "🎮 Control de Plays" },
@@ -14,7 +20,7 @@ const ITEMS = [
   { to: "/dashboard/manage-products", modulo: "manageProducts", label: "⚙️ Gestionar Productos" },
 ];
 
-const Navbar = () => {
+const Navbar = ({ children }) => {
   const navClass = ({ isActive }) =>
     isActive ? "nav-link active" : "nav-link";
 
@@ -26,6 +32,8 @@ const Navbar = () => {
         <NavLink className="navbar-brand fw-bold" to="/">
           🎮 Sala de Juegos Ruiz
         </NavLink>
+
+        {children && <div className="navbar-ranura">{children}</div>}
 
         <button
           className="navbar-toggler"

@@ -1,0 +1,17 @@
+/* src/styles/NavBar2.css
+ *
+ * La barra del panel es Bootstrap casi entero. Lo único propio es la ranura: el
+ * hueco al lado del nombre donde una pantalla pone un atajo suyo en vez de
+ * abrirse una fila aparte debajo. Hoy la usa Ventas con el historial.
+ */
+
+/* `margin-right: auto` es lo que la mantiene pegada al nombre: el contenedor de
+   Bootstrap reparte el espacio con `space-between`, y sin esto el atajo se iba
+   solo al centro de la barra, lejos del título al que pertenece. */
+.navbar-ranura {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.6rem;
+  margin-right: auto;
+}

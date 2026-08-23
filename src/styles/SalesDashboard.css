@@ -88,19 +88,6 @@
   background-attachment: fixed;
 }
 
-/* Buscador y historial comparten la línea: el buscador se lleva todo el ancho
-   que sobra y el botón se queda con su cuadrado a la derecha. */
-.buscador-fila {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.buscador-fila .buscador {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
 /* Escondido en móvil (se enciende en el bloque de escritorio, más abajo).
    Celeste parejo, no el gris de los demás módulos: el degradado slate de
    .admin-page-title se pierde contra el fondo. Un color plano y no un degradado
@@ -139,7 +126,31 @@
   border-color: var(--tinta-3);
 }
 
-/* ─── Buscador ─────────────────────────────────────────────────────────────── */
+/* ─── En la barra de arriba ────────────────────────────────────────────────── */
+
+/* El historial ya no tiene fila propia: va en la ranura de la barra del panel,
+   al lado del nombre. Ahí el fondo es el #212529 de Bootstrap y no el degradado
+   de la pantalla, así que el relleno del sistema (blanco al 4 %) desaparece;
+   esta variante le sube el contraste lo justo para que se lea como un botón. */
+.sales-hist--barra {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.sales-hist--barra:hover,
+.sales-hist--barra:focus-visible {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ─── Buscador (sin montar hoy) ────────────────────────────────────────────────
+ *
+ * El campo se quitó de la pantalla por espacio, no porque buscar estuviera mal:
+ * la fila que ocupaba era permanente y pegajosa. La lógica de filtrado sigue
+ * viva en SalesDashboard.jsx, y estos estilos se conservan para poder volver a
+ * montar el `<input>` sin rehacerlos. Si dentro de un tiempo el buscador no
+ * volvió, esto se borra junto con aquella. */
 
 .buscador { position: relative; display: flex; }
 
@@ -156,10 +167,15 @@
 
 .buscador__input::placeholder { color: var(--tinta-3); }
 
+/* Al enfocar, el borde se aclara y nada más. Antes había un aro ámbar de 2 px:
+   en esta pantalla el ámbar significa "esto está en el pedido" (precios, chips,
+   tarjeta agregada), así que un aro ámbar alrededor del campo decía algo que no
+   era, y dentro de la barra oscura resaltaba más que el producto que se estaba
+   por cobrar. Sigue habiendo señal de foco —el borde—, que es lo que necesita
+   quien navega con teclado. */
 .buscador__input:focus-visible {
-  outline: 2px solid var(--acento);
-  outline-offset: 1px;
-  border-color: var(--acento);
+  outline: none;
+  border-color: var(--tinta-3);
 }
 
 .buscador__lupa {

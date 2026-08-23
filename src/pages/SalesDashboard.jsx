@@ -92,6 +92,15 @@ const SalesDashboard = () => {
   const [error, setError] = useState(null);
 
   const [vista, setVista] = useState(VISTA_TOP);
+  // El campo de búsqueda se quitó de la pantalla, pero la lógica se conserva
+  // entera y funcionando: `busqueda` sigue filtrando la parrilla (ver `visibles`),
+  // el rótulo sigue sabiendo decir "3 resultados para «coca»" y el estado vacío
+  // sigue ofreciendo "Ver todo". Hoy nadie escribe acá, así que el valor es
+  // siempre "".
+  //
+  // Para devolverlo hay que volver a montar el `<input>` que lo alimente y
+  // encender de nuevo el bloque `.buscador` de SalesDashboard.css. Se dejó así a
+  // propósito: quitar la fila era por espacio, no porque buscar estuviera mal.
   const [busqueda, setBusqueda] = useState("");
   const [tope, setTope] = useState(LOTE);
 
@@ -449,10 +458,27 @@ const SalesDashboard = () => {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  // El historial va en la barra de arriba, al lado del nombre, en vez de tener
+  // una fila propia acá abajo: esa fila era permanente y pegajosa, y en el
+  // celular vale un cuarto de hilera de productos. Arriba no cuesta nada porque
+  // la barra ya existía.
+  //
+  // En una variable porque la pantalla de carga monta la MISMA barra: si ahí
+  // faltara el botón, la cabecera daría un salto al terminar de cargar.
+  const controlesBarra = puedeVerModulo("salesHistory") ? (
+    <Link
+      to="/sales-history"
+      className="sales-hist sales-hist--barra"
+      title="Historial de ventas"
+    >
+      📊
+    </Link>
+  ) : null;
+
   if (loading) {
     return (
       <div className="sales-container">
-        <Navbar />
+        <Navbar>{controlesBarra}</Navbar>
         <div className="sales-cargando">
           <div className="spinner-border text-light" role="status">
             <span className="visually-hidden">Cargando productos…</span>
@@ -594,7 +620,7 @@ const SalesDashboard = () => {
 
   return (
     <div className="sales-container">
-      <Navbar />
+      <Navbar>{controlesBarra}</Navbar>
 
       <div className="sales-cuerpo">
         <header className="sales-head">
@@ -602,41 +628,6 @@ const SalesDashboard = () => {
               entera para decir algo que el menú de arriba ya dice, y esa fila es
               una hilera de productos menos. */}
           <h1 className="sales-titulo">Ventas</h1>
-
-          <div className="buscador-fila">
-            <div className="buscador">
-              <span className="buscador__lupa" aria-hidden="true">⌕</span>
-              <input
-                type="search"
-                className="buscador__input"
-                placeholder="Buscar producto (opcional)"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                inputMode="search"
-                autoComplete="off"
-                aria-label="Buscar producto"
-              />
-              {busqueda && (
-                <button
-                  type="button"
-                  className="buscador__limpiar"
-                  onClick={() => setBusqueda("")}
-                  aria-label="Limpiar búsqueda"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {/* El historial es un módulo de reportes: el vendedor no lo ve. Y es
-                una salida, no una acción de venta, así que va al final de la
-                línea y no compite con las tarjetas por atención. */}
-            {puedeVerModulo("salesHistory") && (
-              <Link to="/sales-history" className="sales-hist" title="Historial de ventas">
-                📊
-              </Link>
-            )}
-          </div>
 
           <div className={"chips-wrap" + (chipsNav.izq ? " hay-izq" : "") + (chipsNav.der ? " hay-der" : "")}>
             <div className="chips" ref={chipsRef} onScroll={medirChips} role="group" aria-label="Categorías">
