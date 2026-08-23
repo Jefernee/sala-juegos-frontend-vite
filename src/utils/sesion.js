@@ -6,9 +6,22 @@
 // el 403 de rol pero ignoraba los 401, así que una sesión vencida dejaba la
 // pantalla con un error genérico en vez de mandar al login. Esta es la única
 // implementación; los dos caminos la usan.
+//
+// REGLA (el token dura 10 años, la sesión ya no vence por tiempo):
+// un 401 NO cierra la sesión. La sesión se borra únicamente cuando el backend
+// dice explícitamente por qué el token dejó de servir:
+//   · SESION_CERRADA  → el administrador cortó las sesiones
+//   · INVALID_TOKEN   → el token no es válido para este servidor
+//   · EXPIRED_TOKEN   → el token venció (no debería pasar con 10 años, pero si
+//                       el backend lo dice, se le cree)
+// Cualquier otro 401 (un endpoint que pide algo más, un módulo que responde mal,
+// el login con la contraseña equivocada) se trata como error normal y lo muestra
+// la pantalla. Borrar el token por un 401 suelto es lo que hacía que la app
+// "pidiera login sola".
+
+import { getToken } from "./auth";
 
 const RUTA_LOGIN = "/login";
-const RUTA_VENTAS = "/dashboard/sales";
 
 // Códigos que manda el middleware de autenticación del backend.
 // No llegó el header (o llegó mal armado): no hay sesión que cerrar.
@@ -17,13 +30,35 @@ export const CODIGOS_SIN_TOKEN = [
   "EMPTY_TOKEN",
   "INVALID_TOKEN_FORMAT",
 ];
-// El token existe pero ya no sirve: hay que borrar la sesión guardada.
-export const CODIGOS_SESION_VENCIDA = ["INVALID_TOKEN", "EXPIRED_TOKEN"];
-// El dueño cortó las sesiones desde Administración. No es que el token venciera:
-// se invalidó a propósito, y el aviso tiene que decir eso — si dijera "expiró",
-// el vendedor pensaría que es una falla y volvería a entrar esperando lo mismo.
+// El dueño cortó las sesiones desde Administración. El aviso tiene que decir
+// eso — si dijera "expiró", el vendedor pensaría que es una falla del sistema.
 export const CODIGO_SESION_CERRADA = "SESION_CERRADA";
+export const CODIGO_TOKEN_INVALIDO = "INVALID_TOKEN";
+export const CODIGO_TOKEN_VENCIDO = "EXPIRED_TOKEN";
 export const CODIGO_ROL = "ROL_NO_AUTORIZADO";
+
+// Los únicos códigos que justifican borrar la sesión guardada.
+export const CODIGOS_QUE_CIERRAN_SESION = [
+  CODIGO_SESION_CERRADA,
+  CODIGO_TOKEN_INVALIDO,
+  CODIGO_TOKEN_VENCIDO,
+];
+
+export const AVISO_SESION_CERRADA =
+  "El administrador cerró las sesiones. Iniciá sesión de nuevo.";
+export const AVISO_TOKEN_VENCIDO = "Tu sesión venció, volvé a entrar.";
+export const AVISO_TOKEN_INVALIDO = "Tu sesión ya no es válida, volvé a entrar.";
+
+/** ¿Este `code` del backend obliga a cerrar la sesión? */
+export const cierraLaSesion = (code) =>
+  CODIGOS_QUE_CIERRAN_SESION.includes(code);
+
+/** El aviso que va a ver el usuario en el login, según por qué salió. */
+export const avisoDeCierre = (code) => {
+  if (code === CODIGO_SESION_CERRADA) return AVISO_SESION_CERRADA;
+  if (code === CODIGO_TOKEN_VENCIDO) return AVISO_TOKEN_VENCIDO;
+  return AVISO_TOKEN_INVALIDO;
+};
 
 // El backend no nombra igual el mensaje en todos lados: unos módulos responden
 // { ok: false, mensaje }, el middleware de auth { error, code } y los de
@@ -54,50 +89,46 @@ const irALogin = (aviso) => {
 /**
  * Decide qué hacer con una respuesta 401/403 y ejecuta la navegación.
  *
- * Solo actúa si el `code` es uno de los del middleware de autenticación. Un 401
- * sin `code` conocido se deja pasar tal cual — el caso típico es la contraseña
- * equivocada en el login, que debe mostrar su mensaje en la pantalla y no
- * disparar una redirección ni borrar nada.
- *
  * @returns {{ manejado: boolean, mensaje: string｜null }}
  */
 export const manejarNoAutorizado = (status, data, url = "") => {
   const code = data?.code;
 
   if (status === 403 && code === CODIGO_ROL) {
-    // Un vendedor entrando donde no le toca: aviso de una sola vez y a Ventas.
-    const mensaje = "No tenés permiso para este módulo.";
-    sessionStorage.setItem("accesoDenegado", mensaje);
-    if (window.location.pathname !== RUTA_VENTAS) {
-      window.location.replace(RUTA_VENTAS);
-    }
-    return { manejado: true, mensaje };
+    // El rol lo decide el backend en cada petición, así que este 403 puede
+    // llegarle a alguien a quien acaban de degradar mientras trabajaba, en una
+    // pantalla que su menú todavía le muestra. No se cierra la sesión ni se lo
+    // saca de donde está: se devuelve `manejado: false` para que la pantalla
+    // pinte el mensaje del backend como cualquier otro error. Sacarlo con un
+    // `location.replace` en medio de una venta le haría perder lo que estaba
+    // haciendo, y encima parecería una falla del sistema.
+    // Quien entra por URL a un módulo que no le toca lo sigue frenando
+    // RequireRol, que decide con el rol recién traído de /api/auth/verify.
+    return { manejado: false, mensaje: null };
   }
 
-  if (status === 401 && code === CODIGO_SESION_CERRADA) {
-    const mensaje = "Se cerraron las sesiones. Iniciá sesión de nuevo.";
-    localStorage.clear();
-    irALogin(mensaje);
-    return { manejado: true, mensaje };
-  }
-
-  if (status === 401 && CODIGOS_SESION_VENCIDA.includes(code)) {
-    const mensaje = "Tu sesión expiró, volvé a entrar.";
+  if (status === 401 && cierraLaSesion(code)) {
+    const mensaje = avisoDeCierre(code);
     localStorage.clear();
     irALogin(mensaje);
     return { manejado: true, mensaje };
   }
 
   if (status === 401 && CODIGOS_SIN_TOKEN.includes(code)) {
-    // Esto NO es una sesión vencida: es que la petición salió sin el header.
-    // Como los dos clientes lo adjuntan siempre, ver este código significa que
-    // alguna llamada se hizo por fuera. Se anota la URL para poder encontrarla,
-    // en vez de que parezca que la app "se desloguea sola".
-    console.error(
-      `[sesion] ${code}: al backend no le llegó el token. Si hay sesión ` +
-        `iniciada, esa llamada está hecha con fetch/axios a mano, por fuera ` +
-        `de authFetch o del axios central. URL: ${url}`,
-    );
+    // Esto NO es una sesión inválida: es que la petición salió sin el header.
+    if (getToken()) {
+      // Hay sesión guardada, así que la llamada está hecha por fuera de
+      // authFetch o del axios central. Se anota para poder encontrarla, pero no
+      // se toca la sesión: sacar al usuario por un bug de una pantalla es
+      // exactamente el "se desloguea solo" que estamos corrigiendo.
+      console.error(
+        `[sesion] ${code}: al backend no le llegó el token pese a haber ` +
+          `sesión iniciada. Esa llamada está hecha con fetch/axios a mano, ` +
+          `por fuera de authFetch o del axios central. URL: ${url}`,
+      );
+      return { manejado: false, mensaje: null };
+    }
+    // De verdad no hay token guardado: acá sí corresponde el login.
     const mensaje = "Tenés que iniciar sesión para ver esta pantalla.";
     irALogin(mensaje);
     return { manejado: true, mensaje };

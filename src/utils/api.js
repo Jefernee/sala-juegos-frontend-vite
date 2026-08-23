@@ -33,16 +33,24 @@ axios.interceptors.response.use(null, async (error) => {
 // ── Sesión y permisos (401 / 403) ────────────────────────────────────────────
 // Red de seguridad para todas las llamadas por axios (ventas, plays, productos,
 // administración). Delega en src/utils/sesion.js, la misma lógica que usa
-// authFetch, para que un token vencido se comporte igual venga por donde venga:
-//   403 ROL_NO_AUTORIZADO         → de vuelta a Ventas
-//   401 INVALID_TOKEN/EXPIRED     → cerrar sesión y al login
-//   401 NO_TOKEN/EMPTY/FORMAT     → al login (y queda anotado en consola)
-// Un 401 sin `code` conocido no se toca: es el caso de la contraseña equivocada
-// en el login, que tiene que mostrar su mensaje en la pantalla.
+// authFetch, para que la sesión se comporte igual venga por donde venga:
+//   401 SESION_CERRADA/INVALID/EXPIRED → cerrar sesión y al login
+//   401 NO_TOKEN/EMPTY/FORMAT sin token guardado → al login
+//   todo lo demás (incluido el 403 ROL_NO_AUTORIZADO) → error normal de la
+//   pantalla, sin tocar la sesión.
+// Cuando sesion.js sí se hizo cargo, el error queda marcado con `esSesion` para
+// que las pantallas no pinten un banner encima de una navegación en curso. Se
+// marca el error en vez de mirar el status: un 403 ahora se muestra, y las
+// pantallas no tienen por qué saber cuál de los dos casos es.
 axios.interceptors.response.use(null, (error) => {
   const status = error?.response?.status;
   if (status === 401 || status === 403) {
-    manejarNoAutorizado(status, error.response?.data, error.config?.url);
+    const { manejado } = manejarNoAutorizado(
+      status,
+      error.response?.data,
+      error.config?.url,
+    );
+    if (manejado) error.esSesion = true;
   }
   return Promise.reject(error);
 });

@@ -70,11 +70,13 @@ const SalesHistory = () => {
         setCurrentPage(page);
       } catch (error) {
         console.error("❌ Error al cargar ventas:", error);
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          alert("⚠️ Sesión expirada. Por favor inicia sesión nuevamente.");
-        } else {
-          alert("Error al cargar el historial de ventas.");
-        }
+        // El 401 que sí cierra sesión lo maneja el interceptor de axios; acá
+        // no se habla de sesión expirada (el token no vence).
+        alert(
+          [401, 403].includes(error.response?.status)
+            ? "⚠️ El servidor no autorizó ver el historial de ventas."
+            : "Error al cargar el historial de ventas.",
+        );
       } finally {
         setLoading(false);
         setBuscando(false);

@@ -9,7 +9,7 @@ import ActivosPanel from "../components/admin/ActivosPanel";
 import UsuariosPanel from "../components/admin/UsuariosPanel";
 import TorneosPanel from "../components/admin/TorneosPanel";
 import FinanzasPersonalesPanel from "../components/admin/FinanzasPersonalesPanel";
-import { mensajeDeError } from "../utils/sesion";
+import { mensajeDeError, cierraLaSesion } from "../utils/sesion";
 import { puedeGestionarUsuarios, esAdministrador } from "../utils/auth";
 import "../styles/Administracion.css";
 
@@ -61,16 +61,17 @@ const Administracion = () => {
     toastTimer.current = setTimeout(() => setNotificacion(null), 4000);
   }, []);
 
-  // Manejo centralizado de errores: 401 → limpiar sesión y redirigir al login;
-  // resto → toast con el message del backend (o mensaje genérico de conexión)
+  // Manejo centralizado de errores: el 401 que de verdad cierra la sesión
+  // (SESION_CERRADA / INVALID_TOKEN) ya lo resolvió el interceptor de axios
+  // —borró el token y está yendo al login—, así que acá solo hay que callarse
+  // para no pintar un toast encima de la navegación. Cualquier otro 401 es un
+  // error del módulo y se muestra como tal: antes esta pantalla borraba la
+  // sesión ante CUALQUIER 401, y eso sacaba al dueño de Administración por un
+  // endpoint que respondía mal.
   const manejarError = useCallback(
     (error) => {
-      if (error?.response?.status === 401) {
-        localStorage.clear();
-        sessionStorage.clear();
-        navigate("/login");
-        return;
-      }
+      const status = error?.response?.status;
+      if (status === 401 && cierraLaSesion(error?.response?.data?.code)) return;
       // El nombre del mensaje cambia según el endpoint (`mensaje`, `error` o
       // `message`): leerlos todos evita que el genérico de conexión tape lo que
       // el backend ya explicaba bien.
@@ -79,7 +80,7 @@ const Administracion = () => {
         "error",
       );
     },
-    [navigate, mostrarNotif],
+    [mostrarNotif],
   );
 
   const propsComunes = { getAuthHeaders, mostrarNotif, manejarError };

@@ -82,11 +82,15 @@ const ManageProducts = () => {
         setTotalProducts(pagination.totalProducts);
       } catch (error) {
         console.error("Error al cargar productos:", error);
-        if (error.response?.status === 401) {
-          alert("Sesión expirada. Por favor inicia sesión nuevamente.");
-        } else {
-          alert("Error al cargar productos.");
-        }
+        // Si el 401 fuera de los que cierran la sesión, el interceptor de
+        // axios ya estaría yendo al login. Acá no se afirma "sesión expirada":
+        // el token no vence, y decirlo mandaba al usuario a re-loguearse por
+        // un error que era de otra cosa.
+        alert(
+          error.response?.status === 401
+            ? "El servidor no autorizó la consulta de productos."
+            : "Error al cargar productos.",
+        );
       } finally {
         setLoading(false);
         setSearching(false);
@@ -205,11 +209,11 @@ const ManageProducts = () => {
       alert(`"${nombre}" fue eliminado correctamente.`);
     } catch (error) {
       console.error("Error al eliminar:", error);
-      if (error.response?.status === 401) {
-        alert("Sesión expirada. Por favor inicia sesión nuevamente.");
-      } else {
-        alert("Error al eliminar el producto.");
-      }
+      alert(
+        error.response?.status === 401
+          ? "El servidor no autorizó eliminar el producto."
+          : "Error al eliminar el producto.",
+      );
     } finally {
       setProcessing(null);
     }

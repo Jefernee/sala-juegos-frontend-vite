@@ -20,16 +20,56 @@
 //   mostrara el login, cada apertura de la app con sesión buena arrancaría con
 //   un parpadeo de "iniciá sesión" que no es cierto.
 //
-// · Si la pregunta no se puede hacer (sin internet, backend dormido), la sesión
-//   se deja pasar. Sacar al vendedor del mostrador porque falló el wifi sería
-//   peor que el problema que se está evitando: si el token de verdad no sirve,
-//   la primera petición real lo va a descubrir igual.
+// · Si la pregunta no se puede hacer (sin internet, backend dormido, /verify
+//   respondiendo cualquier otra cosa), la sesión se deja pasar. Sacar al
+//   vendedor del mostrador porque falló el wifi sería peor que el problema que
+//   se está evitando.
+//
+// · La sesión SOLO se cierra si el backend dice por qué: code SESION_CERRADA,
+//   INVALID_TOKEN o EXPIRED_TOKEN. Antes bastaba con que /verify contestara 401
+//   o 403 —de ahí el login al abrir la app aunque el token siguiera bueno—. El
+//   token dura 10 años: sin uno de esos códigos no hay motivo para borrarlo, y
+//   el error inesperado del servidor ahora llega como 500, no como 401.
+//
+// · El rol que devuelve /verify es EL rol. El token ya no lo lleva adentro: el
+//   backend lo consulta al responder, así que esta respuesta es lo más fresco
+//   que hay. Se pisa el que estaba guardado antes de dar la sesión por válida,
+//   para que los menús se dibujen con el rol de ahora y no con el del login.
+//   Si degradan a alguien con la app abierta, su menú sigue igual hasta que la
+//   vuelva a abrir; lo que lo frena mientras tanto es el 403 del backend, que
+//   se muestra como un error normal (ver src/utils/sesion.js).
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { SesionContexto, ESTADO } from "../hocks/useSesion";
 import { getToken } from "../utils/auth";
+import { cierraLaSesion, avisoDeCierre } from "../utils/sesion";
 
 const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+
+/**
+ * Refresca el usuario guardado con lo que dice /verify.
+ *
+ * El rol puede venir dentro del usuario (`user.rol`) o suelto (`rol`); el suelto
+ * gana, porque es el que el backend acaba de consultar. Si solo llega el rol, se
+ * conserva el resto del usuario guardado en vez de descartarlo: perder el nombre
+ * o el email dejaría pantallas mostrando "—" sin ninguna razón.
+ */
+const guardarUsuario = (data) => {
+  const usuario = data?.user || data?.usuario;
+  const rol = data?.rol || usuario?.rol;
+  if (!usuario && !rol) return;
+
+  let guardado = {};
+  try {
+    guardado = JSON.parse(localStorage.getItem("user")) || {};
+  } catch {
+    guardado = {};
+  }
+
+  const actualizado = { ...guardado, ...(usuario || {}) };
+  if (rol) actualizado.rol = rol;
+  localStorage.setItem("user", JSON.stringify(actualizado));
+};
 
 const SesionProvider = ({ children }) => {
   // Lo verificado hasta ahora: qué token y si sirvió. null = todavía nada.
@@ -57,7 +97,8 @@ const SesionProvider = ({ children }) => {
     enVuelo.current = token;
 
     (async () => {
-      const cerrar = (aviso) => {
+      const cerrar = (aviso, code) => {
+        console.warn(`[sesion] se cierra la sesión por ${code}: ${aviso}`);
         localStorage.clear();
         sessionStorage.setItem("avisoSesion", aviso);
         setResultado({ token, valida: false });
@@ -70,30 +111,34 @@ const SesionProvider = ({ children }) => {
         });
 
         // `valid: false` con estado 200 sería una sesión rechazada sin error.
+        // Igual que en el catch: solo se cierra si el backend dice por qué.
         if (res.data?.valid === false) {
-          cerrar("Se cerró tu sesión. Iniciá sesión de nuevo.");
-          return;
+          const code = res.data?.code;
+          if (cierraLaSesion(code)) {
+            cerrar(avisoDeCierre(code), code);
+            return;
+          }
+          console.warn("/verify devolvió valid:false sin code; se deja pasar.");
         }
 
-        // El backend puede devolver el usuario actualizado: si el dueño le
-        // cambió el rol, se aplica al abrir en vez de quedar con el rol viejo
-        // guardado desde el login.
-        const usuario = res.data?.user || res.data?.usuario;
-        if (usuario) localStorage.setItem("user", JSON.stringify(usuario));
-
+        guardarUsuario(res.data);
         setResultado({ token, valida: true });
       } catch (err) {
         const status = err?.response?.status;
 
-        // 401/403: el token ya no sirve. Se maneja acá y no se confía en el
-        // interceptor global, porque la respuesta de /verify no trae el `code`
-        // que ese interceptor necesita para reaccionar.
-        if (status === 401 || status === 403) {
-          cerrar("Se cerró tu sesión. Iniciá sesión de nuevo.");
+        // Solo estos dos códigos cierran la sesión. Un 401 o 403 pelado de
+        // /verify (endpoint caído, proxy, permiso de otra cosa) NO borra nada:
+        // esa era la causa de que la app pidiera login al abrir.
+        const code = err?.response?.data?.code;
+        if ((status === 401 || status === 403) && cierraLaSesion(code)) {
+          cerrar(avisoDeCierre(code), code);
           return;
         }
 
-        console.warn("No se pudo verificar la sesión:", status || err?.message);
+        console.warn(
+          "No se pudo verificar la sesión, se deja pasar:",
+          code || status || err?.message,
+        );
         setResultado({ token, valida: true });
       } finally {
         if (enVuelo.current === token) enVuelo.current = null;

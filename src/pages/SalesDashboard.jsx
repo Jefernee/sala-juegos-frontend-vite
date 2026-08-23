@@ -36,6 +36,7 @@ import { Link } from "react-router-dom";
 import "../styles/SalesDashboard.css";
 import Navbar from "../components/NavBar2";
 import { puedeVerModulo } from "../utils/auth";
+import { mensajeDeError } from "../utils/sesion";
 import { resolverDisponibilidad } from "../utils/stock";
 import { formatearMonto } from "../constants/inventario";
 import { categoriaDe, categoriasConProductos, categoriaInfo } from "../constants/categorias";
@@ -124,16 +125,6 @@ const SalesDashboard = () => {
 
   useEffect(() => () => clearTimeout(avisoTimer.current), []);
 
-  // Si llegó acá por un 403 de rol (redirigido por el interceptor global), el
-  // aviso se muestra una sola vez.
-  useEffect(() => {
-    const msg = sessionStorage.getItem("accesoDenegado");
-    if (msg) {
-      sessionStorage.removeItem("accesoDenegado");
-      avisar("Sin permiso", msg);
-    }
-  }, [avisar]);
-
   const cargarProductos = useCallback(async ({ inicial = false } = {}) => {
     if (inicial) setLoading(true);
     try {
@@ -144,10 +135,16 @@ const SalesDashboard = () => {
       setError(null);
     } catch (err) {
       console.error("❌ Error al cargar productos:", err);
-      // Los 401/403 ya los maneja el interceptor global (sesion.js): está
-      // navegando a otra ruta, así que pintar un error acá sería ruido.
-      if (err?.esSesion || [401, 403].includes(err?.response?.status)) return;
-      setError("No se pudieron cargar los productos. Revisá la conexión.");
+      // `esSesion` = el interceptor global (sesion.js) ya está yendo al login;
+      // pintar un error sobre una navegación en curso sería ruido. Un 403 de
+      // rol NO viene marcado así: ese sí se muestra, con el texto del backend,
+      // porque puede ser alguien a quien acaban de degradar.
+      if (err?.esSesion) return;
+      setError(
+        err?.response?.status === 403
+          ? mensajeDeError(err.response?.data, "No tenés permiso para esto.")
+          : "No se pudieron cargar los productos. Revisá la conexión.",
+      );
     } finally {
       if (inicial) setLoading(false);
     }
@@ -442,7 +439,7 @@ const SalesDashboard = () => {
       cargarMasVendidos();
     } catch (err) {
       console.error("❌ Error al procesar la venta:", err);
-      if (err?.esSesion || [401, 403].includes(err?.response?.status)) return;
+      if (err?.esSesion) return;
       const detalle = err?.response?.data?.mensaje || err?.response?.data?.error;
       avisar("No se pudo cobrar", detalle || "La venta no quedó registrada. Probá de nuevo.");
     } finally {

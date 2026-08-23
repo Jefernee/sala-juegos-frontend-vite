@@ -510,7 +510,7 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
           ? `No se pudo guardar: ${errorData.error}`
           : "Hay algo mal en los datos. Revisá los campos.";
       case 401:
-        return "Se cerró tu sesión. Volvé a iniciar sesión.";
+        return "El servidor no autorizó guardar. Probá de nuevo.";
       case 403:
         return "No tenés permiso para hacer esto.";
       case 413:

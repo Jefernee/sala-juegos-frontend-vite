@@ -11,8 +11,8 @@ export default function Login() {
   const [aviso, setAviso] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Aviso de una sola vez que dejó authFetch al expulsar al usuario
-  // ("Tu sesión expiró, volvé a entrar."), para que sepa por qué volvió acá.
+  // Aviso de una sola vez que se dejó al cerrar la sesión ("El administrador
+  // cerró las sesiones..."), para que sepa por qué volvió acá.
   useEffect(() => {
     const msg = sessionStorage.getItem("avisoSesion");
     if (msg) {
