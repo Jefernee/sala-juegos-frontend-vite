@@ -10,9 +10,10 @@
 //
 // Dos cosas que definen cómo está escrito esto:
 //
-// · La lista de privilegios NO vive acá. Viene del backend (`soloVos`), que es
+// · Ni la lista de privilegios ni la explicación de cómo funciona la sesión
+//   viven acá. Vienen del backend (`soloVos` y `comoFuncionaLaSesion`), que es
 //   quien hace cumplir cada regla. Se recorre el arreglo y se pinta lo que
-//   llegue: si mañana se agrega o se quita un privilegio, esta pantalla lo
+//   llegue: si mañana cambia una regla o se agrega un punto, esta pantalla lo
 //   refleja sin que nadie la toque. Copiar esos textos al frontend garantizaría
 //   que algún día digan una cosa y el sistema haga otra.
 //
@@ -36,11 +37,11 @@ const ICONO_PRIVILEGIO = {
   crear_admin: "👑",
 };
 
-/** Un privilegio de la lista del backend. */
-const Privilegio = ({ item }) => (
+/** Un punto de cualquiera de las dos listas del backend: título y detalle. */
+const Punto = ({ item, icono }) => (
   <li className="privilegio">
     <span className="privilegio__icono" aria-hidden="true">
-      {ICONO_PRIVILEGIO[item.clave] || "🔒"}
+      {icono}
     </span>
     <span>
       <strong>{item.titulo}</strong>
@@ -48,6 +49,16 @@ const Privilegio = ({ item }) => (
     </span>
   </li>
 );
+
+/** Lista de puntos del backend, o nada si no llegó ninguno. */
+const ListaDePuntos = ({ items, icono }) =>
+  items.length === 0 ? null : (
+    <ul className="privilegios">
+      {items.map((item, i) => (
+        <Punto key={item.clave || i} item={item} icono={icono(item)} />
+      ))}
+    </ul>
+  );
 
 /**
  * El bloque completo: privilegios del dueño, el botón para exigirle el login a
@@ -78,6 +89,10 @@ export function BloqueAccesoDueno({ acceso, falla, cerrando, onCerrarTodas }) {
   }
 
   const privilegios = Array.isArray(acceso.soloVos) ? acceso.soloVos : [];
+  // Los cuatro puntos de cómo funciona la sesión, tal cual los manda el backend.
+  const comoFunciona = Array.isArray(acceso.comoFuncionaLaSesion)
+    ? acceso.comoFuncionaLaSesion
+    : [];
   const cortadas = Array.isArray(acceso.sesiones?.usuariosConSesionCerrada)
     ? acceso.sesiones.usuariosConSesionCerrada
     : [];
@@ -91,20 +106,29 @@ export function BloqueAccesoDueno({ acceso, falla, cerrando, onCerrarTodas }) {
       </div>
 
       <div className="admin-panel__body">
-        {privilegios.length > 0 && (
-          <ul className="privilegios">
-            {privilegios.map((p, i) => (
-              <Privilegio key={p.clave || i} item={p} />
-            ))}
-          </ul>
-        )}
+        <ListaDePuntos
+          items={privilegios}
+          icono={(p) => ICONO_PRIVILEGIO[p.clave] || "🔒"}
+        />
 
-        {/* La contracara de que nadie tenga que volver a entrar. El dueño tiene
-            que saberla: es la única razón por la que estos botones existen. */}
-        <div className="aviso-mes mt-3">
-          🔒 Nadie tiene que iniciar sesión de nuevo —ni vos ni el personal—, así
-          que un celular perdido con la app abierta mantiene el acceso. Si eso
-          pasa, exigí el login de nuevo desde acá.
+        {/* Cómo funciona la sesión: por qué nadie tiene que volver a entrar y
+            qué implica. El dueño tiene que saberlo —es la única razón por la que
+            existe el botón de abajo—, pero la regla la escribe quien la aplica.
+            Sección aparte de los privilegios: eso es lo que solo puede él, esto
+            es cómo se comporta el sistema con todos. */}
+        <div className="mt-4">
+          <label className="admin-label">Cómo funciona la sesión</label>
+          {comoFunciona.length > 0 ? (
+            <ListaDePuntos items={comoFunciona} icono={() => "🔒"} />
+          ) : (
+            // No se escribe acá una versión "de mientras" de la nota: dos textos
+            // sobre la misma regla terminan diciendo cosas distintas el día que
+            // la regla cambie. Se dice que falta, que es lo único cierto.
+            <div className="admin-hint">
+              ⏳ El servidor todavía no manda esta nota. Aparece sola en cuanto la
+              publique.
+            </div>
+          )}
         </div>
 
         {ultimoCorte && (
