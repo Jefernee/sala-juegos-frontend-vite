@@ -32,10 +32,16 @@ const ROL_INFO = {
 
 // Roles que el administrador puede asignar. Los 3 valores son los que acepta
 // el backend, tal cual (fuente de verdad del contrato).
+//
+// Dos etiquetas por rol: la larga explica y va en el modal de crear, donde hay
+// ancho de sobra. La corta va en el desplegable de cada tarjeta, que en móvil
+// mide ~330 px y cortaba la palabra a la mitad ("ve todos los módulo"). No se
+// pierde nada: qué puede hacer cada rol ya está explicado en el aviso de arriba
+// del panel.
 const ROLES_ASIGNABLES = [
-  { valor: "administrador", label: "👑 Administrador — control total" },
-  { valor: "colaborador", label: "🤝 Colaborador — ve todos los módulos" },
-  { valor: "vendedor", label: "🧾 Vendedor — solo Ventas y Control de Plays" },
+  { valor: "administrador", corto: "👑 Administrador", label: "👑 Administrador — control total" },
+  { valor: "colaborador", corto: "🤝 Colaborador", label: "🤝 Colaborador — ve todos los módulos" },
+  { valor: "vendedor", corto: "🧾 Vendedor", label: "🧾 Vendedor — solo Ventas y Control de Plays" },
 ];
 
 const getFormVacio = () => ({ nombre: "", email: "", password: "", rol: "colaborador" });
@@ -332,7 +338,7 @@ const UsuariosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
                           onChange={(e) => cambiarRol(u, e.target.value)}
                         >
                           {ROLES_ASIGNABLES.map((r) => (
-                            <option key={r.valor} value={r.valor}>{r.label}</option>
+                            <option key={r.valor} value={r.valor}>{r.corto}</option>
                           ))}
                         </select>
                         {cambiandoId === u._id && <span className="btn-spinner" />}

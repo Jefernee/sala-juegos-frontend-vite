@@ -761,7 +761,14 @@
   .mov-row__fecha   { grid-area: fecha; align-self: center; }
   .mov-row__acciones { grid-area: acciones; }
 
-  .accion-btn { width: 42px; height: 42px; }
+  /* Blanco de toque más grande en móvil, pero SOLO para los botones que son un
+     ícono. La variante con texto queda excluida a propósito: forzarle 42×42 la
+     dejaba cuadrada con la etiqueta desbordada por fuera —"Reasignar
+     contraseña" y "Exigirle el login otra vez" salían una palabra por línea,
+     encimándose con el rótulo de abajo—. Ahí el tamaño lo da el texto, y el
+     toque se garantiza con min-height. */
+  .accion-btn:not(.accion-btn--texto) { width: 42px; height: 42px; }
+  .accion-btn--texto { min-height: 42px; }
 }
 
 /* ─── PAGINACIÓN ───────────────────────────────────────────────────────────── */
