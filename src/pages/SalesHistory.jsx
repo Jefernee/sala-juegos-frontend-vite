@@ -458,6 +458,17 @@ const SalesHistory = () => {
                     "N/A"}
                 </span>
               </div>
+              {/* Las ventas viejas no tienen el campo: todas fueron en
+                  efectivo, así que se muestran así en vez de "N/A". Es el mismo
+                  criterio con el que el backend puso el default. */}
+              <div className="detalle-row">
+                <span className="detalle-label">Método de pago:</span>
+                <span className="detalle-value">
+                  {ventaSeleccionada.metodoPago === "sinpe"
+                    ? "📱 SINPE Móvil"
+                    : "💵 Efectivo"}
+                </span>
+              </div>
               <div className="detalle-row">
                 <span className="detalle-label">Monto Pagado:</span>
                 <span className="detalle-value">

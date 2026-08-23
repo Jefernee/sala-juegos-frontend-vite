@@ -1,786 +1,973 @@
 // src/pages/SalesDashboard.jsx
-import { useState, useEffect, useCallback, useRef } from "react";
+//
+// Pantalla de ventas. Pensada para el mostrador, con una mano, en el celular.
+//
+// Por qué es así:
+//
+// · Se abre en lo que más se vende, no en el inventario completo. En una sala
+//   así la mayoría de las ventas son las mismas diez cosas; esas van primero y
+//   sin teclado. El resto se alcanza por categoría, y "Todos" queda de último.
+//
+// · Buscar no sale a internet. `/api/products/para-venta` devuelve el inventario
+//   entero en la primera carga, así que filtrar es local: instantáneo, sin
+//   borrar la lista mientras llega la respuesta. Antes cada tecla disparaba una
+//   petición con 500 ms de espera, pidiendo datos que ya estaban en memoria.
+//
+// · La tarjeta entera es el botón. Antes el "+ Agregar" era el blanco más chico
+//   de la pantalla, dentro de una lista de 200 px de alto donde caben dos
+//   productos.
+//
+// · El pedido vive en una barra de 60 px con la cuenta, el total y Cobrar. El
+//   detalle se abre solo para corregir. Antes el carrito ocupaba media pantalla
+//   arriba, incluso vacío.
+//
+// · Cobrar pregunta cómo se paga y repasa la venta por nombres antes de
+//   registrarla. `montoPagado` y `vuelto` ya existían en el POST pero se
+//   mandaban en total/0 fijos: ahora se llenan de verdad y la pantalla calcula
+//   el vuelto. `metodoPago` es campo nuevo — si el backend no lo guarda todavía,
+//   lo ignora y el resto sigue funcionando igual.
+//
+// El carrito guarda { id: cantidad }, no copias de los productos. El producto
+// siempre se lee de la lista que vino del backend, así que el stock del carrito
+// no puede quedar desfasado del stock real.
+
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import "../styles/SalesDashboard.css";
 import Navbar from "../components/NavBar2";
 import { puedeVerModulo } from "../utils/auth";
 import { resolverDisponibilidad } from "../utils/stock";
 import { formatearMonto } from "../constants/inventario";
+import { categoriaDe, categoriasConProductos, categoriaInfo } from "../constants/categorias";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-// Lazy load de axios solo cuando se necesite
+// Lazy load de axios solo cuando se necesite. Los interceptores de
+// src/utils/api.js (timeout, reintento, 401/403) aplican igual: axios es un
+// singleton de módulo.
 let axiosModule = null;
 const getAxios = async () => {
-  if (!axiosModule) {
-    axiosModule = await import("axios");
-  }
+  if (!axiosModule) axiosModule = await import("axios");
   return axiosModule.default;
 };
 
+// Cuántos productos se pintan por lote. Cambiar de categoría no cuesta red
+// (todo está en memoria), pero pintar 60 tarjetas con 60 fotos sí cuesta.
+const LOTE = 18;
+
+// Cuántos entran en el Top. Diez caben en una pantalla de celular sin deslizar.
+const TOPE_TOP = 10;
+
+// Debajo de esto el stock se muestra en rojo: "quedan 3" avisa antes de que el
+// cliente pida cuatro.
+const STOCK_BAJO = 5;
+
+// Con cuánto paga: además del monto exacto, se ofrece el total redondeado
+// hacia arriba a cada uno de estos saltos. Una lista fija de billetes dejaba sin
+// salida a un pedido grande — con ₡22.000 de total, ningún billete de la lista
+// alcanzaba y el único botón posible era "Exacto".
+const REDONDEOS = [1000, 2000, 5000, 10000, 20000];
+
+const VISTA_TOP = "top";
+const VISTA_TODOS = "todos";
+
+// Texto comparable para buscar: sin acentos ni signos, así "cocacola" encuentra
+// "Coca-Cola" y nadie pierde una venta por un tilde.
+const plano = (valor) =>
+  String(valor ?? "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
 const SalesDashboard = () => {
   const [productos, setProductos] = useState([]);
-  const [productosVisibles, setProductosVisibles] = useState([]);
-  const [carrito, setCarrito] = useState([]);
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true); // Solo para carga inicial
-  const [searching, setSearching] = useState(false); // ⭐ NUEVO: para búsquedas
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [processingVenta, setProcessingVenta] = useState(false);
-  const [mostrarResultado, setMostrarResultado] = useState(false);
-  const [ventaExitosa, setVentaExitosa] = useState(null);
-  const [mostrarNotificacion, setMostrarNotificacion] = useState(false);
+  // Ids de los más vendidos del negocio, en orden, tal como los manda el
+  // backend. Antes esto lo aprendía cada dispositivo en su localStorage; ahora
+  // hay un endpoint que el vendedor también puede llamar, así que el Top es el
+  // mismo en todos los equipos y no hay dos verdades.
+  const [masVendidos, setMasVendidos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [currentPage, setCurrentPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const observerTarget = useRef(null);
-  const searchInputRef = useRef(null); // ⭐ NUEVO: ref para mantener el foco
-  const timeoutRef = useRef(null);
+  const [vista, setVista] = useState(VISTA_TOP);
+  const [busqueda, setBusqueda] = useState("");
+  const [tope, setTope] = useState(LOTE);
 
-  const PRODUCTOS_POR_PAGINA = 10;
+  // { [productoId]: cantidad }
+  const [carrito, setCarrito] = useState({});
+  const [flash, setFlash] = useState(null);
 
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem("token");
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
+  // null | "pedido" | "cobro" | "listo"
+  const [paso, setPaso] = useState(null);
+  const [metodo, setMetodo] = useState(null); // "efectivo" | "sinpe"
+  const [pagado, setPagado] = useState(null);
+  const [recibo, setRecibo] = useState(null);
+  const [cobrando, setCobrando] = useState(false);
+
+  const [aviso, setAviso] = useState(null);
+  const avisoTimer = useRef(null);
+  const chipsRef = useRef(null);
+  const [chipsNav, setChipsNav] = useState({ desliza: false, izq: false, der: false, ancho: 0, pos: 0 });
+
+  const getAuthHeaders = useCallback(() => ({
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  }), []);
+
+  // Aviso propio en vez de alert(). El alert nativo en móvil tapa la pantalla y
+  // hay que confirmarlo con el dedo en medio de una venta.
+  const avisar = useCallback((titulo, detalle, tono = "alerta") => {
+    setAviso({ titulo, detalle, tono });
+    clearTimeout(avisoTimer.current);
+    avisoTimer.current = setTimeout(() => setAviso(null), 3200);
   }, []);
 
-  // Si el usuario llegó acá por un 403 de rol (redirigido por el interceptor
-  // global), mostramos el aviso una sola vez.
+  useEffect(() => () => clearTimeout(avisoTimer.current), []);
+
+  // Si llegó acá por un 403 de rol (redirigido por el interceptor global), el
+  // aviso se muestra una sola vez.
   useEffect(() => {
     const msg = sessionStorage.getItem("accesoDenegado");
     if (msg) {
       sessionStorage.removeItem("accesoDenegado");
-      alert(msg);
+      avisar("Sin permiso", msg);
     }
+  }, [avisar]);
+
+  const cargarProductos = useCallback(async ({ inicial = false } = {}) => {
+    if (inicial) setLoading(true);
+    try {
+      const axios = await getAxios();
+      const res = await axios.get(`${API_URL}/api/products/para-venta`, getAuthHeaders());
+      const lista = res.data.productos || res.data || [];
+      setProductos(Array.isArray(lista) ? lista : []);
+      setError(null);
+    } catch (err) {
+      console.error("❌ Error al cargar productos:", err);
+      // Los 401/403 ya los maneja el interceptor global (sesion.js): está
+      // navegando a otra ruta, así que pintar un error acá sería ruido.
+      if (err?.esSesion || [401, 403].includes(err?.response?.status)) return;
+      setError("No se pudieron cargar los productos. Revisá la conexión.");
+    } finally {
+      if (inicial) setLoading(false);
+    }
+  }, [getAuthHeaders]);
+
+  /**
+   * El ranking del negocio. Si falla no se avisa nada: sin ranking el Top se
+   * completa con el inventario y se puede seguir vendiendo igual. Un cartel de
+   * error por esto sería ruido en medio de una venta.
+   *
+   * El backend lo tiene cacheado cinco minutos, así que pedirlo en cada carga y
+   * después de cobrar es barato.
+   */
+  const cargarMasVendidos = useCallback(async () => {
+    try {
+      const axios = await getAxios();
+      const res = await axios.get(
+        `${API_URL}/api/products/mas-vendidos?limite=${TOPE_TOP}`,
+        getAuthHeaders(),
+      );
+      const lista = Array.isArray(res.data) ? res.data : res.data?.productos || [];
+      setMasVendidos(lista.map((x) => String(x?.productoId || "")).filter(Boolean));
+    } catch (err) {
+      console.warn("No se pudo cargar el ranking de más vendidos:", err?.message);
+      setMasVendidos([]);
+    }
+  }, [getAuthHeaders]);
+
+  useEffect(() => {
+    cargarProductos({ inicial: true });
+    cargarMasVendidos();
+    document.title = "Ventas - Sala de Juegos Ruiz";
+  }, [cargarProductos, cargarMasVendidos]);
+
+  // ── Categorías y vista actual ──────────────────────────────────────────────
+
+  const categorias = useMemo(() => categoriasConProductos(productos), [productos]);
+
+  // El ranking cruzado con el inventario: el backend manda ids, y de acá sale el
+  // producto con su precio y su stock de ahora. Un id que ya no está en el
+  // inventario queda fuera solo.
+  const aprendidos = useMemo(() => {
+    if (!masVendidos.length) return [];
+    const porId = new Map(productos.map((p) => [String(p._id), p]));
+    return masVendidos.map((id) => porId.get(id)).filter(Boolean);
+  }, [masVendidos, productos]);
+
+  // La pantalla abre siempre en Top, así que Top nunca puede estar vacío: lo que
+  // falta para llegar a diez se completa con el inventario, dejando los agotados
+  // para el final. Con cada venta cobrada la lista se va acomodando sola hasta
+  // ser de verdad la de los más vendidos.
+  const top = useMemo(() => {
+    if (aprendidos.length >= TOPE_TOP) return aprendidos;
+    const ya = new Set(aprendidos.map((p) => p._id));
+    const resto = productos.filter((p) => !ya.has(p._id));
+    const relleno = [
+      ...resto.filter((p) => !resolverDisponibilidad(p).agotado),
+      ...resto.filter((p) => resolverDisponibilidad(p).agotado),
+    ].slice(0, TOPE_TOP - aprendidos.length);
+    return [...aprendidos, ...relleno];
+  }, [aprendidos, productos]);
+
+  const conTop = top.length > 0;
+
+  const chips = useMemo(() => {
+    const lista = [];
+    if (conTop) lista.push({ id: VISTA_TOP, label: "Top", icono: "★", total: top.length });
+    categorias.forEach((c) => lista.push(c));
+    if (productos.length > 0) {
+      lista.push({ id: VISTA_TODOS, label: "Todos", icono: "", total: productos.length });
+    }
+    return lista;
+  }, [conTop, top.length, categorias, productos.length]);
+
+  const visibles = useMemo(() => {
+    const q = plano(busqueda);
+    // Buscando se ignora la categoría: si el empleado escribe el nombre, lo
+    // quiere encontrar aunque esté en otra pestaña.
+    if (q) return productos.filter((p) => plano(p.nombre).includes(q));
+    if (vista === VISTA_TOP) return top;
+    if (vista === VISTA_TODOS) return productos;
+    return productos.filter((p) => categoriaDe(p) === vista);
+  }, [busqueda, productos, vista, top]);
+
+  const mostrados = useMemo(() => visibles.slice(0, tope), [visibles, tope]);
+
+  useEffect(() => { setTope(LOTE); }, [vista, busqueda]);
+
+  // ── Aviso de que la fila de categorías sigue ───────────────────────────────
+  // En móvil no hay barra de scroll: sin esto, las categorías de la derecha no
+  // existen para quien usa la pantalla. El riel va debajo de los chips, en su
+  // propia línea, para no taparle un píxel a ninguna categoría.
+
+  const medirChips = useCallback(() => {
+    const el = chipsRef.current;
+    if (!el) return;
+    const total = el.scrollWidth;
+    const visible = el.clientWidth;
+    const desliza = total - visible > 6;
+    setChipsNav({
+      desliza,
+      izq: el.scrollLeft > 4,
+      der: total - visible - el.scrollLeft > 4,
+      ancho: desliza ? Math.max(18, (visible / total) * 100) : 100,
+      pos: desliza ? (el.scrollLeft / total) * 100 : 0,
+    });
   }, []);
 
-  const fetchProductos = useCallback(
-    async (searchTerm = "", isInitialLoad = false) => {
-      // ⭐ Solo mostrar pantalla de carga completa en la primera carga
-      if (isInitialLoad) {
-        setLoading(true);
-      } else {
-        setSearching(true); // ⭐ Indicador pequeño para búsquedas
-      }
+  useEffect(() => {
+    medirChips();
+    window.addEventListener("resize", medirChips);
+    return () => window.removeEventListener("resize", medirChips);
+  }, [medirChips, chips]);
 
-      setCurrentPage(0);
-      setProductos([]);
-      setProductosVisibles([]);
-      setHasMore(true);
+  // Un solo empujón al abrir: la fila se mueve y vuelve. Con eso se ve que se
+  // desliza, sin cartel y sin nada encima de un chip.
+  useEffect(() => {
+    if (loading || chips.length === 0) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const el = chipsRef.current;
+    if (!el || el.scrollWidth - el.clientWidth < 10) return;
 
-      try {
-        const axios = await getAxios();
-        const url = searchTerm
-          ? `${API_URL}/api/products/para-venta?search=${encodeURIComponent(searchTerm)}`
-          : `${API_URL}/api/products/para-venta`;
+    const ida = setTimeout(() => el.scrollTo({ left: 30, behavior: "smooth" }), 700);
+    const vuelta = setTimeout(() => el.scrollTo({ left: 0, behavior: "smooth" }), 1320);
+    return () => { clearTimeout(ida); clearTimeout(vuelta); };
+  }, [loading, chips.length]);
 
-        const response = await axios.get(url, getAuthHeaders());
-        const productosData = response.data.productos || response.data;
+  // ── Carrito ────────────────────────────────────────────────────────────────
 
-        setProductos(productosData);
+  const lineas = useMemo(() => {
+    // Se arma desde la lista del backend: si un producto desapareció del
+    // inventario, sale del pedido solo en vez de venderse fantasma.
+    return Object.entries(carrito)
+      .map(([id, cantidad]) => {
+        const producto = productos.find((p) => p._id === id);
+        return producto ? { producto, cantidad } : null;
+      })
+      .filter(Boolean);
+  }, [carrito, productos]);
 
-        const inicial = productosData.slice(0, PRODUCTOS_POR_PAGINA);
-        setProductosVisibles(inicial);
-        setHasMore(productosData.length > PRODUCTOS_POR_PAGINA);
-        setCurrentPage(1);
-      } catch (error) {
-        console.error("❌ Error al cargar productos:", error);
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          alert("⚠️ Sesión expirada. Por favor inicia sesión nuevamente.");
-        } else {
-          alert("Error al cargar productos.");
-        }
-      } finally {
-        setLoading(false);
-        setSearching(false); // ⭐ Quitar indicador de búsqueda
-      }
-    },
-    [getAuthHeaders],
+  const unidades = useMemo(() => lineas.reduce((a, l) => a + l.cantidad, 0), [lineas]);
+  const total = useMemo(
+    () => lineas.reduce((a, l) => a + (Number(l.producto.precioVenta) || 0) * l.cantidad, 0),
+    [lineas],
   );
 
-  const cargarMasProductos = useCallback(() => {
-    if (loadingMore || !hasMore) return;
+  /**
+   * Saca el producto del pedido, sin importar la cantidad que llevara.
+   *
+   * Es la segunda mitad del interruptor de la tarjeta: un toque lo mete, otro lo
+   * saca. Que la tarjeta sume de a uno con cada toque confundía — dos toques sin
+   * querer y llevabas dos gaseosas sin haberlo pedido.
+   */
+  const quitar = useCallback((producto) => {
+    setCarrito((prev) => {
+      const copia = { ...prev };
+      delete copia[producto._id];
+      return copia;
+    });
+    setPagado(null);
+  }, []);
 
-    setLoadingMore(true);
-
-    const siguientePagina = currentPage + 1;
-    const inicio = currentPage * PRODUCTOS_POR_PAGINA;
-    const fin = siguientePagina * PRODUCTOS_POR_PAGINA;
-
-    const nuevosProductos = productos.slice(inicio, fin);
-
-    if (nuevosProductos.length > 0) {
-      setProductosVisibles((prev) => [...prev, ...nuevosProductos]);
-      setCurrentPage(siguientePagina);
-      setHasMore(fin < productos.length);
-    } else {
-      setHasMore(false);
-    }
-
-    setLoadingMore(false);
-  }, [currentPage, productos, hasMore, loadingMore]);
-
-  useEffect(() => {
-    const target = observerTarget.current; // 👈 CLAVE
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          cargarMasProductos();
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    if (target) {
-      observer.observe(target);
-    }
-
-    return () => {
-      if (target) {
-        observer.unobserve(target);
-      }
-    };
-  }, [hasMore, loadingMore, cargarMasProductos]);
-
-  useEffect(() => {
-    fetchProductos("", true); // ⭐ true = carga inicial
-    document.title = "Ventas - Sala de Juegos Ruiz";
-  }, [fetchProductos]);
-
-  // ✅ ELIMINADO: useEffect que restauraba el foco automáticamente
-  // Esto causaba que el teclado se quedara activo en móviles
-
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearch(value);
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    // ⭐ NO establecer searching aquí para evitar pérdida de foco
-
-    timeoutRef.current = setTimeout(() => {
-      setSearching(true);
-      fetchProductos(value, false);
-      // setSearching(false) se maneja en fetchProductos
-    }, 500);
-  };
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    setSearching(true);
-    fetchProductos(search, false);
-  };
-
-  const limpiarBusqueda = () => {
-    setSearch("");
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    setSearching(true);
-    fetchProductos("", false);
-  };
-
-  // Aviso corto arriba a la derecha. Se usa para todo lo que bloquea una venta.
-  const avisar = (mensaje, detalle) => {
-    setMostrarNotificacion(true);
-    setVentaExitosa({ esError: true, mensaje, detalle, tipo: "warning" });
-    setTimeout(() => setMostrarNotificacion(false), 3500);
-  };
-
-  const agregarAlCarrito = (producto) => {
-    // ✅ Quitar el foco del input de búsqueda al agregar productos
-    if (searchInputRef.current) {
-      searchInputRef.current.blur();
-    }
-
-    // El stock manda: para una receta es lo que alcanza según sus ingredientes,
-    // no un número guardado en el producto.
+  const cambiar = useCallback((producto, delta) => {
     const disp = resolverDisponibilidad(producto);
+    const actual = carrito[producto._id] || 0;
+    const nuevo = actual + delta;
 
-    if (disp.agotado) {
-      avisar("Agotado", disp.motivo || `No queda "${producto.nombre}"`);
-      return;
-    }
-
-    const existe = carrito.find((item) => item._id === producto._id);
-
-    if (existe) {
-      if (existe.cantidadVenta >= disp.stock) {
+    if (delta > 0) {
+      if (disp.agotado) {
+        avisar("Agotado", disp.motivo || `No queda "${producto.nombre}"`);
+        return;
+      }
+      if (nuevo > disp.stock) {
         avisar(
           "Stock insuficiente",
-          `Solo ${disp.stock === 1 ? "hay 1 unidad disponible" : `hay ${disp.stock} unidades disponibles`} de "${producto.nombre}"`,
+          disp.stock === 1
+            ? `Solo hay 1 unidad de "${producto.nombre}"`
+            : `Solo hay ${disp.stock} unidades de "${producto.nombre}"`,
         );
         return;
       }
-      setCarrito(
-        carrito.map((item) =>
-          item._id === producto._id
-            ? { ...item, cantidadVenta: item.cantidadVenta + 1 }
-            : item,
-        ),
-      );
-    } else {
-      setCarrito([...carrito, { ...producto, cantidadVenta: 1 }]);
-      // ✅ Notificación de producto agregado ELIMINADA
-    }
-  };
-
-  const cambiarCantidad = (id, nuevaCantidad) => {
-    // Si la búsqueda cambió, el producto puede no estar en la lista visible; en
-    // ese caso el tope lo pone la copia que quedó en el carrito.
-    const producto =
-      productos.find((p) => p._id === id) || carrito.find((i) => i._id === id);
-    if (!producto) return;
-
-    const { stock } = resolverDisponibilidad(producto);
-
-    if (nuevaCantidad > stock) {
-      avisar(
-        "Stock insuficiente",
-        `Solo ${stock === 1 ? "hay 1 unidad disponible" : `hay ${stock} unidades disponibles`}`,
-      );
-      return;
     }
 
-    if (nuevaCantidad <= 0) {
-      eliminarDelCarrito(id);
-      return;
+    setCarrito((prev) => {
+      const copia = { ...prev };
+      if (nuevo <= 0) delete copia[producto._id];
+      else copia[producto._id] = nuevo;
+      return copia;
+    });
+
+    if (delta > 0) {
+      setFlash(producto._id);
+      setTimeout(() => setFlash((f) => (f === producto._id ? null : f)), 260);
     }
+    // Cambiar el pedido invalida el monto elegido: el vuelto de antes ya no vale.
+    setPagado(null);
+  }, [carrito, avisar]);
 
-    setCarrito(
-      carrito.map((item) =>
-        item._id === id ? { ...item, cantidadVenta: nuevaCantidad } : item,
-      ),
-    );
-  };
+  const vaciar = useCallback(() => {
+    setCarrito({});
+    setPaso(null);
+  }, []);
 
-  const eliminarDelCarrito = (id) => {
-    setCarrito(carrito.filter((item) => item._id !== id));
-  };
+  // El pedido vacío no puede quedar con la hoja abierta mostrando nada.
+  useEffect(() => {
+    if (unidades === 0 && (paso === "pedido" || paso === "cobro")) setPaso(null);
+  }, [unidades, paso]);
 
-  const calcularTotal = () => {
-    return carrito.reduce(
-      (total, item) => total + item.precioVenta * item.cantidadVenta,
-      0,
-    );
-  };
+  // ── Cobro ──────────────────────────────────────────────────────────────────
 
-  const vaciarCarrito = () => {
-    if (window.confirm("¿Estás seguro de vaciar el carrito?")) {
-      setCarrito([]);
-      setMostrarResultado(false);
-    }
-  };
+  const opcionesPago = useMemo(() => {
+    if (!total) return [];
+    const arriba = REDONDEOS.map((salto) => Math.ceil(total / salto) * salto).filter((v) => v > total);
+    return [...new Set([total, ...arriba])].sort((a, b) => a - b).slice(0, 5);
+  }, [total]);
+
+  // Con el método elegido ya se puede cobrar. Elegir con cuánto paga es opcional
+  // y sirve para que la pantalla saque el vuelto; en la práctica muchas veces no
+  // se toca, y quedarse con el botón apagado esperando ese toque frenaba la
+  // venta. Sin monto, la venta se registra como pago justo.
+  const listoParaCobrar = !!metodo;
+
+  // Qué panel muestra la hoja. Con `paso` en null igual se arma el del pedido:
+  // en móvil queda escondido, y en escritorio es la columna fija de la derecha,
+  // que tiene que estar visible desde antes del primer toque.
+  const vistaPaso = paso || "pedido";
+
+  const abrirCobro = useCallback(() => {
+    setMetodo(null);
+    setPagado(null);
+    setPaso("cobro");
+  }, []);
 
   const procesarVenta = async () => {
-    const total = calcularTotal();
+    if (!lineas.length || !listoParaCobrar || cobrando) return;
 
-    if (carrito.length === 0) {
-      alert("El carrito está vacío");
-      return;
-    }
+    // Que el teclado no quede abierto tapando el resultado.
+    document.activeElement?.blur?.();
 
-    // ✅ Quitar el foco de TODOS los inputs antes de procesar
-    if (document.activeElement && document.activeElement.blur) {
-      document.activeElement.blur();
-    }
+    // Si no se eligió con cuánto paga, se registra como pago justo: es lo que
+    // pasa en la mayoría de las ventas y es lo único que se puede afirmar sin
+    // inventar. Nunca se manda `null`, que el backend rechaza por ser menor al
+    // total.
+    const montoPagado = metodo === "efectivo" ? pagado ?? total : total;
+    const vuelto = Math.max(0, montoPagado - total);
 
-    // ✅ Específicamente cerrar el teclado del input de búsqueda
-    if (searchInputRef.current) {
-      searchInputRef.current.blur();
-    }
+    const productosVenta = lineas.map(({ producto, cantidad }) => ({
+      productoId: producto._id,
+      nombre: producto.nombre,
+      cantidad,
+      precioVenta: producto.precioVenta,
+      subtotal: producto.precioVenta * cantidad,
+    }));
 
-    setProcessingVenta(true);
-
+    setCobrando(true);
     try {
       const axios = await getAxios();
-
-      const ventaData = {
-        productos: carrito.map((item) => ({
-          productoId: item._id,
-          nombre: item.nombre,
-          cantidad: item.cantidadVenta,
-          precioVenta: item.precioVenta,
-          subtotal: item.precioVenta * item.cantidadVenta,
-        })),
-        total: total,
-        montoPagado: total,
-        vuelto: 0,
-        fecha: new Date().toISOString(),
-      };
-
-      const ventaResponse = await axios.post(
+      const res = await axios.post(
         `${API_URL}/api/sales`,
-        ventaData,
+        {
+          productos: productosVenta,
+          total,
+          montoPagado,
+          vuelto,
+          // Campo nuevo: mientras el backend no lo guarde, lo ignora en
+          // silencio y la venta se registra igual que antes.
+          metodoPago: metodo,
+          fecha: new Date().toISOString(),
+        },
         getAuthHeaders(),
       );
 
-      setVentaExitosa({
-        total: total,
-        productos: carrito,
-        numeroVenta: ventaResponse.data.venta?._id || ventaResponse.data._id,
+      setRecibo({
+        numero: res.data.venta?._id || res.data._id || null,
+        total,
+        metodo,
+        montoPagado,
+        vuelto,
+        lineas: productosVenta.map((p) => ({
+          nombre: p.nombre,
+          cantidad: p.cantidad,
+          subtotal: p.subtotal,
+        })),
       });
-      setMostrarResultado(true);
+      setCarrito({});
+      setPaso("listo");
 
-      setCarrito([]);
-
-      // ✅ Forzar blur después de mostrar resultado
-      setTimeout(() => {
-        if (document.activeElement && document.activeElement.blur) {
-          document.activeElement.blur();
-        }
-        if (searchInputRef.current) {
-          searchInputRef.current.blur();
-        }
-      }, 100);
-
-      // Recarga desde el backend, no resta local. Vender un cono baja el helado,
-      // y eso cambia cuántos helados con gelatina se pueden preparar: el número
-      // nuevo solo lo sabe el backend. Restar acá daría un stock equivocado.
-      fetchProductos(search, false);
-    } catch (error) {
-      console.error("❌ ERROR:", error);
-      if (error.response?.status === 401) {
-        alert("⚠️ Sesión expirada. Por favor inicia sesión nuevamente.");
-        return;
-      }
-      if (error.response?.status === 403) {
-        alert("⚠️ No tienes permisos para realizar esta acción.");
-        return;
-      }
-      alert("Error al procesar la venta");
+      // Vender un cono baja el helado, y eso cambia cuántos helados con
+      // gelatina se pueden preparar: el número nuevo solo lo sabe el backend.
+      // Restar local daría un stock equivocado.
+      cargarProductos();
+      cargarMasVendidos();
+    } catch (err) {
+      console.error("❌ Error al procesar la venta:", err);
+      if (err?.esSesion || [401, 403].includes(err?.response?.status)) return;
+      const detalle = err?.response?.data?.mensaje || err?.response?.data?.error;
+      avisar("No se pudo cobrar", detalle || "La venta no quedó registrada. Probá de nuevo.");
     } finally {
-      setProcessingVenta(false);
-
-      // ✅ Forzar blur adicional al finalizar
-      setTimeout(() => {
-        if (document.activeElement && document.activeElement.blur) {
-          document.activeElement.blur();
-        }
-        if (searchInputRef.current) {
-          searchInputRef.current.blur();
-        }
-      }, 200);
+      setCobrando(false);
     }
   };
 
-  // ⭐ Pantalla de carga SOLO para primera carga
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   if (loading) {
     return (
       <div className="sales-container">
-        <nav className="navbar navbar-expand-lg navbar-dark bg-dark w-100">
-          <div className="container-fluid">
-            <Link className="navbar-brand fw-bold" to="/">
-              🎮 Sala de Juegos Ruiz
-            </Link>
-          </div>
-        </nav>
-        <div className="loading-container">
-          <div className="spinner-border text-success" role="status">
-            <span className="visually-hidden">Cargando...</span>
+        <Navbar />
+        <div className="sales-cargando">
+          <div className="spinner-border text-light" role="status">
+            <span className="visually-hidden">Cargando productos…</span>
           </div>
         </div>
       </div>
     );
   }
+
+  const tarjeta = (producto) => {
+    const disp = resolverDisponibilidad(producto);
+    const cantidad = carrito[producto._id] || 0;
+    const cat = categoriaInfo(categoriaDe(producto));
+    const foto = producto.imagenOptimizada || producto.imagen;
+
+    return (
+      <div
+        key={producto._id}
+        className={
+          "prod" +
+          (disp.agotado ? " prod--agotado" : "") +
+          (cantidad ? " prod--en-pedido" : "") +
+          (flash === producto._id ? " prod--pop" : "")
+        }
+      >
+        {/* La tarjeta es un interruptor: un toque lo mete al pedido, otro lo
+            saca. La cantidad NO se cambia acá — para eso están el − y el + de la
+            insignia. Antes cada toque sumaba uno, y dos toques sin querer te
+            dejaban dos gaseosas en la venta sin haberlas pedido. */}
+        <button
+          type="button"
+          className="prod__toque"
+          onClick={() => (cantidad === 0 ? cambiar(producto, 1) : quitar(producto))}
+          disabled={disp.agotado}
+          aria-label={
+            cantidad === 0
+              ? `Agregar ${producto.nombre}`
+              : `Quitar ${producto.nombre} del pedido`
+          }
+        >
+          <span className="prod__foto" data-cat={cat.id}>
+            {foto ? (
+              <img
+                src={foto}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                // Si la URL de la foto falla, cae al respaldo local en vez de
+                // dejar el cuadro roto. Antes acá había un via.placeholder.com,
+                // servicio externo que ya no responde.
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+              />
+            ) : null}
+            <span className="prod__inicial" aria-hidden="true">
+              {(producto.nombre || "?").charAt(0).toUpperCase()}
+            </span>
+          </span>
+
+          {disp.agotado ? (
+            <span className="prod__sello prod__sello--agotado">Agotado</span>
+          ) : producto.tipo === "receta" ? (
+            <span className="prod__sello">Receta</span>
+          ) : null}
+
+
+          <span className="prod__nombre">{producto.nombre}</span>
+
+          <span className="prod__fila">
+            <span className="prod__precio">{formatearMonto(producto.precioVenta)}</span>
+            {!disp.agotado && (
+              <span className={"prod__stock" + (disp.stock <= STOCK_BAJO ? " prod__stock--bajo" : "")}>
+                {disp.stock <= STOCK_BAJO ? `quedan ${disp.stock}` : `${disp.stock} u`}
+              </span>
+            )}
+          </span>
+
+          {disp.agotado && disp.motivo && <span className="prod__motivo">{disp.motivo}</span>}
+        </button>
+
+        {cantidad > 0 && (
+          <div className="prod__cuenta">
+            {/* A cantidad 1 el "−" pasa a ser "quitar": son dos acciones
+                distintas y tienen que verse distintas, o nadie sabe que ese
+                botón también elimina. */}
+            <button
+              type="button"
+              className={cantidad === 1 ? "es-quitar" : undefined}
+              onClick={() => cambiar(producto, -1)}
+              aria-label={cantidad === 1 ? `Quitar ${producto.nombre} del pedido` : "Quitar uno"}
+              title={cantidad === 1 ? "Quitar del pedido" : "Quitar uno"}
+            >
+              {cantidad === 1 ? "🗑" : "−"}
+            </button>
+            <span>{cantidad}</span>
+            <button type="button" onClick={() => cambiar(producto, 1)} aria-label="Agregar uno">
+              +
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renglon = ({ producto, cantidad }) => (
+    <div className="reng" key={producto._id}>
+      <div className="reng__info">
+        <span className="reng__nombre">{producto.nombre}</span>
+        <span className="reng__unit">{formatearMonto(producto.precioVenta)} c/u</span>
+      </div>
+      <div className="paso-cant">
+        <button
+          type="button"
+          className={cantidad === 1 ? "es-quitar" : undefined}
+          onClick={() => cambiar(producto, -1)}
+          aria-label={cantidad === 1 ? "Quitar del pedido" : "Quitar uno"}
+        >
+          {cantidad === 1 ? "🗑" : "−"}
+        </button>
+        <span>{cantidad}</span>
+        <button type="button" onClick={() => cambiar(producto, 1)} aria-label="Agregar uno">+</button>
+      </div>
+      <div className="reng__sub">{formatearMonto(producto.precioVenta * cantidad)}</div>
+    </div>
+  );
+
+  // El rótulo dice la verdad sobre lo que se está viendo: mientras el Top se
+  // esté aprendiendo, no puede anunciarse como "los que más se venden".
+  const bandaTexto = busqueda
+    ? `${visibles.length} ${visibles.length === 1 ? "resultado" : "resultados"} para «${busqueda}»`
+    : vista === VISTA_TOP
+      ? aprendidos.length === 0
+        ? "Sin ventas del último mes todavía"
+        : aprendidos.length >= TOPE_TOP
+          ? "Los que más se venden acá"
+          : "Los más vendidos del último mes"
+      : vista === VISTA_TODOS
+        ? "Todo el inventario que se vende"
+        : categoriaInfo(vista).label;
 
   return (
     <div className="sales-container">
       <Navbar />
 
-      <div className="sales-content">
-        <div className="container-fluid py-4">
-          <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-            <h2 className="sales-title mb-0">💰 Sistema de Ventas</h2>
-            {/* El historial de ventas es un módulo de reportes: oculto para el vendedor. */}
+      <div className="sales-cuerpo">
+        <header className="sales-head">
+          {/* El título solo aparece en escritorio. En el celular gastaba una fila
+              entera para decir algo que el menú de arriba ya dice, y esa fila es
+              una hilera de productos menos. */}
+          <h1 className="sales-titulo">Ventas</h1>
+
+          <div className="buscador-fila">
+            <div className="buscador">
+              <span className="buscador__lupa" aria-hidden="true">⌕</span>
+              <input
+                type="search"
+                className="buscador__input"
+                placeholder="Buscar producto (opcional)"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                inputMode="search"
+                autoComplete="off"
+                aria-label="Buscar producto"
+              />
+              {busqueda && (
+                <button
+                  type="button"
+                  className="buscador__limpiar"
+                  onClick={() => setBusqueda("")}
+                  aria-label="Limpiar búsqueda"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* El historial es un módulo de reportes: el vendedor no lo ve. Y es
+                una salida, no una acción de venta, así que va al final de la
+                línea y no compite con las tarjetas por atención. */}
             {puedeVerModulo("salesHistory") && (
-              <Link to="/sales-history" className="btn btn-outline-success">
-                📊 Ver Historial
+              <Link to="/sales-history" className="sales-hist" title="Historial de ventas">
+                📊
               </Link>
             )}
           </div>
-          <div className="row g-4">
-            <div className="col-lg-5 order-lg-2">
-              <div className="card carrito-panel">
-                <div className="card-header">
-                  <h5 className="mb-0">📦 Productos Disponibles</h5>
-                </div>
-                <div className="card-body">
-                  <form onSubmit={handleSearchSubmit} className="mb-3">
-                    <div className="input-group">
-                      <input
-                        ref={searchInputRef}
-                        type="text"
-                        className="form-control"
-                        placeholder="Buscar producto..."
-                        value={search}
-                        onChange={handleSearchChange}
-                        inputMode="search"
-                        autoComplete="off"
-                        // ✅ NO auto-focus en móviles
-                        autoFocus={false}
-                        // ✅ Prevenir que el teclado se quede abierto
-                        onFocus={(e) => {
-                          // Permitir focus solo si el usuario hace clic explícitamente
-                          if (processingVenta || mostrarResultado) {
-                            e.target.blur();
-                          }
-                        }}
-                      />
-                      <button
-                        className="btn btn-primary"
-                        type="submit"
-                        disabled={searching}
-                      >
-                        {searching ? (
-                          <span
-                            className="spinner-border spinner-border-sm"
-                            role="status"
-                            aria-hidden="true"
-                          ></span>
-                        ) : (
-                          "🔍"
-                        )}
-                      </button>
-                      {search && (
-                        <button
-                          className="btn btn-secondary"
-                          type="button"
-                          onClick={limpiarBusqueda}
-                          disabled={searching}
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  </form>
 
-                  <div className="productos-lista">
-                    {/* ⭐ Mostrar indicador de búsqueda dentro de la lista */}
-                    {searching ? (
-                      <div className="text-center py-4">
-                        <div
-                          className="spinner-border text-primary"
-                          role="status"
-                        >
-                          <span className="visually-hidden">Buscando...</span>
-                        </div>
-                        <p className="mt-2 text-muted">Buscando productos...</p>
-                      </div>
-                    ) : productosVisibles.length === 0 ? (
-                      <div className="alert alert-info">
-                        📦 No hay productos disponibles
-                      </div>
-                    ) : (
-                      <>
-                        {productosVisibles.map((producto) => {
-                          // Los agotados NO se esconden: se muestran apagados y
-                          // con el motivo. Filtrarlos acá haría desaparecer
-                          // productos igual que antes, y sin dejar rastro.
-                          const disp = resolverDisponibilidad(producto);
-
-                          return (
-                            <div
-                              key={producto._id}
-                              className={`producto-item ${disp.agotado ? "producto-agotado" : ""}`}
-                            >
-                              <img
-                                src={
-                                  producto.imagenOptimizada ||
-                                  producto.imagen ||
-                                  "https://via.placeholder.com/60"
-                                }
-                                alt={producto.nombre}
-                                className="producto-img"
-                                loading="lazy"
-                              />
-                              <div className="producto-info">
-                                <h6 className="producto-nombre">
-                                  {producto.nombre}
-                                  {producto.tipo === "receta" && (
-                                    <span
-                                      className="badge bg-warning text-dark ms-1"
-                                      style={{ fontSize: "0.65rem", verticalAlign: "middle" }}
-                                      title="Receta — stock calculado a partir de ingredientes"
-                                    >
-                                      🍽️
-                                    </span>
-                                  )}
-                                  {disp.agotado && (
-                                    <span
-                                      className="badge bg-danger ms-1"
-                                      style={{ fontSize: "0.65rem", verticalAlign: "middle" }}
-                                    >
-                                      Agotado
-                                    </span>
-                                  )}
-                                </h6>
-                                <p className="producto-detalles">
-                                  <span className="precio">
-                                    {formatearMonto(producto.precioVenta)}
-                                  </span>
-                                  <span className="stock">
-                                    Stock: {disp.stock}
-                                  </span>
-                                </p>
-                                {disp.agotado && disp.motivo && (
-                                  <p className="producto-motivo">{disp.motivo}</p>
-                                )}
-                              </div>
-                              <button
-                                className={`btn btn-sm ${disp.agotado ? "btn-outline-secondary" : "btn-success"}`}
-                                onClick={() => agregarAlCarrito(producto)}
-                                disabled={disp.agotado}
-                                title={disp.agotado ? disp.motivo || "Agotado" : undefined}
-                                type="button"
-                              >
-                                {disp.agotado ? "Agotado" : "+ Agregar"}
-                              </button>
-                            </div>
-                          );
-                        })}
-
-                        {hasMore && (
-                          <div
-                            ref={observerTarget}
-                            className="text-center py-3"
-                          >
-                            {loadingMore && (
-                              <div
-                                className="spinner-border spinner-border-sm text-primary"
-                                role="status"
-                              >
-                                <span className="visually-hidden">
-                                  Cargando más...
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
+          <div className={"chips-wrap" + (chipsNav.izq ? " hay-izq" : "") + (chipsNav.der ? " hay-der" : "")}>
+            <div className="chips" ref={chipsRef} onScroll={medirChips} role="group" aria-label="Categorías">
+              {chips.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className="chip"
+                  aria-pressed={!busqueda && vista === c.id}
+                  onClick={(e) => {
+                    setVista(c.id);
+                    setBusqueda("");
+                    e.currentTarget.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+                  }}
+                >
+                  {c.icono && <span aria-hidden="true">{c.icono}</span>}
+                  {c.label}
+                  <span className="chip__cuenta">{c.total}</span>
+                </button>
+              ))}
             </div>
-
-            {/* Resto del código del carrito igual... */}
-            <div className="col-lg-7 order-lg-1">
-              <div className="card productos-panel">
-                <div className="card-header d-flex justify-content-between align-items-center">
-                  <h5 className="mb-0">🛒 Carrito de Venta</h5>
-                  {carrito.length > 0 && (
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={vaciarCarrito}
-                      type="button"
-                    >
-                      🗑️ Vaciar
-                    </button>
-                  )}
-                </div>
-                <div className="card-body">
-                  {carrito.length === 0 ? (
-                    <div className="carrito-vacio">
-                      <p>🛒 Carrito vacío</p>
-                      <small>Agrega productos para iniciar una venta</small>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="carrito-items">
-                        {carrito.map((item) => (
-                          <div key={item._id} className="carrito-item">
-                            <div className="item-info">
-                              <h6>{item.nombre}</h6>
-                              <p className="item-precio">
-                                ₡{item.precioVenta} c/u
-                              </p>
-                            </div>
-                            <div className="item-controls">
-                              <div className="cantidad-controls">
-                                <button
-                                  className="btn btn-sm btn-outline-secondary"
-                                  onClick={() =>
-                                    cambiarCantidad(
-                                      item._id,
-                                      item.cantidadVenta - 1,
-                                    )
-                                  }
-                                  type="button"
-                                >
-                                  -
-                                </button>
-                                <input
-                                  type="number"
-                                  className="form-control form-control-sm cantidad-input"
-                                  value={item.cantidadVenta}
-                                  onChange={(e) =>
-                                    cambiarCantidad(
-                                      item._id,
-                                      parseInt(e.target.value) || 0,
-                                    )
-                                  }
-                                  min="1"
-                                  max={resolverDisponibilidad(item).stock}
-                                  inputMode="numeric"
-                                  pattern="[0-9]*"
-                                />
-                                <button
-                                  className="btn btn-sm btn-outline-secondary"
-                                  onClick={() =>
-                                    cambiarCantidad(
-                                      item._id,
-                                      item.cantidadVenta + 1,
-                                    )
-                                  }
-                                  type="button"
-                                >
-                                  +
-                                </button>
-                              </div>
-                              <div className="item-subtotal">
-                                ₡
-                                {(
-                                  item.precioVenta * item.cantidadVenta
-                                ).toFixed(2)}
-                              </div>
-                              <button
-                                className="btn btn-sm btn-danger"
-                                onClick={() => eliminarDelCarrito(item._id)}
-                                type="button"
-                              >
-                                🗑️
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="total-section">
-                        <div className="total-row">
-                          <span>Total a Pagar:</span>
-                          <strong className="total-amount">
-                            ₡{calcularTotal().toFixed(2)}
-                          </strong>
-                        </div>
-                      </div>
-
-                      <button
-                        className="btn btn-success btn-lg w-100 mt-3"
-                        onClick={procesarVenta}
-                        disabled={processingVenta}
-                        type="button"
-                      >
-                        {processingVenta ? (
-                          <>
-                            <span className="spinner-border spinner-border-sm me-2"></span>
-                            Procesando...
-                          </>
-                        ) : (
-                          <>✅ Procesar Venta</>
-                        )}
-                      </button>
-                    </>
-                  )}
-                </div>
+            {chipsNav.desliza && (
+              <div className="chips-riel" aria-hidden="true">
+                <i style={{ width: `${chipsNav.ancho}%`, left: `${chipsNav.pos}%` }} />
               </div>
-            </div>
+            )}
           </div>
-        </div>
-      </div>
+        </header>
 
-      {/* Modales igual... */}
-      {mostrarResultado && ventaExitosa && (
-        <div
-          className="modal-overlay"
-          onClick={() => {
-            setMostrarResultado(false);
-            // ✅ Forzar blur al cerrar modal
-            setTimeout(() => {
-              if (document.activeElement && document.activeElement.blur) {
-                document.activeElement.blur();
-              }
-              if (searchInputRef.current) {
-                searchInputRef.current.blur();
-              }
-            }, 100);
-          }}
-        >
-          <div className="modal-resultado" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-resultado">
-              <h3>✅ Venta Exitosa</h3>
-            </div>
-            <div className="modal-body-resultado">
-              <div className="resultado-row total-final">
-                <span>Total:</span>
-                <strong>₡{ventaExitosa.total.toFixed(2)}</strong>
-              </div>
-
-              <div className="productos-vendidos">
-                <h6>Productos vendidos:</h6>
-                <ul>
-                  {ventaExitosa.productos.map((p, i) => (
-                    <li key={i}>
-                      {p.nombre} x{p.cantidadVenta} = ₡
-                      {(p.precioVenta * p.cantidadVenta).toFixed(2)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <div className="modal-footer-resultado">
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  setMostrarResultado(false);
-                  // ✅ Forzar blur al hacer clic en Aceptar
-                  setTimeout(() => {
-                    if (document.activeElement && document.activeElement.blur) {
-                      document.activeElement.blur();
-                    }
-                    if (searchInputRef.current) {
-                      searchInputRef.current.blur();
-                    }
-                  }, 100);
-                }}
-                type="button"
-              >
-                ✅ Aceptar
+        <div className="sales-lista">
+          {error ? (
+            <div className="sales-error">
+              <p>{error}</p>
+              <button type="button" className="btn-principal" onClick={() => cargarProductos({ inicial: true })}>
+                Volver a intentar
               </button>
             </div>
-          </div>
+          ) : (
+            <>
+              <p className="banda">{bandaTexto}</p>
+
+              {visibles.length === 0 ? (
+                <div className="sales-vacio">
+                  {busqueda ? (
+                    <>
+                      <p>Nada con «{busqueda}».</p>
+                      <button type="button" className="btn-secundario" onClick={() => setBusqueda("")}>
+                        Ver todo
+                      </button>
+                    </>
+                  ) : (
+                    <p>No hay productos para vender en esta categoría.</p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="parrilla">{mostrados.map(tarjeta)}</div>
+                  {visibles.length > mostrados.length && (
+                    <button type="button" className="ver-mas" onClick={() => setTope((t) => t + LOTE)}>
+                      Ver más productos
+                      <small>{mostrados.length} de {visibles.length}</small>
+                    </button>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+      {/* Antes del primer toque: dice dónde va a aparecer el pedido, en el lugar
+          exacto donde va a aparecer. En móvil no hay hover que lo explique. */}
+      {unidades === 0 && !paso && !loading && (
+        <div className="pista-barra">
+          <b>Tocá cualquier producto</b>
+          <small>El pedido se arma acá abajo</small>
         </div>
       )}
 
-      {/* ✅ Solo mostrar notificaciones de ERROR o WARNING */}
-      {mostrarNotificacion && ventaExitosa && ventaExitosa.esError && (
-        <div className={`notificacion-exito ${ventaExitosa.tipo || "warning"}`}>
-          <div className="notificacion-contenido">
-            <div className="notificacion-icono">
-              {ventaExitosa.tipo === "warning" ? "⚠️" : "❌"}
+      {unidades > 0 && !paso && (
+        <div className="barra-pedido">
+          <button type="button" className="barra-pedido__peek" onClick={() => setPaso("pedido")}>
+            <small>{unidades === 1 ? "1 producto" : `${unidades} productos`}</small>
+            <b>{formatearMonto(total)}</b>
+          </button>
+          <button type="button" className="btn-principal" onClick={abrirCobro}>
+            Cobrar
+          </button>
+        </div>
+      )}
+
+      {/* La hoja se renderiza siempre. En móvil el CSS la esconde hasta que se
+          abre; en escritorio es la columna fija del pedido, que tiene que estar
+          a la vista desde el primer momento para que se entienda qué hace la
+          derecha de la pantalla. */}
+      {/* El velo también en "listo", para que el comprobante quede solo en la
+          pantalla. Pero ahí no cierra al tocarlo: la venta recién cobrada no se
+          descarta con un toque al aire. */}
+      {paso && (
+        <div
+          className="velo"
+          onClick={paso === "listo" ? undefined : () => setPaso(null)}
+          aria-hidden="true"
+        />
+      )}
+
+      <div
+        className={
+          "hoja" +
+          (paso ? " hoja--abierta" : "") +
+          (vistaPaso === "pedido" ? "" : " hoja--alta")
+        }
+        role={paso ? "dialog" : undefined}
+        aria-label="Pedido"
+      >
+        <div className="hoja__agarre" aria-hidden="true"><i /></div>
+
+        {vistaPaso === "pedido" && (
+          <>
+            <div className="hoja__head">
+              <strong>Pedido{unidades > 0 ? ` · ${unidades}` : ""}</strong>
+              {unidades > 0 && (
+                <button type="button" className="enlace enlace--peligro" onClick={vaciar}>
+                  Vaciar
+                </button>
+              )}
             </div>
-            <div className="notificacion-texto">
-              <h4>{ventaExitosa.mensaje}</h4>
-              {ventaExitosa.detalle && <p>{ventaExitosa.detalle}</p>}
-            </div>
-            <button
-              className="notificacion-cerrar"
-              onClick={() => setMostrarNotificacion(false)}
-              type="button"
-            >
-              ✕
-            </button>
+
+            {unidades === 0 ? (
+              <div className="hoja__cuerpo">
+                <div className="hoja__vacio">
+                  <b>Todavía no hay nada</b>
+                  <span>Tocá un producto del catálogo y aparece acá.</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="hoja__cuerpo">{lineas.map(renglon)}</div>
+                <div className="hoja__pie">
+                  <div className="tot">
+                    <span>Total</span>
+                    <b>{formatearMonto(total)}</b>
+                  </div>
+                  <button type="button" className="btn-principal btn-ancho" onClick={abrirCobro}>
+                    Cobrar {formatearMonto(total)}
+                  </button>
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {vistaPaso === "cobro" && (
+          <>
+                <div className="hoja__head">
+                  <strong>Confirmar venta</strong>
+                  <button type="button" className="enlace" onClick={() => setPaso("pedido")}>
+                    ‹ Volver al pedido
+                  </button>
+                </div>
+
+                <div className="hoja__cuerpo">
+                  {/* Repaso solo con nombres: se lee de un vistazo, sin fotos
+                      que distraigan de lo que se está cobrando. */}
+                  <div className="repaso">
+                    {lineas.map(({ producto, cantidad }) => (
+                      <div className="repaso__fila" key={producto._id}>
+                        <span className="repaso__cant">{cantidad}×</span>
+                        <span className="repaso__nombre">{producto.nombre}</span>
+                        <span className="repaso__sub">{formatearMonto(producto.precioVenta * cantidad)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="rotulo">Cómo paga</p>
+                  <div className="pagos">
+                    {/* Nada preseleccionado a propósito: hay que decirlo, para
+                        que ninguna venta quede mal registrada por inercia. */}
+                    <button
+                      type="button"
+                      className="pago"
+                      aria-pressed={metodo === "efectivo"}
+                      onClick={() => { setMetodo("efectivo"); setPagado(null); }}
+                    >
+                      <i aria-hidden="true">💵</i>
+                      <b>Efectivo</b>
+                      <small>Con vuelto</small>
+                    </button>
+                    <button
+                      type="button"
+                      className="pago"
+                      aria-pressed={metodo === "sinpe"}
+                      onClick={() => { setMetodo("sinpe"); setPagado(total); }}
+                    >
+                      <i aria-hidden="true">📱</i>
+                      <b>SINPE</b>
+                      <small>Monto exacto</small>
+                    </button>
+                  </div>
+
+                  {metodo === "efectivo" && (
+                    <>
+                      <p className="rotulo">Con cuánto paga (opcional)</p>
+                      <div className="billetes">
+                        {opcionesPago.map((v, i) => (
+                          <button
+                            key={v}
+                            type="button"
+                            className="billete"
+                            aria-pressed={pagado === v}
+                            onClick={() => setPagado(v)}
+                          >
+                            {i === 0 ? "Exacto" : formatearMonto(v)}
+                          </button>
+                        ))}
+                      </div>
+                      {pagado != null ? (
+                        <div className="vuelto">
+                          <span>Vuelto</span>
+                          <b>{formatearMonto(pagado - total)}</b>
+                        </div>
+                      ) : (
+                        // Se dice lo que va a quedar registrado si nadie toca un
+                        // monto, en vez de que el reporte lo cuente distinto de
+                        // lo que pasó en el mostrador.
+                        <p className="nota">
+                          Tocá un monto y la pantalla saca el vuelto. Si no, se
+                          registra como pago justo.
+                        </p>
+                      )}
+                    </>
+                  )}
+
+                  {metodo === "sinpe" && (
+                    <p className="nota">
+                      Se registra por el monto exacto, sin vuelto. Confirmá que llegó el
+                      comprobante antes de cobrar.
+                    </p>
+                  )}
+                </div>
+
+                <div className="hoja__pie">
+                  <div className="tot">
+                    <span>{unidades === 1 ? "1 producto" : `${unidades} productos`}</span>
+                    <b>{formatearMonto(total)}</b>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-principal btn-ancho"
+                    onClick={procesarVenta}
+                    disabled={!listoParaCobrar || cobrando}
+                  >
+                    {cobrando ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" />
+                        Registrando…
+                      </>
+                    ) : metodo ? (
+                      "Registrar venta"
+                    ) : (
+                      "Elegí cómo paga"
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
+
+        {vistaPaso === "listo" && recibo && (
+          <>
+                <div className="hoja__cuerpo">
+                  <div className="listo">
+                    <div className="listo__marca" aria-hidden="true">✅</div>
+                    <h2>Venta registrada</h2>
+                    <p>{recibo.metodo === "sinpe" ? "SINPE Móvil" : "Efectivo"}</p>
+                  </div>
+
+                  <div className="listo__celdas">
+                    <div className="celda celda--acento">
+                      <small>Total</small>
+                      <b>{formatearMonto(recibo.total)}</b>
+                    </div>
+                    {recibo.metodo === "efectivo" ? (
+                      <div className="celda celda--vuelto">
+                        <small>Vuelto</small>
+                        <b>{formatearMonto(recibo.vuelto)}</b>
+                      </div>
+                    ) : (
+                      <div className="celda">
+                        <small>Recibido</small>
+                        <b>{formatearMonto(recibo.montoPagado)}</b>
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="rotulo">Se vendió</p>
+                  <div className="repaso">
+                    {recibo.lineas.map((l, i) => (
+                      <div className="repaso__fila" key={i}>
+                        <span className="repaso__cant">{l.cantidad}×</span>
+                        <span className="repaso__nombre">{l.nombre}</span>
+                        <span className="repaso__sub">{formatearMonto(l.subtotal)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="hoja__pie">
+                  <button
+                    type="button"
+                    className="btn-principal btn-ancho"
+                    onClick={() => { setPaso(null); setRecibo(null); }}
+                  >
+                    Nueva venta
+                  </button>
+                </div>
+              </>
+            )}
+        </div>
+      </div>
+
+      {aviso && (
+        <div className={"aviso aviso--" + aviso.tono} role="status">
+          <div className="aviso__texto">
+            <strong>{aviso.titulo}</strong>
+            {aviso.detalle && <p>{aviso.detalle}</p>}
           </div>
+          <button type="button" className="aviso__cerrar" onClick={() => setAviso(null)} aria-label="Cerrar aviso">
+            ✕
+          </button>
         </div>
       )}
     </div>
