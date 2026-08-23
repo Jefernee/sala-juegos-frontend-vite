@@ -21,6 +21,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { API_URL, getAxios, formatFecha } from "./adminUtils";
 import { getUsuario } from "../../utils/auth";
 import { ModalOverlay, EstadoVacio, ErrorRecarga, Cargando } from "./Comunes";
+import { BloqueAccesoDueno, BotonExigirLogin } from "./AccesoDueno";
+import { useAccesoDueno } from "../../hocks/useAccesoDueno";
 
 const ROL_INFO = {
   administrador: { label: "👑 Administrador", clase: "azul" },
@@ -63,7 +65,14 @@ const UsuariosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
   const yo = getUsuario();
   const miId = yo?._id || yo?.id || null;
 
-  useEffect(() => () => { montado.current = false; }, []);
+  // Se marca `true` en la ida, no solo `false` en la limpieza: la app corre en
+  // StrictMode (monta, desmonta y vuelve a montar), así que sin esto la ref queda
+  // en false desde el primer desmontaje y los setState que la consultan dejan de
+  // correr para siempre.
+  useEffect(() => {
+    montado.current = true;
+    return () => { montado.current = false; };
+  }, []);
 
   const fetchUsuarios = useCallback(async () => {
     setLoading(true);
@@ -213,6 +222,14 @@ const UsuariosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
   // ellos no mostramos la sección de contraseñas.
   const soyDueno = usuarios.some((u) => u.password != null);
 
+  // Quién es el dueño lo decide el backend: 200 con datos o 403 SOLO_DUENO. No
+  // se deduce del rol ni de que lleguen las contraseñas visibles.
+  const { acceso, falla, cerrando, cerrarSesiones } = useAccesoDueno({
+    getAuthHeaders,
+    mostrarNotif,
+    manejarError,
+  });
+
   return (
     <div className="fade-in">
       <div className="aviso-mes mb-4">
@@ -292,6 +309,17 @@ const UsuariosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
                       >
                         🔑 Reasignar contraseña
                       </button>
+
+                      {/* Exigirle el login a alguien: solo el dueño, y no en su
+                          propia fila — a sí mismo no tiene sentido (el backend le
+                          devuelve un token nuevo igual y sigue adentro). */}
+                      {acceso && !esYo && (
+                        <BotonExigirLogin
+                          usuario={u}
+                          cerrando={cerrando}
+                          onCerrar={cerrarSesiones}
+                        />
+                      )}
                     </div>
 
                     <div className="mt-3">
@@ -320,6 +348,15 @@ const UsuariosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
           })}
         </div>
       )}
+
+      {/* Va al final: son acciones de mantenimiento, no el trabajo de todos los
+          días. Solo lo ve el dueño. */}
+      <BloqueAccesoDueno
+        acceso={acceso}
+        falla={falla}
+        cerrando={cerrando}
+        onCerrarTodas={() => cerrarSesiones()}
+      />
 
       {modalCrear && (
         <ModalOverlay onCerrar={() => !guardando && setModalCrear(false)} bloqueado={guardando}>
