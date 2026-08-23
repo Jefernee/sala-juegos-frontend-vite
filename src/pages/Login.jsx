@@ -1,7 +1,20 @@
+// src/pages/Login.jsx
+//
+// El formulario de entrada — y la puerta de "ya estás adentro".
+//
+// Con sesión guardada esta pantalla no se dibuja: se va derecho al panel. Sin
+// eso, quien tenía el token bueno igual veía el formulario, porque a la app se
+// entra por la home pública (la PWA arranca ahí) y nadie miraba si ya había
+// sesión. El token estaba, nadie lo usaba, y parecía que la sesión no duraba.
+//
+// No hay riesgo de rebote entre esta redirección y la guarda de rutas: si el
+// token ya no sirve, el guard pregunta a /api/auth/verify, borra la sesión y
+// recién ahí vuelve acá — y para entonces no hay token que redirija.
 import { useState, useEffect } from "react";
 import axios from "axios";
 import "../styles/Login.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
+import { getToken } from "../utils/auth";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -20,6 +33,10 @@ export default function Login() {
       sessionStorage.removeItem("avisoSesion");
     }
   }, []);
+
+  // Después de los hooks (no pueden quedar detrás de un return) y antes de
+  // pintar nada: con sesión guardada, acá no hay nada que hacer.
+  if (getToken()) return <Navigate to="/dashboard/sales" replace />;
 
   const handleLogin = async (e) => {
     e.preventDefault();

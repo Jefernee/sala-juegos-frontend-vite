@@ -1,6 +1,7 @@
 // src/components/AppRouter.jsx
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { getToken } from '../utils/auth';
 
 const AppRouter = ({ children }) => {
   const navigate = useNavigate();
@@ -22,12 +23,17 @@ const AppRouter = ({ children }) => {
   console.log('¿Abierto desde PWA?:', fromPWA);
   console.log('-----------------');
 
-  // Si la app se abre desde la PWA y está en la raíz (/),
-  // redirigimos directamente al login para evitar cargar Home2
-  // y mejorar el tiempo de carga percibido
+  // Si la app se abre desde la PWA y está en la raíz (/), no tiene sentido
+  // cargar Home2: se salta a donde el usuario iba a ir igual.
+  //
+  // Con sesión guardada eso es el panel, no el login. El manifiesto ya arranca
+  // en /dashboard/sales, pero las apps YA INSTALADAS conservan el start_url
+  // viejo (/?source=pwa) hasta que se reinstalen, así que este atajo es lo que
+  // hace que abran adentro mientras tanto — sin pasar por el formulario.
   if (fromPWA && location.pathname === '/') {
-    console.log('📱 PWA detectada → redirigiendo a /login');
-    navigate('/login', { replace: true });
+    const destino = getToken() ? '/dashboard/sales' : '/login';
+    console.log(`📱 PWA detectada → redirigiendo a ${destino}`);
+    navigate(destino, { replace: true });
   }
 
   // El efecto se ejecuta solo cuando cambia la ruta

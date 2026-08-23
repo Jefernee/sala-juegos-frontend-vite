@@ -3,6 +3,7 @@ import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Link, useNavigate } from "react-router-dom";
 import { API_URL, formatFecha, formatCRC } from "../components/admin/adminUtils";
+import { getToken } from "../utils/auth";
 import "../App.css";
 import "../styles/Ganadores.css";
 import "../styles/Encabezado.css";
@@ -27,6 +28,10 @@ const MapComponent = lazy(() => import('../components/MapComponent'));
 
 function Home2() {
   const navigate = useNavigate();
+
+  // Se mira una sola vez al montar: si el token cambia, es porque el usuario
+  // entró o salió, y en los dos casos esta pantalla se vuelve a montar.
+  const haySesion = !!getToken();
 
   // Torneos: ahora vienen del backend (lista pública). Cada uno lleva a su
   // página pública /torneos/:id donde el cliente se inscribe.
@@ -86,9 +91,13 @@ function Home2() {
           </button>
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav ms-auto mb-0">
+              {/* Con sesión abierta no se manda a nadie al formulario: la
+                  home es la puerta de entrada de la PWA, y ofrecer "Login" a
+                  quien ya entró es lo que hacía parecer que la sesión se
+                  perdía. El texto cambia porque el destino cambia. */}
               <li className="nav-item">
-                <Link className="nav-link" to="/login">
-                  Login
+                <Link className="nav-link" to={haySesion ? "/dashboard/sales" : "/login"}>
+                  {haySesion ? "Entrar al panel" : "Login"}
                 </Link>
               </li>
               <li className="nav-item">
