@@ -383,6 +383,23 @@
   padding: 3px;
 }
 
+/* El aire que deja `contain` se rellena con la propia foto, borrosa y recortada,
+   en vez de dejar ver el gris del cuadro — que se leía como una tarjeta a medio
+   cargar, o como un pedazo de mostrador colado en la esquina. Esta copia sí se
+   recorta, y no importa: nadie la mira, solo tiñe el borde. La de adelante
+   sigue entrando entera.
+
+   El selector lleva `.prod__foto` delante a propósito: con solo `.prod__fondo`
+   pierde contra `.prod__foto img` de acá arriba, que es más específico, y la
+   copia se dibujaría nítida y encima. */
+.prod__foto .prod__fondo {
+  padding: 0;
+  object-fit: cover;
+  /* La escala se come el halo transparente que el desenfoque deja en los bordes. */
+  transform: scale(1.3);
+  filter: blur(14px) saturate(1.25) brightness(0.72);
+}
+
 /* Respaldo del producto sin foto: la inicial sobre el tono de su categoría.
    Vive debajo de la imagen, así que si la foto carga no se ve, y si falla (o no
    existe) aparece sola. Antes acá se pedía una imagen a via.placeholder.com,
@@ -456,7 +473,7 @@
    volvería a hacer desaparecer productos sin dejar rastro. */
 .prod--agotado { opacity: 0.6; }
 .prod--agotado .prod__toque { cursor: not-allowed; }
-.prod--agotado .prod__foto img { filter: grayscale(1); }
+.prod--agotado .prod__foto { filter: grayscale(1); }
 .prod--agotado .prod__precio { color: var(--tinta-3); }
 
 /* Contador dentro de la tarjeta: subir a 3 gaseosas no obliga a abrir el

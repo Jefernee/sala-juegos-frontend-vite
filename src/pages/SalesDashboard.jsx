@@ -551,16 +551,37 @@ const SalesDashboard = () => {
         >
           <span className="prod__foto" data-cat={cat.id}>
             {foto ? (
-              <img
-                src={foto}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                // Si la URL de la foto falla, cae al respaldo local en vez de
-                // dejar el cuadro roto. Antes acá había un via.placeholder.com,
-                // servicio externo que ya no responde.
-                onError={(e) => { e.currentTarget.style.display = "none"; }}
-              />
+              <>
+                {/* La misma foto, borrosa y recortada, tapando el hueco que deja
+                    la de adelante. Las fotos del inventario no tienen todas la
+                    misma forma, así que dentro del cuadro siempre sobra un
+                    borde: antes ahí se veía el gris del relleno, como si la
+                    tarjeta estuviera a medio cargar. Rellenarlo con la propia
+                    foto lo vuelve parte de la imagen.
+                    Se rellena en vez de recortar a propósito: recortar (`cover`)
+                    llenaría el cuadro sin trucos, pero a una botella le come la
+                    etiqueta, que es lo único que el vendedor mira. La de adelante
+                    sigue entrando entera. */}
+                <img
+                  className="prod__fondo"
+                  src={foto}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
+                <img
+                  src={foto}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  // Si la URL de la foto falla, cae al respaldo local en vez de
+                  // dejar el cuadro roto. Antes acá había un via.placeholder.com,
+                  // servicio externo que ya no responde.
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
+              </>
             ) : null}
             <span className="prod__inicial" aria-hidden="true">
               {(producto.nombre || "?").charAt(0).toUpperCase()}
