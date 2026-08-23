@@ -312,6 +312,7 @@
   gap: 0.55rem;
 }
 
+
 .prod {
   position: relative;
   background: var(--panel);
@@ -1010,6 +1011,49 @@
   cursor: pointer;
   display: grid;
   place-items: center;
+}
+
+/* ─── Móvil: tres columnas ───────────────────────────────────────────────────
+ *
+ * En 390 px el `minmax(150px)` daba dos columnas de 178 px, y entraban unas 6
+ * tarjetas. Tres columnas de 116 px dejan unas 9 a la vista: media pantalla más
+ * de inventario sin deslizar, que es lo que se busca cuando hay que encontrar el
+ * producto con el cliente enfrente.
+ *
+ * Y las fotos NO se ven más chicas de lo que sugiere ese número, por el cuadro
+ * vertical de acá abajo. Las del inventario están tomadas con el celular en
+ * vertical y se muestran con `contain`: dentro de un cuadro CUADRADO una foto
+ * vertical solo usa el 75 % del ancho —el resto es aire a los lados— así que
+ * achicar la tarjeta achicaba el producto el doble de rápido. Con el cuadro en
+ * 3:4 la foto lo llena entero: el producto pasa de 122×163 px a 103×137, un 16 %
+ * menos, mientras la cantidad de tarjetas sube un 50 %.
+ *
+ * El resto del bloque son las consecuencias de tener 116 px de ancho: sin esto,
+ * "quedan 3" se parte en dos líneas debajo del precio y la insignia de cantidad
+ * ocupa 80 de los 116 px de la tarjeta. */
+@media (max-width: 640px) {
+  .parrilla { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  .prod__foto { aspect-ratio: 3 / 4; }
+
+  /* Menos margen alrededor de la foto: a este tamaño cada píxel del cuadro es
+     producto que se reconoce. */
+  .prod__toque { padding: 0.4rem 0.4rem 0.45rem; }
+  .prod__foto img { padding: 1px; }
+
+  .prod__nombre { font-size: 0.78rem; }
+
+  /* Precio y stock siguen en la misma línea: bajarlos un punto los hace entrar
+     en 103 px ("₡1.200" + "quedan 3"), y así la tarjeta no gana una línea de
+     alto solo para decir cuántos quedan. */
+  .prod__precio { font-size: 0.8rem; }
+  .prod__stock { font-size: 0.62rem; }
+
+  .prod__sello { top: 0.45rem; left: 0.45rem; }
+
+  .prod__cuenta { right: 0.25rem; bottom: 0.25rem; }
+  .prod__cuenta button { width: 23px; height: 23px; font-size: 0.85rem; }
+  .prod__cuenta span { min-width: 15px; font-size: 0.72rem; }
 }
 
 /* ─── Escritorio ──────────────────────────────────────────────────────────── */
