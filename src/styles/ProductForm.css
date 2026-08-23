@@ -1072,3 +1072,45 @@
     min-width: 56px;
   }
 }
+/* ─── Categoría de venta ────────────────────────────────────────────────────
+   En qué pestaña de Ventas aparece el producto. Chips y no tarjetas como el
+   "¿Qué es?": son cinco opciones de una palabra, y en tarjetas ocuparían media
+   pantalla para decir menos. Mismo lenguaje visual (celeste de selección) que el
+   resto del formulario. */
+
+.chips-categoria {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip-categoria {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #475569;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chip-categoria:hover:not(:disabled) {
+  border-color: #7dd3fc;
+}
+
+.chip-categoria.activa {
+  border-color: #22d3ee;
+  background: #f0fdff;
+  color: #0e7490;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
+}
+
+.chip-categoria:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

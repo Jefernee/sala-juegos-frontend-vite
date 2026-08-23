@@ -40,6 +40,7 @@ import {
   formatearCantidad,
   formatearNumero,
 } from "../constants/inventario";
+import { CATEGORIAS, categoriaDe, categoriaInfo } from "../constants/categorias";
 import { analizarReceta } from "../utils/stock";
 import "../styles/ProductForm.css";
 
@@ -81,6 +82,9 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
     unidad: "unidades",
     cantidadPorEnvase: "",
     nombreEnvase: "",
+    // En qué pestaña de Ventas aparece. Vacío = que decida el backend: él
+    // clasifica por el nombre al guardar. Elegirla acá es para corregirlo.
+    categoria: "",
   });
   // Qué es el producto (bebida, helado a granel, desechable…). De acá sale la
   // unidad; el usuario nunca la elige a mano.
@@ -126,6 +130,10 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
         unidad: normalizarUnidad(producto.unidad || "unidades"),
         cantidadPorEnvase: producto.cantidadPorEnvase ?? "",
         nombreEnvase: normalizarEnvase(producto.nombreEnvase || ""),
+        // Un producto viejo, sin el campo todavía, arranca en "Automática":
+        // así guardarlo sin tocar nada deja que el backend lo clasifique, en
+        // vez de fijarle "Otros" para siempre sin que nadie lo haya elegido.
+        categoria: producto.categoria ? categoriaDe(producto) : "",
       });
       setTipoProducto(tipoProductoDe(producto.unidad)?.id || null);
       if (producto.cantidadPorEnvase) {
@@ -372,6 +380,15 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
 
     if (!form.nombre.trim()) agregar("Escribí el nombre.", "nombre");
 
+    // Al crear, el backend exige la categoría (400 CATEGORIA_REQUERIDA) y ya no
+    // la deduce del nombre: probó y fallaba justo con las marcas — "Crunchy" y
+    // "Chokies" son helados aunque suenen a galleta. Se pide para todo, también
+    // para recetas e ingredientes: las dos ramas del POST la exigen. Se valida
+    // acá para no mostrar un error del servidor por un campo que está a la vista.
+    if (!isEditing && !form.categoria) {
+      agregar("Elegí en qué categoría se vende.", "campo-categoria");
+    }
+
     if (esReceta) {
       if (receta.length === 0) {
         agregar("Agregá al menos una cosa a la receta.", "campo-ingredientes");
@@ -547,6 +564,10 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
         precioVenta: form.precioVenta === "" ? 0 : form.precioVenta,
         seVende: form.seVende,
       };
+
+      // Solo se manda si se eligió a mano. Sin este campo el backend clasifica
+      // solo; mandarlo vacío o adivinado desde acá pisaría esa decisión.
+      if (form.categoria) payload.categoria = form.categoria;
 
       if (esReceta) {
         payload.tipo = "receta";
@@ -773,6 +794,35 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
                       Con esto el sistema sabe si se cuenta de una en una o si se pesa.
                     </small>
                   )}
+                </div>
+
+                {/* En qué pestaña de Ventas aparece. Se pregunta siempre, también
+                    para recetas e ingredientes: el backend ya no la deduce del
+                    nombre y la exige al crear. Nadie la adivina mejor que el
+                    dueño — "Crunchy" y "Chokies" son helados aunque suenen a
+                    galleta, y un "Chao" no se deduce de ninguna manera. */}
+                <div className="campo-bloque" id="campo-categoria">
+                  <label className="form-label">¿En qué categoría va?</label>
+                  <div className="chips-categoria">
+                    {CATEGORIAS.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className={`chip-categoria ${form.categoria === c.id ? "activa" : ""}`}
+                        onClick={() => setForm((p) => ({ ...p, categoria: c.id }))}
+                        disabled={uploading}
+                      >
+                        <span aria-hidden="true">{c.icono}</span> {c.label}
+                      </button>
+                    ))}
+                  </div>
+                  <small className="texto-apoyo">
+                    {!form.seVende
+                      ? "No se vende en el mostrador, así que no va a aparecer en ninguna pestaña — pero hay que elegirla igual."
+                      : form.categoria
+                        ? `Va a aparecer en la pestaña ${categoriaInfo(form.categoria).label} de Ventas.`
+                        : "Es la pestaña de Ventas donde el empleado lo va a buscar."}
+                  </small>
                 </div>
 
                 <div className="campo-bloque">
