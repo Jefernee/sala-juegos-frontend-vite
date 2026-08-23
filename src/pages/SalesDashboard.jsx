@@ -69,6 +69,14 @@ const STOCK_BAJO = 5;
 // alcanzaba y el único botón posible era "Exacto".
 const REDONDEOS = [1000, 2000, 5000, 10000, 20000];
 
+// Marca de que en este aparato ya alguien armó un pedido. Solo sirve para dejar
+// de mostrar la pista de abajo: es enseñanza, y a quien ya la aprendió le tapa
+// tarjetas antes de cada venta. Va en localStorage y no en el backend porque lo
+// que hay que recordar es "esta pantalla ya se usó", no algo de la cuenta: un
+// celular nuevo, o uno del personal que entra por primera vez, tiene que recibir
+// la explicación aunque el usuario sea el mismo de siempre.
+const CLAVE_PISTA = "ventasPistaVista";
+
 const VISTA_TOP = "top";
 const VISTA_TODOS = "todos";
 
@@ -101,6 +109,17 @@ const SalesDashboard = () => {
   // Para devolverlo hay que volver a montar el `<input>` que lo alimente y
   // encender de nuevo el bloque `.buscador` de SalesDashboard.css. Se dejó así a
   // propósito: quitar la fila era por espacio, no porque buscar estuviera mal.
+  // ¿Ya se armó un pedido alguna vez en este aparato? Se lee una sola vez al
+  // montar; si el navegador no deja leer (modo privado), se asume que no y la
+  // pista aparece: enseñar de más es mejor que dejar a alguien sin saber tocar.
+  const [pistaVista, setPistaVista] = useState(() => {
+    try {
+      return localStorage.getItem(CLAVE_PISTA) === "1";
+    } catch {
+      return false;
+    }
+  });
+
   const [busqueda, setBusqueda] = useState("");
   const [tope, setTope] = useState(LOTE);
 
@@ -347,10 +366,21 @@ const SalesDashboard = () => {
     if (delta > 0) {
       setFlash(producto._id);
       setTimeout(() => setFlash((f) => (f === producto._id ? null : f)), 260);
+
+      // Tocó un producto: ya sabe cómo se arma un pedido. La pista no vuelve.
+      if (!pistaVista) {
+        setPistaVista(true);
+        try {
+          localStorage.setItem(CLAVE_PISTA, "1");
+        } catch {
+          // Sin poder guardarlo la pista vuelve mañana. No es motivo para
+          // romper una venta.
+        }
+      }
     }
     // Cambiar el pedido invalida el monto elegido: el vuelto de antes ya no vale.
     setPagado(null);
-  }, [carrito, avisar]);
+  }, [carrito, avisar, pistaVista]);
 
   const vaciar = useCallback(() => {
     setCarrito({});
@@ -697,12 +727,17 @@ const SalesDashboard = () => {
           )}
         </div>
 
-      {/* Antes del primer toque: dice dónde va a aparecer el pedido, en el lugar
-          exacto donde va a aparecer. En móvil no hay hover que lo explique. */}
-      {unidades === 0 && !paso && !loading && (
+      {/* La pista vive hasta el primer producto que alguien agregue en este
+          aparato, y no vuelve nunca más. Antes se mostraba con el pedido vacío,
+          o sea ANTES DE CADA VENTA: como el carrito se limpia al cobrar,
+          reaparecía todo el día tapando una franja de tarjetas justo cuando el
+          vendedor busca el primer producto del pedido siguiente. Enseñar está
+          bien; repetirlo a quien ya aprendió es quitarle pantalla.
+          De una línea y no de dos por lo mismo: mientras vive, que ocupe lo
+          menos posible. */}
+      {unidades === 0 && !paso && !loading && !pistaVista && (
         <div className="pista-barra">
-          <b>Tocá cualquier producto</b>
-          <small>El pedido se arma acá abajo</small>
+          <b>Tocá un producto</b> y el pedido se arma acá
         </div>
       )}
 

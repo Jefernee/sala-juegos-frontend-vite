@@ -602,20 +602,20 @@
   border-radius: 16px;
 }
 
+/* Una línea, no dos: esta barra flota sobre la parrilla, así que cada milímetro
+   que ocupa es una franja de tarjetas que el vendedor no ve. */
 .pista-barra {
   border: 1px dashed var(--linea);
   background: rgba(15, 23, 42, 0.86);
   backdrop-filter: blur(4px);
-  padding: 0.75rem;
+  padding: 0.55rem 0.75rem;
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
+  font-size: 0.78rem;
+  color: var(--tinta-3);
   animation: subir 0.25s ease;
 }
 
-.pista-barra b { font-size: 0.85rem; font-weight: 600; color: var(--tinta-2); }
-.pista-barra small { font-size: 0.72rem; color: var(--tinta-3); }
+.pista-barra b { font-weight: 600; color: var(--tinta-2); }
 
 .barra-pedido {
   background: var(--panel-alto);
