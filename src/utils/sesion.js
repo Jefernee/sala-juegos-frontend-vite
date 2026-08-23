@@ -19,12 +19,19 @@ export const CODIGOS_SIN_TOKEN = [
 ];
 // El token existe pero ya no sirve: hay que borrar la sesión guardada.
 export const CODIGOS_SESION_VENCIDA = ["INVALID_TOKEN", "EXPIRED_TOKEN"];
+// El dueño cortó las sesiones desde Administración. No es que el token venciera:
+// se invalidó a propósito, y el aviso tiene que decir eso — si dijera "expiró",
+// el vendedor pensaría que es una falla y volvería a entrar esperando lo mismo.
+export const CODIGO_SESION_CERRADA = "SESION_CERRADA";
 export const CODIGO_ROL = "ROL_NO_AUTORIZADO";
 
-// Unos módulos responden { ok: false, mensaje } y otros { error, code } (el
-// middleware). Leemos las dos formas para no mostrar un error vacío.
+// El backend no nombra igual el mensaje en todos lados: unos módulos responden
+// { ok: false, mensaje }, el middleware de auth { error, code } y los de
+// usuarios { message }. Se leen los tres para que nunca aparezca un error vacío
+// —o peor, el genérico de "revisá la conexión" tapando lo que el backend
+// explicaba bien.
 export const mensajeDeError = (data, porDefecto = "Ocurrió un error") =>
-  data?.mensaje || data?.error || porDefecto;
+  data?.mensaje || data?.error || data?.message || porDefecto;
 
 // Error de sesión/permiso. Se distingue de un error de datos para que la
 // pantalla NO pinte su banner rojo: el navegador ya está yendo a otra ruta.
@@ -64,6 +71,13 @@ export const manejarNoAutorizado = (status, data, url = "") => {
     if (window.location.pathname !== RUTA_VENTAS) {
       window.location.replace(RUTA_VENTAS);
     }
+    return { manejado: true, mensaje };
+  }
+
+  if (status === 401 && code === CODIGO_SESION_CERRADA) {
+    const mensaje = "Se cerraron las sesiones. Iniciá sesión de nuevo.";
+    localStorage.clear();
+    irALogin(mensaje);
     return { manejado: true, mensaje };
   }
 

@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AppRouter from "./components/AppRouter";
 import RequireRol from "./components/RequireRol";
+import SesionProvider from "./components/SesionProvider";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PantallaCarga from "./components/PantallaCarga";
 import Home2 from "./pages/Home2";
@@ -25,6 +26,10 @@ const PageLoader = () => <PantallaCarga />;
 function App() {
   return (
     <AppRouter>
+      {/* Dentro de AppRouter porque necesita el router (mira la navegación para
+          detectar el token nuevo del login), y por fuera de las rutas porque el
+          estado de la sesión lo comparten todas. */}
+      <SesionProvider>
       <ErrorBoundary>
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -82,6 +87,7 @@ function App() {
         </Routes>
       </Suspense>
       </ErrorBoundary>
+      </SesionProvider>
     </AppRouter>
   );
 }

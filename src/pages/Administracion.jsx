@@ -9,6 +9,7 @@ import ActivosPanel from "../components/admin/ActivosPanel";
 import UsuariosPanel from "../components/admin/UsuariosPanel";
 import TorneosPanel from "../components/admin/TorneosPanel";
 import FinanzasPersonalesPanel from "../components/admin/FinanzasPersonalesPanel";
+import { mensajeDeError } from "../utils/sesion";
 import { puedeGestionarUsuarios, esAdministrador } from "../utils/auth";
 import "../styles/Administracion.css";
 
@@ -70,8 +71,11 @@ const Administracion = () => {
         navigate("/login");
         return;
       }
+      // El nombre del mensaje cambia según el endpoint (`mensaje`, `error` o
+      // `message`): leerlos todos evita que el genérico de conexión tape lo que
+      // el backend ya explicaba bien.
       mostrarNotif(
-        error?.response?.data?.message || "Error de conexión, intenta nuevamente",
+        mensajeDeError(error?.response?.data, "Error de conexión, intenta nuevamente"),
         "error",
       );
     },
