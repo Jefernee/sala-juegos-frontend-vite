@@ -327,15 +327,6 @@ const SalesDashboard = () => {
    * saca. Que la tarjeta sume de a uno con cada toque confundía — dos toques sin
    * querer y llevabas dos gaseosas sin haberlo pedido.
    */
-  const quitar = useCallback((producto) => {
-    setCarrito((prev) => {
-      const copia = { ...prev };
-      delete copia[producto._id];
-      return copia;
-    });
-    setPagado(null);
-  }, []);
-
   const cambiar = useCallback((producto, delta) => {
     const disp = resolverDisponibilidad(producto);
     const actual = carrito[producto._id] || 0;
@@ -367,6 +358,13 @@ const SalesDashboard = () => {
     if (delta > 0) {
       setFlash(producto._id);
       setTimeout(() => setFlash((f) => (f === producto._id ? null : f)), 260);
+
+      // Un golpecito corto al sumar. Es el acuse de recibo que reemplaza al
+      // "tocar de nuevo para sacar": el vendedor sabe que entró sin mirar el
+      // número, con el cliente enfrente y ruido alrededor.
+      // `?.` porque no todos los navegadores la tienen — Safari de iPhone no
+      // soporta la API de vibración, y ahí simplemente no pasa nada.
+      navigator.vibrate?.(15);
 
       // Tocó un producto: ya sabe cómo se arma un pedido. La pista no vuelve.
       if (!pistaVista) {
@@ -535,19 +533,24 @@ const SalesDashboard = () => {
           (flash === producto._id ? " prod--pop" : "")
         }
       >
-        {/* La tarjeta es un interruptor: un toque lo mete al pedido, otro lo
-            saca. La cantidad NO se cambia acá — para eso están el − y el + de la
-            insignia. Antes cada toque sumaba uno, y dos toques sin querer te
-            dejaban dos gaseosas en la venta sin haberlas pedido. */}
+        {/* Cada toque suma uno. La tarjeta era un interruptor —tocar de nuevo
+            sacaba el producto— para evitar que un toque de más metiera dos
+            gaseosas sin querer. Con tres columnas eso dejó de convenir: para
+            vender dos hay que acertarle al "+" de la insignia, y a ese tamaño
+            cuesta. Vale más que el blanco grande (la tarjeta entera) haga lo
+            que se hace todo el día, que es sumar.
+            Lo que protege del toque accidental ahora es el aviso: el número
+            cambia a la vista y el teléfono vibra. Para bajar están el − y el
+            basurerito, que por eso se agrandaron en el celular. */}
         <button
           type="button"
           className="prod__toque"
-          onClick={() => (cantidad === 0 ? cambiar(producto, 1) : quitar(producto))}
+          onClick={() => cambiar(producto, 1)}
           disabled={disp.agotado}
           aria-label={
             cantidad === 0
               ? `Agregar ${producto.nombre}`
-              : `Quitar ${producto.nombre} del pedido`
+              : `Agregar otro ${producto.nombre}, van ${cantidad}`
           }
         >
           <span className="prod__foto" data-cat={cat.id}>
@@ -597,11 +600,15 @@ const SalesDashboard = () => {
           {disp.agotado && disp.motivo && <span className="prod__motivo">{disp.motivo}</span>}
         </button>
 
+        {/* Sin botón de "+": la tarjeta entera hace eso, y era el que más
+            espacio ocupaba en la insignia. Todo ese ancho se lo queda el "−",
+            que ahora es la única forma de bajar y necesita un blanco de toque
+            de dedo, no de puntero.
+            A cantidad 1 el "−" pasa a ser "quitar": son dos acciones distintas
+            y tienen que verse distintas, o nadie sabe que ese botón también
+            elimina. */}
         {cantidad > 0 && (
           <div className="prod__cuenta">
-            {/* A cantidad 1 el "−" pasa a ser "quitar": son dos acciones
-                distintas y tienen que verse distintas, o nadie sabe que ese
-                botón también elimina. */}
             <button
               type="button"
               className={cantidad === 1 ? "es-quitar" : undefined}
@@ -612,9 +619,6 @@ const SalesDashboard = () => {
               {cantidad === 1 ? "🗑" : "−"}
             </button>
             <span>{cantidad}</span>
-            <button type="button" onClick={() => cambiar(producto, 1)} aria-label="Agregar uno">
-              +
-            </button>
           </div>
         )}
       </div>

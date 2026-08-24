@@ -494,8 +494,8 @@
 }
 
 .prod__cuenta button {
-  width: 27px;
-  height: 27px;
+  width: 32px;
+  height: 32px;
   border: 0;
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.16);
@@ -1061,9 +1061,16 @@
 
   .prod__sello { top: 0.45rem; left: 0.45rem; }
 
-  .prod__cuenta { right: 0.25rem; top: 0.25rem; }
-  .prod__cuenta button { width: 23px; height: 23px; font-size: 0.85rem; }
-  .prod__cuenta span { min-width: 15px; font-size: 0.72rem; }
+  /* En el celular el "−" es lo que se toca con el dedo, no con un puntero, así
+     que se lleva 38 px: es la única forma de bajar la cantidad desde que el
+     toque en la tarjeta suma siempre. Entra sin apretar nada porque se fue el
+     "+" (lo hace la tarjeta) y porque el sello de "Receta" se oculta mientras
+     el producto está en el pedido: la fila de arriba es toda suya.
+     Cuentas en una tarjeta de 116 px: 4 de relleno + 38 del botón + 2 de hueco
+     + 20 del número = 64 px. Sobra más de la mitad del ancho. */
+  .prod__cuenta { right: 0.25rem; top: 0.25rem; padding: 3px; }
+  .prod__cuenta button { width: 38px; height: 38px; font-size: 1.1rem; }
+  .prod__cuenta span { min-width: 20px; font-size: 0.85rem; }
 }
 
 /* ─── Escritorio ──────────────────────────────────────────────────────────── */
