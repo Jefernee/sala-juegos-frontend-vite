@@ -97,12 +97,17 @@ const RECORTE = "ar_3:4,c_pad,b_auto,f_auto,q_auto";
  * La misma foto, pedida al ancho que se va a usar. Si no es de Cloudinary se
  * devuelve tal cual: no se le inventan transformaciones a un servidor ajeno.
  *
- * La nuestra se agrega como ÚLTIMO paso, justo antes de la versión (`v123.../`),
- * y no pegada a `/upload/`. Cloudinary aplica las transformaciones de izquierda
- * a derecha, así que si una URL ya venía con la suya —el backend guarda algunas
- * así— ponerse primero significaba que la de ellos se aplicaba después: nosotros
- * encajábamos la foto en 3:4 y su `c_fill` la volvía a recortar por los lados.
- * De últimas, la forma final la decide esta.
+ * Y se REEMPLAZA lo que hubiera antes, en vez de encadenarse. El backend guarda
+ * algunas URLs con transformación propia, y si esa incluye un recorte
+ * (`c_fill` y compañía) la foto llega cortada de los lados haga lo que haga el
+ * frontend. Como la transformación vive en la URL y no en el archivo —el
+ * original sigue entero en Cloudinary—, pedir la foto desde la versión
+ * (`v123.../`) la devuelve completa. Por eso se descarta el tramo anterior:
+ * es la única forma de recuperar lo que ese recorte dejaba afuera.
+ *
+ * Sin versión en la URL no se puede saber dónde termina la transformación y
+ * dónde empieza la carpeta del archivo, así que ahí la nuestra se antepone y
+ * listo: mejor una foto con la transformación de ellos que una URL rota.
  */
 const fotoDeVenta = (url, ancho) => {
   if (typeof url !== "string") return url;
@@ -112,7 +117,7 @@ const fotoDeVenta = (url, ancho) => {
   const conVersion = /(\/upload\/(?:.*?\/)?)(v\d+\/)/;
 
   return conVersion.test(url)
-    ? url.replace(conVersion, `$1${nuestra}/$2`)
+    ? url.replace(conVersion, `/upload/${nuestra}/$2`)
     : url.replace("/upload/", `/upload/${nuestra}/`);
 };
 
