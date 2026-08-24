@@ -4,7 +4,8 @@ import "../styles/PublicProductList.css";
 import NavBar from "../components/NavBar";
 import { resolverDisponibilidad } from "../utils/stock";
 import { formatearMonto, formatearNumero } from "../constants/inventario";
-import { fotoProducto, fotoProductoSrcSet, SIN_FOTO } from "../utils/imagenes";
+import { fotoProducto, SIN_FOTO } from "../utils/imagenes";
+import FotoProducto from "../components/FotoProducto";
 
 const PublicProductsList = () => {
   const [productos, setProductos] = useState([]);
@@ -265,18 +266,24 @@ const PublicProductsList = () => {
                           por foto) para pintarlo acá era el mayor peso de la
                           pantalla que ven los clientes. Al tocar sí se abre la
                           original, que para eso es "ver la imagen completa". */}
-                      <img
-                        src={fotoProducto(producto.imagen, { ancho: 400 }) || SIN_FOTO}
-                        srcSet={producto.imagen ? fotoProductoSrcSet(producto.imagen, [400, 800]) : undefined}
-                        sizes="(max-width: 600px) 90vw, 300px"
-                        alt={producto.nombre}
-                        className="card-img-top public-product-image"
-                        loading="lazy"
-                        onClick={() =>
-                          window.open(producto.imagen, "_blank")
-                        }
-                        title="Ver la imagen completa"
-                      />
+                      {producto.imagen ? (
+                        <FotoProducto
+                          src={producto.imagen}
+                          ancho={400}
+                          anchos={[400, 800]}
+                          sizes="(max-width: 600px) 90vw, 300px"
+                          alt={producto.nombre}
+                          className="card-img-top public-product-image"
+                          onClick={() => window.open(producto.imagen, "_blank")}
+                          title="Ver la imagen completa"
+                        />
+                      ) : (
+                        <img
+                          src={SIN_FOTO}
+                          alt=""
+                          className="card-img-top public-product-image"
+                        />
+                      )}
                     </div>
 
                     <div className="card-body">

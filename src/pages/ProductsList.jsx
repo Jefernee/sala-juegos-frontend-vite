@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import "../styles/ProductsList.css";
 import Navbar from "../components/NavBar2";
-import { fotoProducto, SIN_FOTO } from "../utils/imagenes";
+import FotoProducto from "../components/FotoProducto";
 
 const ProductsList = () => {
   const [productos, setProductos] = useState([]);
@@ -136,11 +136,9 @@ const ProductsList = () => {
                   <div className="card product-card h-100 shadow-sm">
                     {/* Imagen */}
                     <div className="product-image-container">
-                      <img
-                        src={
-                          fotoProducto(producto.imagenOptimizada || producto.imagen, { ancho: 400 }) ||
-                          SIN_FOTO
-                        }
+                      <FotoProducto
+                        src={producto.imagenOptimizada || producto.imagen}
+                        ancho={400}
                         alt={producto.nombre}
                         className="card-img-top product-image"
                         loading="lazy"

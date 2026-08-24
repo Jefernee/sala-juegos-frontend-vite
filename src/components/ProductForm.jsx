@@ -40,7 +40,7 @@ import {
   formatearCantidad,
   formatearNumero,
 } from "../constants/inventario";
-import { fotoProducto } from "../utils/imagenes";
+import FotoProducto from "./FotoProducto";
 import { CATEGORIAS, categoriaDe, categoriaInfo } from "../constants/categorias";
 import { analizarReceta } from "../utils/stock";
 import "../styles/ProductForm.css";
@@ -1359,8 +1359,9 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
                 </label>
                 {isEditing && producto?.imagen && !form.imagen?.file && (
                   <div className="current-image-preview mb-2">
-                    <img
-                      src={fotoProducto(producto.imagenOptimizada || producto.imagen, { ancho: 400 })}
+                    <FotoProducto
+                      src={producto.imagenOptimizada || producto.imagen}
+                      ancho={400}
                       alt="Foto actual"
                       style={{
                         maxWidth: "150px",

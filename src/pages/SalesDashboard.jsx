@@ -37,7 +37,7 @@ import "../styles/SalesDashboard.css";
 import Navbar from "../components/NavBar2";
 import { puedeVerModulo } from "../utils/auth";
 import { mensajeDeError } from "../utils/sesion";
-import { fotoProducto, fotoProductoSrcSet } from "../utils/imagenes";
+import FotoProducto from "../components/FotoProducto";
 import { resolverDisponibilidad } from "../utils/stock";
 import { formatearMonto } from "../constants/inventario";
 import { categoriaDe, categoriasConProductos, categoriaInfo } from "../constants/categorias";
@@ -554,20 +554,13 @@ const SalesDashboard = () => {
           }
         >
           <span className="prod__foto" data-cat={cat.id}>
-            {foto ? (
-              <img
-                src={fotoProducto(foto, { ancho: 320, forma: "3:4" })}
-                srcSet={fotoProductoSrcSet(foto, [320, 640], "3:4")}
-                sizes="(max-width: 640px) 33vw, 200px"
-                alt=""
-                loading="lazy"
-                decoding="async"
-                // Si la URL de la foto falla, cae al respaldo local en vez de
-                // dejar el cuadro roto. Antes acá había un via.placeholder.com,
-                // servicio externo que ya no responde.
-                onError={(e) => { e.currentTarget.style.display = "none"; }}
-              />
-            ) : null}
+            <FotoProducto
+              src={foto}
+              ancho={320}
+              forma="3:4"
+              anchos={[320, 640]}
+              sizes="(max-width: 640px) 33vw, 200px"
+            />
             <span className="prod__inicial" aria-hidden="true">
               {(producto.nombre || "?").charAt(0).toUpperCase()}
             </span>
