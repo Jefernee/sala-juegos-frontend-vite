@@ -2,29 +2,18 @@
 // Cómo se pide una foto de producto. Una sola implementación para todas las
 // pantallas que las muestran (ventas, catálogo público, productos, gestionar).
 //
-// Dos problemas que resuelve, los dos por el mismo lado:
+// Qué resuelve: se pedía el archivo tal como está guardado —hasta 1000 px de
+// lado— para pintarlo en cajas de 80 a 320 px. El catálogo público, que es el
+// que ven los clientes, era el más pesado de todos.
 //
-// · Las URLs guardadas traen a veces un recorte escrito (`c_fill` y compañía),
-//   y eso corta la foto por los lados para todo el que la consuma. Como la
-//   transformación vive en la URL y no en el archivo —el original sigue entero
-//   en Cloudinary—, la URL se rearma desde la versión (`v123.../`) descartando
-//   el tramo anterior, y la foto vuelve completa.
-//
-// · Se pedía el original para pintarlo en cajas de 80 a 320 px. Había fotos de
-//   750×1000 y un PNG de 215 KB por producto; el catálogo público, que es el
-//   que ven los clientes, era el más pesado de todos.
-//
-// Nada de esto recorta: `c_pad` rellena. Si alguna pantalla necesita una forma
-// fija, la foto se completa con un color sacado de la propia imagen (`b_auto`)
-// en vez de dejar ver el fondo de la caja.
+// Qué NO hace: tocar el encuadre. `c_pad` rellena, nunca recorta, y el relleno
+// toma un color de la propia imagen (`b_auto`) en vez de dejar ver el fondo de
+// la caja. Si una foto se ve cortada, el corte está en el archivo: las fotos
+// del inventario tienen proporciones distintas (750×1000, 533×603, 321×474) y
+// varias son tomas donde el producto ya sale partido por el borde. Eso se
+// arregla volviendo a subir la foto, no acá.
 
 const ES_CLOUDINARY = "res.cloudinary.com";
-
-// Marca dónde terminan las transformaciones y empieza el archivo. Sin versión no
-// hay forma de distinguir una transformación de una carpeta, así que ahí la
-// nuestra se antepone y se conserva lo que hubiera: mejor una foto con el
-// recorte de ellos que una URL rota.
-const CON_VERSION = /(\/upload\/(?:.*?\/)?)(v\d+\/)/;
 
 /**
  * La URL de una foto de producto, pedida al tamaño en que se va a ver.
@@ -47,9 +36,13 @@ export function fotoProducto(url, { ancho, forma } = {}) {
     "f_auto,q_auto",
   ].filter(Boolean).join(",");
 
-  return CON_VERSION.test(url)
-    ? url.replace(CON_VERSION, `/upload/${pasos}/$2`)
-    : url.replace("/upload/", `/upload/${pasos}/`);
+  // Se antepone y ya. Las URLs que guarda el backend son canónicas —no llevan
+  // nada entre `upload/` y la versión, verificado sobre los 81 productos— así
+  // que no hay transformación previa que esquivar. Hubo una versión de esto que
+  // recortaba la URL desde la versión para deshacer un recorte guardado que
+  // resultó no existir; además, con una URL sin versión, ese corte devolvía una
+  // dirección rota. Fuera.
+  return url.replace("/upload/", `/upload/${pasos}/`);
 }
 
 /** `srcset` de dos anchos, para que cada pantalla elija según su densidad. */
