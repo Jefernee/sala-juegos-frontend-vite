@@ -77,6 +77,29 @@ const REDONDEOS = [1000, 2000, 5000, 10000, 20000];
 // la explicación aunque el usuario sea el mismo de siempre.
 const CLAVE_PISTA = "ventasPistaVista";
 
+// Las fotos viven en Cloudinary, que sabe entregarlas ya listas para este
+// tamaño. Antes se pedía el original —750×1000, y un PNG de 215 KB entre
+// ellos— para pintarlo en un cuadro de 103 px: una pantalla de 18 tarjetas se
+// bajaba más de un mega, y mientras tanto el vendedor veía los cuadros grises
+// del respaldo llenándose de a poco.
+//
+// Qué hace cada parte:
+//   w_320/w_640  el ancho que de verdad se usa (103 px hasta a 3x de densidad).
+//   ar_3:4,c_pad la foto sale EXACTAMENTE con la forma del cuadro. `c_pad`
+//                rellena, no recorta: ninguna foto pierde un pedazo.
+//   b_auto       ese relleno toma un color sacado de la propia foto, así que
+//                donde antes asomaba el gris del sistema ahora hay un borde que
+//                combina. Sirve para las fotos que no son 3:4 exactas.
+//   f_auto,q_auto formato y compresión que decide Cloudinary según el navegador.
+const RECORTE = "ar_3:4,c_pad,b_auto,f_auto,q_auto";
+
+/** La misma foto, pedida al ancho que se va a usar. Si no es de Cloudinary se
+ *  devuelve tal cual: no se le inventan transformaciones a un servidor ajeno. */
+const fotoDeVenta = (url, ancho) =>
+  typeof url === "string" && url.includes("res.cloudinary.com") && url.includes("/upload/")
+    ? url.replace("/upload/", `/upload/w_${ancho},${RECORTE}/`)
+    : url;
+
 const VISTA_TOP = "top";
 const VISTA_TODOS = "todos";
 
@@ -551,44 +574,31 @@ const SalesDashboard = () => {
         >
           <span className="prod__foto" data-cat={cat.id}>
             {foto ? (
-              <>
-                {/* La misma foto, borrosa y recortada, tapando el hueco que deja
-                    la de adelante. Las fotos del inventario no tienen todas la
-                    misma forma, así que dentro del cuadro siempre sobra un
-                    borde: antes ahí se veía el gris del relleno, como si la
-                    tarjeta estuviera a medio cargar. Rellenarlo con la propia
-                    foto lo vuelve parte de la imagen.
-                    Se rellena en vez de recortar a propósito: recortar (`cover`)
-                    llenaría el cuadro sin trucos, pero a una botella le come la
-                    etiqueta, que es lo único que el vendedor mira. La de adelante
-                    sigue entrando entera. */}
-                <img
-                  className="prod__fondo"
-                  src={foto}
-                  alt=""
-                  aria-hidden="true"
-                  loading="lazy"
-                  decoding="async"
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
-                <img
-                  src={foto}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  // Si la URL de la foto falla, cae al respaldo local en vez de
-                  // dejar el cuadro roto. Antes acá había un via.placeholder.com,
-                  // servicio externo que ya no responde.
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
-              </>
+              <img
+                src={fotoDeVenta(foto, 320)}
+                srcSet={`${fotoDeVenta(foto, 320)} 320w, ${fotoDeVenta(foto, 640)} 640w`}
+                sizes="(max-width: 640px) 33vw, 200px"
+                alt=""
+                loading="lazy"
+                decoding="async"
+                // Si la URL de la foto falla, cae al respaldo local en vez de
+                // dejar el cuadro roto. Antes acá había un via.placeholder.com,
+                // servicio externo que ya no responde.
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+              />
             ) : null}
             <span className="prod__inicial" aria-hidden="true">
               {(producto.nombre || "?").charAt(0).toUpperCase()}
             </span>
           </span>
 
-          {disp.agotado ? (
+          {/* El sello se calla mientras el producto está en el pedido: en una
+              tarjeta de 116 px, "Receta" arranca a 7 px del borde izquierdo y la
+              insignia de cantidad llega hasta los 44 px del otro lado, así que
+              se pisan y la insignia le come la palabra por la mitad. Con el
+              producto ya agregado el sello es lo prescindible: sirve para
+              decidir si tocarlo, no después. */}
+          {cantidad > 0 ? null : disp.agotado ? (
             <span className="prod__sello prod__sello--agotado">Agotado</span>
           ) : producto.tipo === "receta" ? (
             <span className="prod__sello">Receta</span>
