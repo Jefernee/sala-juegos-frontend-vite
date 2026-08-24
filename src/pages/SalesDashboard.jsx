@@ -93,12 +93,28 @@ const CLAVE_PISTA = "ventasPistaVista";
 //   f_auto,q_auto formato y compresión que decide Cloudinary según el navegador.
 const RECORTE = "ar_3:4,c_pad,b_auto,f_auto,q_auto";
 
-/** La misma foto, pedida al ancho que se va a usar. Si no es de Cloudinary se
- *  devuelve tal cual: no se le inventan transformaciones a un servidor ajeno. */
-const fotoDeVenta = (url, ancho) =>
-  typeof url === "string" && url.includes("res.cloudinary.com") && url.includes("/upload/")
-    ? url.replace("/upload/", `/upload/w_${ancho},${RECORTE}/`)
-    : url;
+/**
+ * La misma foto, pedida al ancho que se va a usar. Si no es de Cloudinary se
+ * devuelve tal cual: no se le inventan transformaciones a un servidor ajeno.
+ *
+ * La nuestra se agrega como ÚLTIMO paso, justo antes de la versión (`v123.../`),
+ * y no pegada a `/upload/`. Cloudinary aplica las transformaciones de izquierda
+ * a derecha, así que si una URL ya venía con la suya —el backend guarda algunas
+ * así— ponerse primero significaba que la de ellos se aplicaba después: nosotros
+ * encajábamos la foto en 3:4 y su `c_fill` la volvía a recortar por los lados.
+ * De últimas, la forma final la decide esta.
+ */
+const fotoDeVenta = (url, ancho) => {
+  if (typeof url !== "string") return url;
+  if (!url.includes("res.cloudinary.com") || !url.includes("/upload/")) return url;
+
+  const nuestra = `w_${ancho},${RECORTE}`;
+  const conVersion = /(\/upload\/(?:.*?\/)?)(v\d+\/)/;
+
+  return conVersion.test(url)
+    ? url.replace(conVersion, `$1${nuestra}/$2`)
+    : url.replace("/upload/", `/upload/${nuestra}/`);
+};
 
 const VISTA_TOP = "top";
 const VISTA_TODOS = "todos";
