@@ -37,6 +37,7 @@ import "../styles/SalesDashboard.css";
 import Navbar from "../components/NavBar2";
 import { puedeVerModulo } from "../utils/auth";
 import { mensajeDeError } from "../utils/sesion";
+import { fotoProducto, fotoProductoSrcSet } from "../utils/imagenes";
 import { resolverDisponibilidad } from "../utils/stock";
 import { formatearMonto } from "../constants/inventario";
 import { categoriaDe, categoriasConProductos, categoriaInfo } from "../constants/categorias";
@@ -76,50 +77,6 @@ const REDONDEOS = [1000, 2000, 5000, 10000, 20000];
 // celular nuevo, o uno del personal que entra por primera vez, tiene que recibir
 // la explicación aunque el usuario sea el mismo de siempre.
 const CLAVE_PISTA = "ventasPistaVista";
-
-// Las fotos viven en Cloudinary, que sabe entregarlas ya listas para este
-// tamaño. Antes se pedía el original —750×1000, y un PNG de 215 KB entre
-// ellos— para pintarlo en un cuadro de 103 px: una pantalla de 18 tarjetas se
-// bajaba más de un mega, y mientras tanto el vendedor veía los cuadros grises
-// del respaldo llenándose de a poco.
-//
-// Qué hace cada parte:
-//   w_320/w_640  el ancho que de verdad se usa (103 px hasta a 3x de densidad).
-//   ar_3:4,c_pad la foto sale EXACTAMENTE con la forma del cuadro. `c_pad`
-//                rellena, no recorta: ninguna foto pierde un pedazo.
-//   b_auto       ese relleno toma un color sacado de la propia foto, así que
-//                donde antes asomaba el gris del sistema ahora hay un borde que
-//                combina. Sirve para las fotos que no son 3:4 exactas.
-//   f_auto,q_auto formato y compresión que decide Cloudinary según el navegador.
-const RECORTE = "ar_3:4,c_pad,b_auto,f_auto,q_auto";
-
-/**
- * La misma foto, pedida al ancho que se va a usar. Si no es de Cloudinary se
- * devuelve tal cual: no se le inventan transformaciones a un servidor ajeno.
- *
- * Y se REEMPLAZA lo que hubiera antes, en vez de encadenarse. El backend guarda
- * algunas URLs con transformación propia, y si esa incluye un recorte
- * (`c_fill` y compañía) la foto llega cortada de los lados haga lo que haga el
- * frontend. Como la transformación vive en la URL y no en el archivo —el
- * original sigue entero en Cloudinary—, pedir la foto desde la versión
- * (`v123.../`) la devuelve completa. Por eso se descarta el tramo anterior:
- * es la única forma de recuperar lo que ese recorte dejaba afuera.
- *
- * Sin versión en la URL no se puede saber dónde termina la transformación y
- * dónde empieza la carpeta del archivo, así que ahí la nuestra se antepone y
- * listo: mejor una foto con la transformación de ellos que una URL rota.
- */
-const fotoDeVenta = (url, ancho) => {
-  if (typeof url !== "string") return url;
-  if (!url.includes("res.cloudinary.com") || !url.includes("/upload/")) return url;
-
-  const nuestra = `w_${ancho},${RECORTE}`;
-  const conVersion = /(\/upload\/(?:.*?\/)?)(v\d+\/)/;
-
-  return conVersion.test(url)
-    ? url.replace(conVersion, `/upload/${nuestra}/$2`)
-    : url.replace("/upload/", `/upload/${nuestra}/`);
-};
 
 const VISTA_TOP = "top";
 const VISTA_TODOS = "todos";
@@ -596,8 +553,8 @@ const SalesDashboard = () => {
           <span className="prod__foto" data-cat={cat.id}>
             {foto ? (
               <img
-                src={fotoDeVenta(foto, 320)}
-                srcSet={`${fotoDeVenta(foto, 320)} 320w, ${fotoDeVenta(foto, 640)} 640w`}
+                src={fotoProducto(foto, { ancho: 320, forma: "3:4" })}
+                srcSet={fotoProductoSrcSet(foto, [320, 640], "3:4")}
                 sizes="(max-width: 640px) 33vw, 200px"
                 alt=""
                 loading="lazy"

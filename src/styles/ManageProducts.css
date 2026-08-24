@@ -141,7 +141,10 @@
 .product-thumbnail {
   width: 80px;
   height: 80px;
-  object-fit: cover;
+  /* `contain` y no `cover`: la foto ya llega cuadrada desde Cloudinary, rellenada
+     con un color de la propia imagen. Con `cover` se recortaba una segunda vez,
+     encima del recorte que algunas URLs ya traen guardado. */
+  object-fit: contain;
   border-radius: 8px;
   border: 2px solid #f3f4f6;
   transition: transform 0.2s;

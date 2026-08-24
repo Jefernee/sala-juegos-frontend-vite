@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import "../styles/ProductsList.css";
 import Navbar from "../components/NavBar2";
+import { fotoProducto, SIN_FOTO } from "../utils/imagenes";
 
 const ProductsList = () => {
   const [productos, setProductos] = useState([]);
@@ -137,9 +138,8 @@ const ProductsList = () => {
                     <div className="product-image-container">
                       <img
                         src={
-                          producto.imagenOptimizada ||
-                          producto.imagen ||
-                          "https://via.placeholder.com/300"
+                          fotoProducto(producto.imagenOptimizada || producto.imagen, { ancho: 400 }) ||
+                          SIN_FOTO
                         }
                         alt={producto.nombre}
                         className="card-img-top product-image"

@@ -22,6 +22,7 @@ import {
   formatearCantidad,
   formatearNumero,
 } from "../constants/inventario";
+import { fotoProducto, SIN_FOTO } from "../utils/imagenes";
 
 const PRODUCTOS_POR_PAGINA = 10;
 
@@ -357,9 +358,10 @@ const ManageProducts = () => {
                     <div className="product-image-wrapper">
                       <img
                         src={
-                          producto.imagenOptimizada ||
-                          producto.imagen ||
-                          "https://via.placeholder.com/100"
+                          fotoProducto(producto.imagenOptimizada || producto.imagen, {
+                            ancho: 160,
+                            forma: "1:1",
+                          }) || SIN_FOTO
                         }
                         alt={producto.nombre}
                         className="product-thumbnail"

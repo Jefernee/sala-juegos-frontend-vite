@@ -4,6 +4,7 @@ import "../styles/PublicProductList.css";
 import NavBar from "../components/NavBar";
 import { resolverDisponibilidad } from "../utils/stock";
 import { formatearMonto, formatearNumero } from "../constants/inventario";
+import { fotoProducto, fotoProductoSrcSet, SIN_FOTO } from "../utils/imagenes";
 
 const PublicProductsList = () => {
   const [productos, setProductos] = useState([]);
@@ -260,8 +261,14 @@ const PublicProductsList = () => {
                   <div className="card public-product-card h-100 shadow-sm">
                     {/* Imagen */}
                     <div className="public-product-image-container">
+                      {/* La caja mide 320 px: pedir el original (hasta 215 KB
+                          por foto) para pintarlo acá era el mayor peso de la
+                          pantalla que ven los clientes. Al tocar sí se abre la
+                          original, que para eso es "ver la imagen completa". */}
                       <img
-                        src={producto.imagen || "https://via.placeholder.com/300"}
+                        src={fotoProducto(producto.imagen, { ancho: 400 }) || SIN_FOTO}
+                        srcSet={producto.imagen ? fotoProductoSrcSet(producto.imagen, [400, 800]) : undefined}
+                        sizes="(max-width: 600px) 90vw, 300px"
                         alt={producto.nombre}
                         className="card-img-top public-product-image"
                         loading="lazy"
@@ -391,7 +398,7 @@ const PublicProductsList = () => {
             <div className="modal-body">
               <div className="producto-info-modal">
                 <img
-                  src={selectedProduct.imagen}
+                  src={fotoProducto(selectedProduct.imagen, { ancho: 800 })}
                   alt={selectedProduct.nombre}
                   className="producto-imagen-modal"
                 />
