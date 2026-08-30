@@ -21,21 +21,10 @@ export const formatCRCsigned = (monto) => {
 export const formatPct = (valor) =>
   (Number(valor) || 0).toLocaleString("es-CR", { minimumFractionDigits: 0, maximumFractionDigits: 1 }) + "%";
 
-// ─── TIPOS DE MOVIMIENTO ─────────────────────────────────────────────────────
-// El backend manda las claves crudas en `GET /categorias` (`tipos` y
-// `categorias[tipo]`); las etiquetas visibles las pone el frontend.
-//
-// `retiro_ahorro` es sacar plata del ahorro: NO es un ingreso (si lo fuera, los
-// porcentajes y la comparación mes a mes se romperían) y tampoco es un gasto
-// (la plata no se fue, cambió de bolsillo). Suma a `disponible` y resta del
-// `ahorroAcumulado`, así que se pinta en azul, aparte de verde/rojo.
-export const TIPOS_MOV = [
-  { id: "ingreso", label: "💰 Ingreso", color: "green", montoClase: "verde", signo: "+" },
-  { id: "egreso", label: "💸 Egreso", color: "red", montoClase: "rojo", signo: "−" },
-  { id: "retiro_ahorro", label: "🏧 Sacar del ahorro", color: "blue", montoClase: "azul", signo: "+" },
-];
-
-export const metaTipo = (tipo) => TIPOS_MOV.find((t) => t.id === tipo) || TIPOS_MOV[1];
+// El ahorro NO es un tipo aparte: apartar plata es un `egreso` con categoría de
+// ahorro (sale del bolsillo del mes y entra al del ahorro). La pantalla lo
+// traduce a tres botones —Entró plata / Gasté / Ahorré— en
+// FinanzasPersonalesPanel.jsx, que es el único lugar que conoce esa traducción.
 
 // Formatea el monto MIENTRAS se escribe, con separador de miles para leerlo
 // fácil. CRC: enteros con punto ("1.000.000"). USD: miles con coma y hasta 2

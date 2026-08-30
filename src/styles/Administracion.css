@@ -350,45 +350,6 @@
   flex-shrink: 0;
 }
 
-/* ─── TIPO TOGGLE (ACTIVOS) ────────────────────────────────────────────────── */
-
-.tipo-toggle {
-  display: flex;
-  gap: 0.5rem;
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 0.35rem;
-}
-
-.tipo-toggle__btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: #64748b;
-  border-radius: 7px;
-  padding: 0.6rem 1rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-}
-
-.tipo-toggle__btn--active-green {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-}
-
-.tipo-toggle__btn--active-orange {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-}
-
-.tipo-toggle__btn--active-red {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-}
-
 /* ─── SELECTOR DE MES ──────────────────────────────────────────────────────── */
 
 .mes-selector { position: relative; }
@@ -1801,142 +1762,6 @@
 
 .fin-aviso strong { color: #bfdbfe; }
 
-/* Tarjetas KPI (estado de resultados del mes) */
-.fin-kpi {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 16px;
-  padding: 1.25rem 1.4rem;
-  min-height: 120px;
-  justify-content: center;
-}
-
-.fin-kpi__label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.fin-kpi__valor {
-  font-size: clamp(1.4rem, 4.5vw, 1.9rem);
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  line-height: 1.1;
-  word-break: break-word;
-}
-
-.fin-kpi__pie {
-  font-size: 0.74rem;
-  color: #64748b;
-}
-
-.fin-kpi--verde {
-  border-color: rgba(16, 185, 129, 0.3);
-  background: linear-gradient(160deg, #0d2118 0%, #0f172a 100%);
-}
-.fin-kpi--verde .fin-kpi__valor { color: #34d399; }
-
-.fin-kpi--rojo {
-  border-color: rgba(239, 68, 68, 0.3);
-  background: linear-gradient(160deg, #210d0d 0%, #0f172a 100%);
-}
-.fin-kpi--rojo .fin-kpi__valor { color: #f87171; }
-
-/* La tarjeta de balance resalta un poco más (es el número clave del mes) */
-.fin-kpi--balance { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03); }
-
-/* ─── RESUMEN DEL MES (estado de resultados en líneas) ─────────────────────────
-   Saldo inicial → Ingresos → Disponible → Egresos → Ahorro → Saldo final.
-   Cada línea es label + monto; Disponible y Saldo final se destacan. */
-.fin-resumen {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 16px;
-  padding: 0.25rem 1.2rem;
-}
-
-.fin-resumen__fila {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.7rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-.fin-resumen__fila:last-child { border-bottom: none; }
-
-.fin-resumen__label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #cbd5e1;
-}
-
-.fin-resumen__monto {
-  font-size: clamp(1rem, 3vw, 1.25rem);
-  font-weight: 800;
-  letter-spacing: -0.3px;
-  color: #e2e8f0;
-  white-space: nowrap;
-}
-
-.fin-resumen__monto--neutro { color: #cbd5e1; }
-.fin-resumen__monto--verde  { color: #34d399; }
-.fin-resumen__monto--azul   { color: #60a5fa; }
-.fin-resumen__monto--rojo   { color: #f87171; }
-.fin-resumen__monto--ahorro { color: #fbbf24; }
-
-/* Filas destacadas: Disponible (subtotal disponible) y Saldo final (total). El
-   margen negativo hace que el fondo tintado llegue al borde de la tarjeta. */
-.fin-resumen__fila--destacada,
-.fin-resumen__fila--total {
-  margin: 0 -1.2rem;
-  padding-left: 1.2rem;
-  padding-right: 1.2rem;
-}
-.fin-resumen__fila--destacada { background: rgba(59, 130, 246, 0.07); }
-.fin-resumen__fila--total {
-  background: rgba(255, 255, 255, 0.03);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: none;
-}
-.fin-resumen__fila--total .fin-resumen__label { color: #e2e8f0; font-weight: 700; }
-.fin-resumen__fila--total .fin-resumen__monto { font-size: clamp(1.15rem, 3.5vw, 1.45rem); }
-
-/* Plata realmente libre (saldo final − saldo inicial). Va después del total y
-   no es parte del estado de resultados: responde "¿cuánto puedo gastar sin
-   tocar lo que traía?". Sin fondo propio (el tinte verde/rojo desentonaba con
-   el azul de "Disponible" y el gris del total): el color lo lleva solo el
-   monto, como en el resto del panel, y la línea punteada la separa del total. */
-.fin-resumen__fila--libre {
-  margin: 0 -1.2rem;
-  padding-left: 1.2rem;
-  padding-right: 1.2rem;
-  border-top: 1px dashed rgba(255, 255, 255, 0.12);
-  border-bottom: none;
-}
-/* Título + subtítulo en columna; el label mantiene el mismo color y peso que
-   las filas normales para no competir con el total. */
-.fin-resumen__fila--libre .fin-resumen__label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-/* El subtítulo siempre va en su propia línea, también en las filas normales
-   (que no ponen el label en columna). */
-.fin-resumen__sublabel {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.3;
-  color: #94a3b8;
-}
-
 /* ─── RESUMEN INTELIGENTE (recomendaciones) ───────────────────────────────── */
 .fin-recom-panel {
   background: #0f172a;
@@ -2015,13 +1840,15 @@
 }
 
 /* Ahorro del mes: bloque aparte del gráfico de gastos (el ahorro no es consumo) */
+/* Detalle de los ahorros: cuelga de la escalera de "Tus ahorros" y comparte su
+   ámbar, porque es la misma plata vista de cerca (en qué y de cuál bolsa). */
 .fin-ahorro {
-  margin-bottom: 1.5rem;
-  padding: 0.9rem 1.1rem;
-  border: 1px solid rgba(56, 189, 248, 0.35);
+  margin-top: 0.55rem;
+  padding: 0.75rem 1.1rem 0.85rem;
+  border: 1px solid rgba(251, 191, 36, 0.3);
   border-left-width: 4px;
   border-radius: 14px;
-  background: linear-gradient(160deg, rgba(56, 189, 248, 0.1) 0%, rgba(56, 189, 248, 0.03) 100%);
+  background: linear-gradient(160deg, rgba(251, 191, 36, 0.08) 0%, rgba(251, 191, 36, 0.02) 100%);
 }
 
 .fin-ahorro__head {
@@ -2416,40 +2243,6 @@
   white-space: nowrap;
 }
 
-/* ─── AHORRO ACUMULADO / PATRIMONIO (fila del resumen del mes) ─────────────────
-   Va después del total y NO es parte del estado de resultados: es plata
-   apartada, así que la línea punteada la separa igual que "Puedo gastar hasta",
-   y el patrimonio (saldo final + ahorro acumulado) queda debajo del monto en
-   chiquito, no como una fila más que se pueda confundir con un subtotal. */
-.fin-resumen__fila--acumulado {
-  margin: 0 -1.2rem;
-  padding-left: 1.2rem;
-  padding-right: 1.2rem;
-  border-top: 1px dashed rgba(255, 255, 255, 0.12);
-  border-bottom: none;
-}
-
-.fin-resumen__fila--acumulado .fin-resumen__label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.fin-resumen__valor-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.1rem;
-}
-
-.fin-resumen__submonto {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #94a3b8;
-  line-height: 1.3;
-  text-align: right;
-}
-
 /* ─── MODAL DE SALDO DE APERTURA ──────────────────────────────────────────── */
 .fin-apertura-ayuda {
   background: rgba(59, 130, 246, 0.08);
@@ -2590,19 +2383,6 @@
   color: #fbbf24;
 }
 .fin-aviso--curso strong { color: #fde68a; }
-
-.fin-anual-kpis {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-/* Variante ámbar de las tarjetas KPI, para el ahorro */
-.fin-kpi--ahorro {
-  border-color: rgba(251, 191, 36, 0.3);
-  background: linear-gradient(160deg, #211b0d 0%, #0f172a 100%);
-}
-.fin-kpi--ahorro .fin-kpi__valor { color: #fbbf24; }
 
 /* Contenedor genérico de las secciones del reporte */
 .fin-anual-panel {
@@ -2873,51 +2653,6 @@
    su propio color —azul, el mismo de "Disponible"— y nunca se pinta en verde de
    ingreso ni en rojo de gasto. */
 
-/* Tercer botón del toggle de tipo en el modal de movimiento */
-.tipo-toggle__btn--active-blue {
-  background: rgba(59, 130, 246, 0.18);
-  color: #60a5fa;
-}
-
-/* Aviso dentro del modal cuando se elige "Sacar del ahorro" */
-.fin-retiro-nota {
-  background: rgba(59, 130, 246, 0.07);
-  border: 1px solid rgba(59, 130, 246, 0.22);
-  border-radius: 9px;
-  padding: 0.55rem 0.7rem;
-  font-size: 0.76rem;
-  color: #93c5fd;
-  line-height: 1.45;
-}
-
-/* Check "Lo pagué con el ahorro" en el modal de egreso: el gasto sale del
-   ahorro y se consume, así que no toca el saldo del mes. Comparte el azul de
-   los retiros porque drena el mismo acumulado. */
-.fin-fondo-check {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid rgba(59, 130, 246, 0.22);
-  border-radius: 9px;
-  background: rgba(59, 130, 246, 0.07);
-  font-size: 0.84rem;
-  color: #bfdbfe;
-  cursor: pointer;
-  user-select: none;
-}
-
-.fin-fondo-check input {
-  width: 1.05rem;
-  height: 1.05rem;
-  accent-color: #3b82f6;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.fin-fondo-check input:disabled,
-.fin-fondo-check:has(input:disabled) { cursor: default; opacity: 0.65; }
-
 /* Tope que devolvió el 400 del backend ("Solo tenés ₡X acumulados…") */
 .fin-retiro-tope {
   display: flex;
@@ -2956,10 +2691,6 @@
 
 .fin-ahorro__item--neto .fin-ahorro__item-nombre { color: #e2e8f0; font-weight: 700; }
 
-/* Tasa de ahorro NETA: puede ser negativa (se sacó más de lo que se apartó) */
-.fin-tasa--verde { color: #34d399; }
-.fin-tasa--rojo  { color: #f87171; }
-
 /* Reporte anual: columna "Sacado" (solo en años con retiros) */
 .fin-anual-fila__monto--azul { color: #60a5fa; }
 
@@ -2968,6 +2699,22 @@
 .fin-anual-tabla--retiro .fin-anual-tabla__head,
 .fin-anual-tabla--retiro .fin-anual-fila {
   grid-template-columns: 1.1fr repeat(6, 1fr);
+}
+
+/* Columna "Con ahorro" (lo pagado con los ahorros ese mes). Puede convivir con
+   la de "Sacado", así que la grilla crece de a una. */
+.fin-anual-tabla--pago { min-width: 700px; }
+
+.fin-anual-tabla--pago .fin-anual-tabla__head,
+.fin-anual-tabla--pago .fin-anual-fila {
+  grid-template-columns: 1.1fr repeat(6, 1fr);
+}
+
+.fin-anual-tabla--pago.fin-anual-tabla--retiro { min-width: 780px; }
+
+.fin-anual-tabla--pago.fin-anual-tabla--retiro .fin-anual-tabla__head,
+.fin-anual-tabla--pago.fin-anual-tabla--retiro .fin-anual-fila {
+  grid-template-columns: 1.1fr repeat(7, 1fr);
 }
 
 /* Desglose anual con el cuarto bloque (retiros): 2x2 en escritorio en vez de
@@ -3031,4 +2778,374 @@
   border-radius: 10px;
   padding: 0.5rem 0.75rem;
   font-size: 0.88rem;
+}
+
+/* ─── FINANZAS PERSONALES · LOS DOS BOLSILLOS ──────────────────────────────────
+   La pantalla dejó de ser un estado de resultados y pasó a ser dos bolsillos:
+   "Tu plata" (lo que se puede usar hoy) y "Tus ahorros" (lo apartado). Cada uno
+   tiene su color y lo conserva en todas partes —totales, escaleras, filas de la
+   lista—, para que se sepa de un vistazo cuál se movió:
+     · plata  → azul  #60a5fa (el mismo que ya tenía "Disponible")
+     · ahorro → ámbar #fbbf24 (el de la paleta del sistema)
+     · entra  → verde #34d399   · sale → rojo #f87171                          */
+
+.fin-bolsas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+@media (max-width: 560px) {
+  .fin-bolsas { grid-template-columns: 1fr; }
+}
+
+.fin-bolsa {
+  position: relative;
+  overflow: hidden;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 1rem 1.1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+/* La barrita del borde izquierdo es la marca del bolsillo */
+.fin-bolsa::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--fin-marca);
+}
+
+.fin-bolsa--plata  { --fin-marca: #60a5fa; }
+.fin-bolsa--ahorro { --fin-marca: #fbbf24; }
+
+.fin-bolsa__rotulo {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fin-marca);
+}
+
+.fin-bolsa__monto {
+  font-size: clamp(1.5rem, 5vw, 1.95rem);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  color: #e2e8f0;
+  word-break: break-word;
+}
+
+.fin-bolsa__pie {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+/* ─── ESCALERAS ───────────────────────────────────────────────────────────────
+   Cada línea suma o resta la de arriba y la última cierra el total. Los montos
+   van con `tabular-nums` para que las cifras queden alineadas en columna y se
+   puedan sumar con el dedo. */
+
+.fin-escaleras {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .fin-escaleras { grid-template-columns: 1fr 1fr; }
+}
+
+.fin-escalera-card,
+.fin-tarjeta {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 0.9rem 1.1rem 1rem;
+}
+
+.fin-escalera__titulo,
+.fin-tarjeta__titulo {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.fin-escalon {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.fin-escalon__que {
+  font-size: 0.9rem;
+  color: #cbd5e1;
+}
+
+.fin-escalon__nota {
+  display: block;
+  font-size: 0.74rem;
+  color: #64748b;
+}
+
+.fin-escalon__cuanto {
+  font-size: 0.98rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: #cbd5e1;
+}
+
+.fin-escalon--suma  .fin-escalon__cuanto { color: #34d399; }
+.fin-escalon--resta .fin-escalon__cuanto { color: #f87171; }
+
+/* La última línea: la que tiene que cerrar */
+.fin-escalon--total {
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid rgba(255, 255, 255, 0.14);
+  border-bottom: none;
+}
+
+.fin-escalon--total .fin-escalon__que {
+  color: #e2e8f0;
+  font-weight: 700;
+}
+
+.fin-escalon--total .fin-escalon__cuanto {
+  font-size: clamp(1.15rem, 3.5vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.fin-escalon__cuanto--plata  { color: #60a5fa; }
+.fin-escalon__cuanto--ahorro { color: #fbbf24; }
+.fin-escalon__cuanto--rojo   { color: #f87171; }
+
+/* ─── ANOTAR (el formulario, arriba de todo) ──────────────────────────────────
+   Tres botones grandes para las tres únicas cosas que se pueden hacer, y luego
+   los campos. Va en la pantalla y no en un modal porque es lo que más se usa. */
+
+.fin-pregunta {
+  margin: 0 0 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.fin-acciones-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+
+.fin-acciones-grid--4 { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 560px) {
+  .fin-acciones-grid,
+  .fin-acciones-grid--4 { grid-template-columns: 1fr 1fr; }
+}
+
+.fin-accion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.75rem 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: #94a3b8;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.fin-accion:hover:not(:disabled) { border-color: rgba(255, 255, 255, 0.2); }
+.fin-accion:disabled { opacity: 0.6; cursor: default; }
+
+.fin-accion__emoji { font-size: 1.3rem; line-height: 1; }
+
+.fin-accion--activa {
+  background: var(--fin-tinte);
+  border-color: var(--fin-borde);
+  color: #e2e8f0;
+}
+
+.fin-accion--verde { --fin-tinte: rgba(16, 185, 129, 0.14); --fin-borde: #10b981; }
+.fin-accion--rojo  { --fin-tinte: rgba(239, 68, 68, 0.14);  --fin-borde: #ef4444; }
+.fin-accion--ambar { --fin-tinte: rgba(251, 191, 36, 0.14); --fin-borde: #fbbf24; }
+.fin-accion--azul  { --fin-tinte: rgba(59, 130, 246, 0.14); --fin-borde: #3b82f6; }
+
+.fin-campos {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.fin-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fin-campo__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.fin-campo__opcional { font-weight: 400; color: #64748b; }
+
+.fin-campo__ayuda {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: #fcd34d;
+}
+
+/* ¿De dónde salió la plata? — de mi plata o de mis ahorros */
+.fin-radios {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+@media (max-width: 460px) {
+  .fin-radios { grid-template-columns: 1fr; }
+}
+
+.fin-radio {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 11px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.fin-radio input {
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0;
+  accent-color: #fbbf24;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fin-radio--activo {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: #fbbf24;
+  color: #e2e8f0;
+}
+
+/* ─── DETALLE DE LOS AHORROS ──────────────────────────────────────────────── */
+.fin-ahorro__item-monto--apartado { color: #fbbf24; }
+.fin-ahorro__item-monto--pagado   { color: #f87171; }
+
+.fin-ahorro__bolsas {
+  margin: 0.3rem 0 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+/* ─── LISTA DE MOVIMIENTOS ────────────────────────────────────────────────────
+   Los colores de fila siguen la acción, no el `tipo` crudo: un gasto pagado con
+   el ahorro va en ámbar porque no movió la plata del mes. */
+.mov-row--verde { border-left-color: #10b981; }
+.mov-row--rojo  { border-left-color: #ef4444; }
+.mov-row--azul  { border-left-color: #3b82f6; }
+.mov-row--ambar { border-left-color: #fbbf24; }
+
+.mov-row__monto--ambar { color: #fbbf24; }
+
+.registro-item__badge--verde { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.registro-item__badge--rojo  { background: rgba(239, 68, 68, 0.15);  color: #f87171; }
+.registro-item__badge--azul  { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.registro-item__badge--ambar { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+
+/* "pagado con Ahorro MEP" — de cuál bolsa salió, junto a la categoría */
+.mov-row__etiqueta {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 5px;
+  background: rgba(251, 191, 36, 0.14);
+  color: #fbbf24;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+/* ─── EL RITMO DEL AÑO ─────────────────────────────────────────────────────────
+   Lo que no cabe en una escalera: los promedios por mes CON MOVIMIENTO (no
+   entre 12) y qué proporción de lo que entró se quedó apartada. Reemplaza a las
+   cuatro tarjetas KPI del reporte anual, que repetían los totales que las dos
+   escaleras ya muestran línea por línea. */
+.fin-ritmo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.fin-ritmo__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem 0.85rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.fin-ritmo__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.fin-ritmo__valor {
+  font-size: clamp(1.1rem, 3.5vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: #e2e8f0;
+}
+
+.fin-ritmo__valor--verde { color: #34d399; }
+.fin-ritmo__valor--rojo  { color: #f87171; }
+.fin-ritmo__valor--ambar { color: #fbbf24; }
+
+.fin-ritmo__pie {
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: #64748b;
 }

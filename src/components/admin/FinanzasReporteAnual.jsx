@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback, Fragment } from "react";
 import { getAxios, formatCRC, MESES } from "./adminUtils";
 import { FIN_BASE as BASE, formatCRCsigned, formatPct, PALETA, iconoCat } from "./finanzasComunes";
+import { Bolsas, Escalera } from "./FinanzasBolsas";
 import { ErrorRecarga, EstadoVacio, Cargando } from "./Comunes";
 
 // Las tres series del gráfico y de la tabla, con los mismos colores que usa el
@@ -294,10 +295,69 @@ const FinanzasReporteAnual = ({ anioInicial, getAuthHeaders, manejarError, onVol
 
   // Los meses con movimiento son la base de los promedios que manda el backend:
   // se aclara al lado para que no parezca un promedio entre 12.
-  const pieProm = (valor) =>
+  const pieMeses = () =>
     prom.mesesConMovimiento
-      ? `promedio ${formatCRC(valor)} en ${prom.mesesConMovimiento} ${prom.mesesConMovimiento === 1 ? "mes" : "meses"} con movimiento`
-      : null;
+      ? `en los ${prom.mesesConMovimiento} ${prom.mesesConMovimiento === 1 ? "mes" : "meses"} con movimiento`
+      : "";
+
+  // ── Las dos escaleras del año ─────────────────────────────────────────────
+  // Las mismas dos del mes, con los totales del año. Todo viene del backend;
+  // acá solo se ordena en filas. `rec.balance` es ingresos − egresos (con el
+  // ahorro adentro), así que abrirlo en "+ entró − gastaste − ahorraste" da
+  // exactamente lo mismo y deja ver de dónde sale.
+  const pagadoConAhorro = t.totalGastoDesdeAhorro || 0;
+  // La tasa de ahorro NETA (lo que quedó apartado de verdad) solo se separa de
+  // la bruta (el hábito de apartar) si algo salió del ahorro: un retiro viejo o
+  // un gasto pagado con él. Sin eso las dos son iguales y se muestra una sola.
+  const huboSalidasDelAhorro = huboRetiros || pagadoConAhorro > 0;
+  // Ingresos, gastos y apartado siempre; las otras dos solo si hubo.
+  const columnasDesglose = 3 + (pagadoConAhorro > 0 ? 1 : 0) + (huboRetiros ? 1 : 0);
+
+  const filasPlata = [
+    { clave: "arrastre", que: `Tenías al empezar ${anio}`, monto: rec.saldoInicialAnio },
+    // Solo si el saldo de apertura aportó plata A MANO y cae dentro del año.
+    ...(apertura && (rec.aperturaDisponible || 0) !== 0
+      ? [{
+          clave: "apertura",
+          que: `Saldo de apertura (${nombreCorte})`,
+          nota: "lo que ya tenías antes de empezar a anotar",
+          monto: rec.aperturaDisponible,
+          signo: "+",
+        }]
+      : []),
+    { clave: "entro", que: "Entró", monto: t.totalIngresos, signo: "+" },
+    ...(huboRetiros
+      ? [{ clave: "retiro", que: "Sacaste del ahorro", monto: t.totalRetiroAhorro, signo: "+" }]
+      : []),
+    { clave: "gasto", que: "Gastaste", monto: t.totalGastos, signo: "−" },
+    { clave: "ahorro", que: "Ahorraste", monto: t.totalAhorro, signo: "−" },
+  ];
+
+  const filasAhorro = [
+    { clave: "arrastre", que: `Tenías ahorrado al empezar ${anio}`, monto: data?.ahorroInicioAnio },
+    ...(apertura && (apertura.montoAhorro || 0) !== 0
+      ? [{
+          clave: "apertura",
+          que: `Ahorro del saldo de apertura (${nombreCorte})`,
+          monto: apertura.montoAhorro,
+          signo: "+",
+        }]
+      : []),
+    { clave: "aparte", que: "Ahorraste", monto: t.totalAhorro, signo: "+" },
+    ...(huboRetiros
+      ? [{ clave: "retiro", que: "Sacaste del ahorro", monto: t.totalRetiroAhorro, signo: "−" }]
+      : []),
+    // Se oculta si no se pagó nada con los ahorros (el caso normal).
+    ...(pagadoConAhorro > 0
+      ? [{
+          clave: "pago",
+          que: "Pagaste con tus ahorros",
+          nota: "plata que se consumió sin pasar por el mes",
+          monto: pagadoConAhorro,
+          signo: "−",
+        }]
+      : []),
+  ];
 
   return (
     <div className="fade-in fin-ancho">
@@ -355,138 +415,65 @@ const FinanzasReporteAnual = ({ anioInicial, getAuthHeaders, manejarError, onVol
             <EstadoVacio icono="📭" mensaje={`No hay movimientos registrados en ${anio}`} />
           ) : (
             <>
-              {/* Totales del año */}
-              <div className="fin-anual-kpis mb-3">
-                <div className="fin-kpi fin-kpi--verde">
-                  <span className="fin-kpi__label">📈 Ingresos del año</span>
-                  <span className="fin-kpi__valor">{formatCRC(t.totalIngresos)}</span>
-                  {pieProm(prom.ingresos) && <span className="fin-kpi__pie">{pieProm(prom.ingresos)}</span>}
-                </div>
-                <div className="fin-kpi fin-kpi--rojo">
-                  <span className="fin-kpi__label">📉 Gastos del año</span>
-                  <span className="fin-kpi__valor">{formatCRC(t.totalGastos)}</span>
-                  {pieProm(prom.gastos) && <span className="fin-kpi__pie">{pieProm(prom.gastos)}</span>}
-                </div>
-                {/* "Apartado en <año>", no "Ahorro del año": esta tarjeta es
-                    solo lo que se apartó DURANTE el año, y confundía con el
-                    acumulado (que incluye el saldo de apertura y los años
-                    anteriores). Por eso el acumulado va en la línea de abajo.
-                    `tasaAhorro` es la NETA (apartado − retirado) y puede ser
-                    negativa; `tasaAhorroBruta` mide el hábito de apartar. Con
-                    años sin retiros las dos son iguales y se muestra una sola. */}
-                <div className="fin-kpi fin-kpi--ahorro">
-                  <span className="fin-kpi__label">🐷 Apartado en {anio}</span>
-                  <span className="fin-kpi__valor">{formatCRC(t.totalAhorro)}</span>
-                  <span className="fin-kpi__pie">
-                    tasa de ahorro{" "}
-                    <strong className={`fin-tasa fin-tasa--${(t.tasaAhorro || 0) < 0 ? "rojo" : "verde"}`}>
-                      {formatPct(t.tasaAhorro)}
-                    </strong>
-                    {huboRetiros && ` (neta) · apartado sobre ingresos ${formatPct(t.tasaAhorroBruta)}`}
-                  </span>
-                  {huboRetiros && (
-                    <span className="fin-kpi__pie">
-                      sacaste {formatCRC(t.totalRetiroAhorro)} del ahorro · neto{" "}
-                      {formatCRCsigned(t.ahorroNeto)}
-                    </span>
-                  )}
-                  <span className="fin-kpi__pie">
-                    acumulado total {formatCRC(data?.ahorroFinalAnio)}
-                  </span>
-                </div>
-                <div className={`fin-kpi fin-kpi--balance fin-kpi--${(t.balance || 0) >= 0 ? "verde" : "rojo"}`}>
-                  <span className="fin-kpi__label">⚖️ Balance del año</span>
-                  <span className="fin-kpi__valor">{formatCRCsigned(t.balance)}</span>
-                  <span className="fin-kpi__pie">
-                    ingresos − egresos ({formatCRC(t.totalEgresos)} con ahorro) · {t.movimientos || 0}{" "}
-                    {t.movimientos === 1 ? "movimiento" : "movimientos"}
-                    {huboRetiros && ` · no incluye los ${formatCRC(t.totalRetiroAhorro)} sacados del ahorro`}
-                  </span>
-                </div>
+              {/* Los dos bolsillos al cerrar el año */}
+              <Bolsas
+                plata={rec.saldoFinalAnio}
+                ahorros={data?.ahorroFinalAnio}
+                pieP={`lo que te quedó a mano al cerrar ${anio}`}
+                pieA={`apartado en total · patrimonio ${formatCRCsigned(data?.patrimonioFinal)}`}
+              />
+
+              {/* Las dos escaleras del año — las mismas del mes, en grande.
+                  Cada línea suma o resta la de arriba y cierra en el total. */}
+              <div className="fin-escaleras mb-4">
+                <Escalera
+                  titulo={`💵 Tu plata en ${anio}`}
+                  filas={filasPlata}
+                  totalQue={`Te quedó al cerrar ${anio}`}
+                  totalMonto={rec.saldoFinalAnio}
+                  totalClase={(rec.saldoFinalAnio || 0) >= 0 ? "plata" : "rojo"}
+                />
+                <Escalera
+                  titulo={`🏦 Tus ahorros en ${anio}`}
+                  filas={filasAhorro}
+                  totalQue="Tenés ahorrado"
+                  totalMonto={data?.ahorroFinalAnio}
+                  totalClase="ahorro"
+                />
               </div>
 
-              {/* Recorrido del saldo: la fila que hace cuadrar los números.
-                  saldoInicial + apertura disponible + balance + retiro = saldoFinal */}
-              <div className="fin-resumen mb-4">
-                <div className="fin-resumen__fila">
-                  <span className="fin-resumen__label">💼 Saldo al empezar {anio}</span>
-                  <span className="fin-resumen__monto fin-resumen__monto--neutro">
-                    {formatCRCsigned(rec.saldoInicialAnio)}
-                  </span>
-                </div>
-                {/* Solo si la apertura aportó plata A MANO. Si únicamente tenía
-                    ahorro (montoDisponible = 0), esta fila sería un ₡0 que no
-                    suma nada al recorrido —y encima confunde, porque el
-                    subtítulo habla de millones apartados—. En ese caso el monto
-                    del ahorro de apertura ya se ve en "Ahorro acumulado al
-                    cierre" y en la etiqueta ⭐ de la tabla. */}
-                {apertura && (rec.aperturaDisponible || 0) !== 0 && (
-                  <div className="fin-resumen__fila">
-                    <span className="fin-resumen__label">
-                      ⭐ Saldo de apertura ({nombreCorte})
-                      <small className="fin-resumen__sublabel">
-                        {formatCRC(apertura.montoAhorro)} apartados en ahorro (no entran al saldo)
-                      </small>
-                    </span>
-                    <span className="fin-resumen__monto fin-resumen__monto--azul">
-                      {formatCRCsigned(rec.aperturaDisponible)}
+              {/* Los promedios y el ritmo del año, que no caben en una escalera:
+                  cuánto entró y se gastó por mes CON MOVIMIENTO (no entre 12) y
+                  qué proporción de lo que entró se quedó apartada. */}
+              <div className="fin-anual-panel mb-4">
+                <p className="fin-desglose__titulo">📐 El ritmo del año</p>
+                <div className="fin-ritmo">
+                  <div className="fin-ritmo__item">
+                    <span className="fin-ritmo__label">Entró por mes</span>
+                    <span className="fin-ritmo__valor fin-ritmo__valor--verde">{formatCRC(prom.ingresos)}</span>
+                    <span className="fin-ritmo__pie">{pieMeses()}</span>
+                  </div>
+                  <div className="fin-ritmo__item">
+                    <span className="fin-ritmo__label">Gastaste por mes</span>
+                    <span className="fin-ritmo__valor fin-ritmo__valor--rojo">{formatCRC(prom.gastos)}</span>
+                    <span className="fin-ritmo__pie">{pieMeses()}</span>
+                  </div>
+                  <div className="fin-ritmo__item">
+                    <span className="fin-ritmo__label">De cada ₡100 que entraron</span>
+                    <span className="fin-ritmo__valor fin-ritmo__valor--ambar">{formatPct(t.tasaAhorro)}</span>
+                    <span className="fin-ritmo__pie">
+                      se quedaron ahorrados
+                      {huboSalidasDelAhorro && ` · apartaste ${formatPct(t.tasaAhorroBruta)} antes de sacar`}
                     </span>
                   </div>
-                )}
-                <div className="fin-resumen__fila">
-                  <span className="fin-resumen__label">
-                    ⚖️ Balance del año
-                    <small className="fin-resumen__sublabel">
-                      ingresos − egresos, sin contar los retiros del ahorro
-                    </small>
-                  </span>
-                  <span className={`fin-resumen__monto fin-resumen__monto--${(rec.balance || 0) >= 0 ? "verde" : "rojo"}`}>
-                    {formatCRCsigned(rec.balance)}
-                  </span>
-                </div>
-                {(rec.retiroAhorro || 0) > 0 && (
-                  <div className="fin-resumen__fila">
-                    <span className="fin-resumen__label">
-                      🏧 Sacado del ahorro
-                      <small className="fin-resumen__sublabel">
-                        plata que solo cambió de bolsillo: salió del ahorro y quedó a mano
-                      </small>
-                    </span>
-                    <span className="fin-resumen__monto fin-resumen__monto--azul">
-                      {formatCRC(rec.retiroAhorro)}
+                  <div className="fin-ritmo__item">
+                    <span className="fin-ritmo__label">Movimientos anotados</span>
+                    <span className="fin-ritmo__valor">{t.movimientos || 0}</span>
+                    <span className="fin-ritmo__pie">
+                      en {prom.mesesConMovimiento || 0}{" "}
+                      {prom.mesesConMovimiento === 1 ? "mes" : "meses"} del año
                     </span>
                   </div>
-                )}
-                <div className="fin-resumen__fila fin-resumen__fila--total">
-                  <span className="fin-resumen__label">🏁 Saldo al cerrar {anio}</span>
-                  <span className={`fin-resumen__monto fin-resumen__monto--${(rec.saldoFinalAnio || 0) >= 0 ? "verde" : "rojo"}`}>
-                    {formatCRCsigned(rec.saldoFinalAnio)}
-                  </span>
-                </div>
-                <div className="fin-resumen__fila fin-resumen__fila--acumulado">
-                  <span className="fin-resumen__label">
-                    🏦 Ahorro acumulado al cierre
-                    {/* Se desglosa de dónde sale el número: si el saldo de
-                        apertura cae en este año, es la parte que explica el
-                        salto (y por qué no coincide con lo apartado en el año). */}
-                    <small className="fin-resumen__sublabel">
-                      {apertura
-                        ? `${formatCRC(apertura.montoAhorro)} del saldo de apertura (${nombreCorte}) + ${formatCRC(t.totalAhorro)} apartados en ${anio}`
-                        : `arrancó el año en ${formatCRC(data?.ahorroInicioAnio)} + ${formatCRC(t.totalAhorro)} apartados en ${anio}`}
-                      {huboRetiros && ` − ${formatCRC(t.totalRetiroAhorro)} que sacaste`}
-                    </small>
-                    <small className="fin-resumen__sublabel">
-                      plata apartada, no es saldo disponible
-                    </small>
-                  </span>
-                  <span className="fin-resumen__valor-stack">
-                    <span className="fin-resumen__monto fin-resumen__monto--ahorro">
-                      {formatCRC(data?.ahorroFinalAnio)}
-                    </span>
-                    <small className="fin-resumen__submonto">
-                      Patrimonio {formatCRCsigned(data?.patrimonioFinal)} · total con lo que tenés a mano
-                    </small>
-                  </span>
                 </div>
               </div>
 
@@ -499,14 +486,16 @@ const FinanzasReporteAnual = ({ anioInicial, getAuthHeaders, manejarError, onVol
               <div className="fin-anual-panel mb-4">
                 <p className="fin-desglose__titulo">🗓️ Mes por mes</p>
                 <div className="fin-anual-tabla-scroll">
-                  {/* La columna "Sacado" solo aparece si el año tuvo retiros:
-                      así los años normales no cargan con una columna de ceros. */}
-                  <div className={`fin-anual-tabla ${huboRetiros ? "fin-anual-tabla--retiro" : ""}`}>
+                  {/* Las columnas "Con ahorro" y "Sacado" solo aparecen si el
+                      año tuvo de eso: así los años normales no cargan con
+                      columnas de ceros. */}
+                  <div className={`fin-anual-tabla ${pagadoConAhorro > 0 ? "fin-anual-tabla--pago" : ""} ${huboRetiros ? "fin-anual-tabla--retiro" : ""}`}>
                     <div className="fin-anual-tabla__head">
                       <span>Mes</span>
                       <span>Ingresos</span>
                       <span>Gastos</span>
                       <span>Ahorro</span>
+                      {pagadoConAhorro > 0 && <span>Con ahorro</span>}
                       {huboRetiros && <span>Sacado</span>}
                       <span>Balance</span>
                       <span>Saldo final</span>
@@ -541,6 +530,11 @@ const FinanzasReporteAnual = ({ anioInicial, getAuthHeaders, manejarError, onVol
                                 <span className="fin-anual-fila__monto fin-anual-fila__monto--ahorro">
                                   {formatCRC(m.totalAhorro)}
                                 </span>
+                                {pagadoConAhorro > 0 && (
+                                  <span className="fin-anual-fila__monto fin-anual-fila__monto--ahorro">
+                                    {(m.totalGastoDesdeAhorro || 0) > 0 ? formatCRC(m.totalGastoDesdeAhorro) : "—"}
+                                  </span>
+                                )}
                                 {huboRetiros && (
                                   <span className="fin-anual-fila__monto fin-anual-fila__monto--azul">
                                     {(m.totalRetiroAhorro || 0) > 0 ? formatCRC(m.totalRetiroAhorro) : "—"}
@@ -557,6 +551,7 @@ const FinanzasReporteAnual = ({ anioInicial, getAuthHeaders, manejarError, onVol
                                 <span className="fin-anual-fila__monto">—</span>
                                 <span className="fin-anual-fila__monto">—</span>
                                 <span className="fin-anual-fila__monto">—</span>
+                                {pagadoConAhorro > 0 && <span className="fin-anual-fila__monto">—</span>}
                                 {huboRetiros && <span className="fin-anual-fila__monto">—</span>}
                                 <span className="fin-anual-fila__monto">—</span>
                               </>
@@ -579,7 +574,7 @@ const FinanzasReporteAnual = ({ anioInicial, getAuthHeaders, manejarError, onVol
               {/* Desglose por categoría: bloques aparte (el ahorro no es gasto, y
                   el retiro tampoco es un ingreso). `desglose.retiro` ya viene
                   separado: no se filtran las categorías "Ahorro*" ahí. */}
-              <div className={`fin-desglose-cols fin-anual-desglose ${huboRetiros ? "fin-anual-desglose--4" : ""} mb-4`}>
+              <div className={`fin-desglose-cols fin-anual-desglose ${columnasDesglose > 3 ? "fin-anual-desglose--4" : ""} mb-4`}>
                 <DesgloseAnualBloque
                   titulo={`Ingresos de ${anio}`}
                   icono="📈"
@@ -601,6 +596,15 @@ const FinanzasReporteAnual = ({ anioInicial, getAuthHeaders, manejarError, onVol
                   colorClase="ahorro"
                   tipo="egreso"
                 />
+                {pagadoConAhorro > 0 && (
+                  <DesgloseAnualBloque
+                    titulo={`Pagado con tus ahorros en ${anio}`}
+                    icono="🏦"
+                    items={data?.desglose?.gastoAhorro}
+                    colorClase="ahorro"
+                    tipo="egreso"
+                  />
+                )}
                 {huboRetiros && (
                   <DesgloseAnualBloque
                     titulo={`Sacado del ahorro en ${anio}`}
@@ -611,6 +615,18 @@ const FinanzasReporteAnual = ({ anioInicial, getAuthHeaders, manejarError, onVol
                   />
                 )}
               </div>
+              {/* De cuál bolsa salió lo que se pagó con los ahorros. Es una
+                  línea y no un bloque: son tres bolsas como mucho. */}
+              {pagadoConAhorro > 0 && (data?.desglose?.gastoAhorroPorBolsa || []).length > 0 && (
+                <p className="fin-anual-nota mb-4">
+                  🏦 De tus ahorros salieron {formatCRC(pagadoConAhorro)} en {anio}:{" "}
+                  {[...data.desglose.gastoAhorroPorBolsa]
+                    .sort((a, b) => (b.total || 0) - (a.total || 0))
+                    .map((b) => `${b.categoria} ${formatCRC(b.total)}`)
+                    .join(" · ")}
+                  . Esa plata se consumió sin pasar por el saldo del año.
+                </p>
+              )}
 
               {/* Destacados del año */}
               <div className="fin-anual-panel mb-4">
@@ -649,6 +665,13 @@ const FinanzasReporteAnual = ({ anioInicial, getAuthHeaders, manejarError, onVol
                       icono="🐷" label="Más ahorro" clase="fin-destacado--ahorro"
                       titulo={dest.mesMasAhorro.nombreMes || MESES[(dest.mesMasAhorro.mes || 1) - 1]}
                       monto={formatCRC(dest.mesMasAhorro.monto)} pie="ahorro del mes"
+                    />
+                  )}
+                  {dest.mesMasGastoDesdeAhorro && (
+                    <Destacado
+                      icono="🏦" label="Más pagaste con tus ahorros" clase="fin-destacado--ahorro"
+                      titulo={dest.mesMasGastoDesdeAhorro.nombreMes || MESES[(dest.mesMasGastoDesdeAhorro.mes || 1) - 1]}
+                      monto={formatCRC(dest.mesMasGastoDesdeAhorro.monto)} pie="pagado con el ahorro"
                     />
                   )}
                   {/* `mesMasRetiro` viene null si el año no tuvo retiros */}
