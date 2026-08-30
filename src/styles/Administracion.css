@@ -2399,100 +2399,6 @@
   line-height: 1.45;
 }
 
-/* Gráfico de barras por mes */
-.fin-anual-chart__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.85rem;
-}
-
-.fin-anual-chart__escala { font-size: 0.72rem; color: #64748b; }
-
-/* En celular el gráfico no se aplasta: se desplaza horizontalmente */
-.fin-anual-chart__scroll { overflow-x: auto; }
-
-.fin-anual-chart__svg {
-  display: block;
-  width: 100%;
-  min-width: 560px;
-  height: auto;
-}
-
-.fin-anual-chart__mes { font-size: 12px; fill: #94a3b8; font-weight: 600; }
-.fin-anual-chart__mes--sin { fill: #475569; font-weight: 500; }
-.fin-anual-chart__sin { font-size: 14px; fill: #475569; }
-.fin-anual-chart__estrella { font-size: 10px; }
-
-/* La leyenda de la dona es una columna (va en la barra lateral); acá va en fila
-   debajo del gráfico. */
-.fin-anual-chart__leyenda {
-  margin-top: 0.75rem;
-  flex-flow: row wrap;
-  gap: 0.4rem 1.1rem;
-}
-.fin-anual-chart__nota { color: #64748b; font-size: 0.72rem; }
-
-/* Tabla mes por mes */
-.fin-anual-tabla-scroll { overflow-x: auto; }
-
-.fin-anual-tabla { min-width: 620px; }
-
-.fin-anual-tabla__head,
-.fin-anual-fila {
-  display: grid;
-  grid-template-columns: 1.1fr repeat(5, 1fr);
-  gap: 0.5rem;
-  align-items: center;
-  padding: 0.55rem 0.6rem;
-}
-
-.fin-anual-tabla__head {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.fin-anual-tabla__head span:not(:first-child) { text-align: right; }
-
-.fin-anual-fila {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
-}
-
-.fin-anual-fila:last-child { border-bottom: none; }
-
-/* Mes cerrado en rojo: la fila entera se tiñe para encontrarla de un vistazo */
-.fin-anual-fila--rojo { background: rgba(239, 68, 68, 0.08); }
-
-/* Mes sin registrar: atenuado. No se muestran ceros (sería mentir: no es que
-   se gastara ₡0, es que no hay movimientos). */
-.fin-anual-fila--sin { opacity: 0.55; }
-
-.fin-anual-fila__mes {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #e2e8f0;
-}
-
-.fin-anual-fila__monto {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #64748b;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.fin-anual-fila__monto--verde  { color: #34d399; }
-.fin-anual-fila__monto--rojo   { color: #f87171; }
-.fin-anual-fila__monto--ahorro { color: #fbbf24; }
-.fin-anual-fila__monto--saldo  { color: #cbd5e1; }
-
 /* Etiqueta arriba del mes donde entró el saldo de apertura: explica el salto
    del ahorro acumulado en esa fila. */
 .fin-anual-apertura {
@@ -2567,47 +2473,6 @@
   line-height: 1.45;
 }
 
-/* Comparativo con el año anterior */
-.fin-comparativo__head,
-.fin-comparativo__fila {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr 24px 1fr 1fr;
-  gap: 0.5rem;
-  align-items: center;
-  padding: 0.55rem 0;
-}
-
-.fin-comparativo__head {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-/* Los encabezados de los años se alinean con sus montos (que van a la derecha) */
-.fin-comparativo__head span:not(:first-child) { text-align: right; }
-
-.fin-comparativo__fila { border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
-.fin-comparativo__fila:last-child { border-bottom: none; }
-
-.fin-comparativo__label { font-size: 0.85rem; font-weight: 600; color: #cbd5e1; }
-.fin-comparativo__previo { font-size: 0.82rem; color: #64748b; text-align: right; white-space: nowrap; }
-.fin-comparativo__flecha { color: #475569; text-align: center; }
-.fin-comparativo__actual { font-size: 0.85rem; font-weight: 700; color: #e2e8f0; text-align: right; white-space: nowrap; }
-
-.fin-comparativo__var {
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.fin-comparativo__var--verde  { color: #34d399; }
-.fin-comparativo__var--rojo   { color: #f87171; }
-.fin-comparativo__var--neutro { color: #64748b; }
-
 /* Tablet: el desglose anual pasa a dos columnas */
 @media (max-width: 1000px) {
   .fin-anual-desglose { grid-template-columns: 1fr 1fr; }
@@ -2628,14 +2493,6 @@
   .fin-acciones__botones > .admin-btn { flex: 1 1 100%; }
   .fin-apertura-chip { justify-content: space-between; }
   .fin-apertura-acciones > .admin-btn-ghost--rojo { width: 100%; order: 2; }
-  .fin-comparativo__head,
-  .fin-comparativo__fila { grid-template-columns: 1fr 1fr 1fr; }
-  /* En celular se compara solo contra el valor nuevo: la flecha y el año
-     anterior se esconden para que quepa sin scroll. */
-  .fin-comparativo__previo,
-  .fin-comparativo__flecha,
-  .fin-comparativo__head span:nth-child(2),
-  .fin-comparativo__head span:nth-child(3) { display: none; }
 }
 
 /* ─── ANCHO DEL MÓDULO EN ESCRITORIO ──────────────────────────────────────────
@@ -2691,48 +2548,10 @@
 
 .fin-ahorro__item--neto .fin-ahorro__item-nombre { color: #e2e8f0; font-weight: 700; }
 
-/* Reporte anual: columna "Sacado" (solo en años con retiros) */
-.fin-anual-fila__monto--azul { color: #60a5fa; }
-
-.fin-anual-tabla--retiro { min-width: 700px; }
-
-.fin-anual-tabla--retiro .fin-anual-tabla__head,
-.fin-anual-tabla--retiro .fin-anual-fila {
-  grid-template-columns: 1.1fr repeat(6, 1fr);
-}
-
-/* Columna "Con ahorro" (lo pagado con los ahorros ese mes). Puede convivir con
-   la de "Sacado", así que la grilla crece de a una. */
-.fin-anual-tabla--pago { min-width: 700px; }
-
-.fin-anual-tabla--pago .fin-anual-tabla__head,
-.fin-anual-tabla--pago .fin-anual-fila {
-  grid-template-columns: 1.1fr repeat(6, 1fr);
-}
-
-.fin-anual-tabla--pago.fin-anual-tabla--retiro { min-width: 780px; }
-
-.fin-anual-tabla--pago.fin-anual-tabla--retiro .fin-anual-tabla__head,
-.fin-anual-tabla--pago.fin-anual-tabla--retiro .fin-anual-fila {
-  grid-template-columns: 1.1fr repeat(7, 1fr);
-}
-
-/* Desglose anual con el cuarto bloque (retiros): 2x2 en escritorio en vez de
-   cuatro columnas apretadas. */
-.fin-anual-desglose--4 { grid-template-columns: repeat(2, 1fr); }
-
 /* Variante azul del desglose y de los destacados, para los retiros */
 .fin-cat__monto--azul { color: #60a5fa; }
 .fin-cat__barra-fill--azul { background: linear-gradient(90deg, #2563eb, #60a5fa); }
 .fin-destacado--azul { border-left-color: rgba(59, 130, 246, 0.6); }
-
-@media (max-width: 1000px) {
-  .fin-anual-desglose--4 { grid-template-columns: 1fr 1fr; }
-}
-
-@media (max-width: 700px) {
-  .fin-anual-desglose--4 { grid-template-columns: 1fr; }
-}
 
 /* ─── ACCESO DEL DUEÑO ─────────────────────────────────────────────────────── */
 
@@ -3149,3 +2968,211 @@
   line-height: 1.35;
   color: #64748b;
 }
+
+/* ─── REPORTE DEL AÑO · MES POR MES ───────────────────────────────────────────
+   Reemplazó a una tabla de hasta ocho columnas con scroll de lado. Ahora son
+   cuatro números por mes: entró, gastaste, ahorraste y lo que quedó.
+
+   OJO con las grillas: las columnas van en `minmax(0, 1fr)` y no en `1fr`
+   (que es `minmax(auto, 1fr)` y NO encoge por debajo del contenido). Con `1fr`
+   y cifras de siete dígitos la fila se desbordaba a la derecha en el teléfono.
+   En pantallas angostas la fila deja de ser tabla y se acomoda en dos columnas
+   con la etiqueta delante de cada cifra (`data-lbl`), sin scroll horizontal. */
+
+.fin-meses__head,
+.fin-mes-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+  align-items: baseline;
+}
+
+.fin-meses__head {
+  padding: 0 0.5rem 0.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.fin-meses__head span:not(:first-child) { text-align: right; }
+
+.fin-meses { display: flex; flex-direction: column; }
+
+.fin-mes-fila {
+  width: 100%;
+  padding: 0.55rem 0.5rem;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 9px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.fin-mes-fila--btn { cursor: pointer; }
+.fin-mes-fila--btn:hover { background: rgba(255, 255, 255, 0.035); }
+.fin-mes-fila--abierta { background: rgba(96, 165, 250, 0.07); }
+
+.fin-mes-fila__mes {
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  overflow-wrap: anywhere;
+}
+
+/* La barrita dice, sin cifras, qué tan grande fue el mes contra el mejor del
+   año. Sustituye al gráfico de 12 grupos de 3 barras que había arriba. */
+.fin-mes-fila__barra {
+  display: block;
+  height: 3px;
+  margin-top: 4px;
+  border-radius: 2px;
+  background: #60a5fa;
+  opacity: 0.55;
+}
+
+.fin-mes-fila--sin .fin-mes-fila__mes { color: #64748b; font-weight: 500; }
+
+.fin-mes-fila__nada {
+  grid-column: 2 / -1;
+  font-size: 0.84rem;
+  color: #64748b;
+  text-align: right;
+}
+
+.fin-mes-fila__dato {
+  min-width: 0;
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.fin-mes-fila__dato--verde { color: #34d399; }
+.fin-mes-fila__dato--rojo  { color: #f87171; }
+.fin-mes-fila__dato--ambar { color: #fbbf24; }
+.fin-mes-fila__dato--saldo { color: #e2e8f0; font-weight: 700; }
+.fin-mes-fila__dato--vacio { color: #64748b; }
+
+/* Lo que no salió de la plata del mes se dice en su propia línea, no en una
+   columna más: son meses contados, y una columna extra costaba el ancho de
+   todos los demás. */
+.fin-mes-fila__nota {
+  grid-column: 1 / -1;
+  margin-top: 0.2rem;
+  font-size: 0.73rem;
+  line-height: 1.35;
+  color: #fbbf24;
+}
+
+.fin-mes-fila__nota--azul { color: #60a5fa; }
+
+.fin-mes-detalle {
+  margin: 0 0 0.35rem;
+  padding: 0.7rem 0.85rem 0.8rem;
+  background: rgba(96, 165, 250, 0.06);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  border-radius: 12px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+
+.fin-mes-detalle strong { color: #e2e8f0; font-variant-numeric: tabular-nums; }
+
+.fin-mes-detalle__abrir {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: #60a5fa;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fin-mes-detalle__abrir:hover { color: #93c5fd; }
+
+.fin-anual-hint {
+  margin: -0.3rem 0 0.6rem;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+/* En el teléfono la fila deja de ser tabla: el mes ocupa el ancho completo y
+   las cuatro cifras se acomodan en dos columnas, cada una con su etiqueta. */
+@media (max-width: 700px) {
+  .fin-meses__head { display: none; }
+
+  .fin-mes-fila {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    row-gap: 0.15rem;
+    padding: 0.7rem 0.5rem;
+  }
+
+  .fin-mes-fila__mes { grid-column: 1 / -1; margin-bottom: 0.15rem; }
+
+  .fin-mes-fila__dato { text-align: left; }
+
+  .fin-mes-fila__nada { grid-column: 1 / -1; text-align: left; }
+
+  .fin-mes-fila__dato::before {
+    content: attr(data-lbl) " ";
+    color: #64748b;
+    font-weight: 500;
+    font-size: 0.72rem;
+  }
+}
+
+/* ─── REPORTE DEL AÑO · CONTRA EL AÑO PASADO ──────────────────────────────────
+   Era una tabla de cinco columnas (concepto, año previo, flecha, año actual,
+   variación) que en el teléfono no entraba. Ahora es una frase por concepto. */
+
+.fin-contra { display: flex; flex-direction: column; }
+
+.fin-contra__fila {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.fin-contra__fila:last-child { border-bottom: none; }
+
+.fin-contra__que {
+  min-width: 8.5rem;
+  font-size: 0.9rem;
+  color: #cbd5e1;
+}
+
+.fin-contra__monto {
+  font-size: 1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #e2e8f0;
+}
+
+.fin-contra__dif {
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.fin-contra__dif--verde  { color: #34d399; }
+.fin-contra__dif--rojo   { color: #f87171; }
+.fin-contra__dif--neutro { color: #64748b; }
+
+@media (max-width: 560px) {
+  .fin-contra__que { min-width: 100%; }
+}
+
+/* El destacado del mes que más sobró usa el azul de "Tu plata". */
+.fin-destacado--plata { border-left-color: rgba(96, 165, 250, 0.6); }

@@ -1024,7 +1024,16 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
         anioInicial={anio}
         getAuthHeaders={getAuthHeaders}
         manejarError={manejarError}
-        onVolver={() => setVista("mes")}
+        onVolver={(mesDestino, anioDestino) => {
+          // El reporte llama sin argumentos con "← Volver al mes" (se conserva
+          // el mes que estaba) y con mes+año desde "Abrir agosto completo →".
+          if (mesDestino) {
+            setMes(mesDestino);
+            setAnio(anioDestino ?? anio);
+            setPage(1);
+          }
+          setVista("mes");
+        }}
       />
     );
   }
