@@ -2890,6 +2890,34 @@
   line-height: 1.45;
 }
 
+/* Check "Lo pagué con el ahorro" en el modal de egreso: el gasto sale del
+   ahorro y se consume, así que no toca el saldo del mes. Comparte el azul de
+   los retiros porque drena el mismo acumulado. */
+.fin-fondo-check {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-radius: 9px;
+  background: rgba(59, 130, 246, 0.07);
+  font-size: 0.84rem;
+  color: #bfdbfe;
+  cursor: pointer;
+  user-select: none;
+}
+
+.fin-fondo-check input {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: #3b82f6;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fin-fondo-check input:disabled,
+.fin-fondo-check:has(input:disabled) { cursor: default; opacity: 0.65; }
+
 /* Tope que devolvió el 400 del backend ("Solo tenés ₡X acumulados…") */
 .fin-retiro-tope {
   display: flex;

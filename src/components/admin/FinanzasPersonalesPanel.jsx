@@ -76,6 +76,10 @@ const tasaSegunTipo = (tcData, tipo) => {
 
 // Categorías del backend cacheadas en memoria: { ingreso: [], egreso: [] }.
 let catCache = null;
+// Config del gasto pagado con el ahorro que viene en la misma llamada:
+// { bolsas: ["Ahorro", …], sinFondoAhorro: [...] }. Si el backend no la manda
+// (versión vieja), queda con listas vacías y el check simplemente no aparece.
+let ahorroCfgCache = null;
 
 // ─── DONA DE GASTOS POR CATEGORÍA (SVG puro, sin dependencias) ───────────────
 const DonutGastos = ({ items }) => {
@@ -225,7 +229,7 @@ const AhorroBloque = ({ items, retiros, neto }) => {
 
 // ─── MODAL CREAR / EDITAR MOVIMIENTO ─────────────────────────────────────────
 const MovimientoModal = ({
-  registro, categorias, mes, anio,
+  registro, categorias, ahorroCfg, mes, anio,
   getAuthHeaders, mostrarNotif, manejarError, onCerrar, onExito,
 }) => {
   const esEdicion = !!registro;
@@ -249,6 +253,11 @@ const MovimientoModal = ({
   const [cargandoTC, setCargandoTC] = useState(false);
   const [errorTC, setErrorTC] = useState(false);
   const [descripcion, setDescripcion] = useState(registro?.descripcion || "");
+  // "Lo pagué con el ahorro": el egreso sale del ahorro y se consume en el acto,
+  // así que no toca el saldo ni "Puedo gastar hasta" del mes, solo baja el
+  // ahorro acumulado. Se manda como `fondo: "ahorro"` + la bolsa de la que salió.
+  const [pagadoConAhorro, setPagadoConAhorro] = useState(registro?.fondo === "ahorro");
+  const [bolsaAhorro, setBolsaAhorro] = useState(registro?.bolsaAhorro || "");
   const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
   const [topeRetiro, setTopeRetiro] = useState(null); // tope que devolvió el 400
@@ -264,6 +273,22 @@ const MovimientoModal = ({
   const opciones = categoria && !opcionesBase.includes(categoria)
     ? [categoria, ...opcionesBase]
     : opcionesBase;
+
+  // El check de "pagado con el ahorro" solo tiene sentido en un egreso, y se
+  // oculta si la categoría elegida es de ahorro (apartar ahorro pagándolo con
+  // ahorro no significa nada: para mover plata entre bolsas van un retiro y un
+  // ahorro nuevo). Depende de que el backend mande las bolsas en `/categorias`.
+  // Si el backend no manda las bolsas (versión vieja) pero se está editando un
+  // gasto que ya venía pagado con el ahorro, se usa la suya: así el check sigue
+  // visible y no se convierte en un egreso normal sin querer al guardar.
+  const bolsas = ahorroCfg?.bolsas?.length
+    ? ahorroCfg.bolsas
+    : (registro?.bolsaAhorro ? [registro.bolsaAhorro] : []);
+  const catSinFondoAhorro = ahorroCfg?.sinFondoAhorro || [];
+  const categoriaEsAhorro = !!categoria
+    && (catSinFondoAhorro.includes(categoria) || esAhorro(categoria));
+  const puedePagarConAhorro = tipo === "egreso" && bolsas.length > 0 && !categoriaEsAhorro;
+  const conAhorro = puedePagarConAhorro && pagadoConAhorro;
 
   // Monto en colones que realmente se guardará (si es dólares, convertido al
   // tipo de cambio del día, que se muestra pero no se edita).
@@ -308,8 +333,19 @@ const MovimientoModal = ({
   // Al cambiar el tipo, si la categoría elegida no pertenece al nuevo tipo, se limpia.
   const cambiarTipo = (nuevoTipo) => {
     setTipo(nuevoTipo);
-    setErrores((er) => ({ ...er, tipo: "", categoria: "" }));
+    setErrores((er) => ({ ...er, tipo: "", categoria: "", bolsaAhorro: "" }));
     if (!(categorias?.[nuevoTipo] || []).includes(categoria)) setCategoria("");
+    // Solo un egreso puede pagarse con el ahorro: al pasar a ingreso o retiro
+    // se destilda (el backend lo rechazaría con 400).
+    if (nuevoTipo !== "egreso") setPagadoConAhorro(false);
+  };
+
+  // Al elegir una categoría de ahorro el check desaparece; se destilda para no
+  // dejar un `fondo: "ahorro"` colgado que el backend rechazaría.
+  const cambiarCategoria = (nueva) => {
+    setCategoria(nueva);
+    setErrores((er) => ({ ...er, categoria: "", bolsaAhorro: "" }));
+    if (catSinFondoAhorro.includes(nueva) || esAhorro(nueva)) setPagadoConAhorro(false);
   };
 
   const validar = () => {
@@ -318,6 +354,7 @@ const MovimientoModal = ({
     if (!categoria) e.categoria = "Elegí una categoría";
     if (!monto || montoNum <= 0) e.monto = "Ingresá un monto mayor a 0";
     if (esUSD && !tcListo) e.monto = "Esperá el tipo de cambio del día (o registralo en colones)";
+    if (conAhorro && !bolsaAhorro) e.bolsaAhorro = "Elegí de cuál ahorro salió";
     setErrores(e);
     return Object.keys(e).length === 0;
   };
@@ -349,6 +386,12 @@ const MovimientoModal = ({
         body.montoOriginal = montoCRC;
         body.tipoCambio = null;
       }
+      // `fondo` viaja SIEMPRE: al editar, si el movimiento deja de ser un gasto
+      // pagado con ahorro (pasa a ingreso, a retiro o a categoría de ahorro),
+      // el backend exige el "mes" explícito o responde 400.
+      body.fondo = conAhorro ? "ahorro" : "mes";
+      if (conAhorro) body.bolsaAhorro = bolsaAhorro;
+
       const desc = descripcion.trim();
       if (esEdicion) body.descripcion = desc; // permite limpiar la descripción
       else if (desc) body.descripcion = desc;
@@ -425,7 +468,7 @@ const MovimientoModal = ({
             className={`form-select admin-select ${errores.categoria ? "admin-input--error" : ""}`}
             value={categoria}
             disabled={guardando || opciones.length === 0}
-            onChange={(e) => { setCategoria(e.target.value); setErrores((er) => ({ ...er, categoria: "" })); }}
+            onChange={(e) => cambiarCategoria(e.target.value)}
           >
             <option value="">Selecciona la categoría...</option>
             {opciones.map((op) => (
@@ -474,7 +517,7 @@ const MovimientoModal = ({
 
           {/* Tope que devolvió el backend al rechazar el retiro: se ofrece para
               rellenar el campo con el máximo en un click. */}
-          {topeRetiro != null && esRetiro && (
+          {topeRetiro != null && (esRetiro || conAhorro) && (
             <div className="fin-retiro-tope">
               Máximo disponible: <strong>{formatCRC(topeRetiro)}</strong>
               <button
@@ -556,6 +599,51 @@ const MovimientoModal = ({
           )}
         </div>
 
+        {/* "Lo pagué con el ahorro": egreso que sale del ahorro y se consume en
+            el acto (el teléfono pagado con el Ahorro MEP). Un solo movimiento:
+            no toca el saldo del mes, solo baja el ahorro acumulado. Se oculta si
+            la categoría elegida ya es de ahorro. */}
+        {puedePagarConAhorro && (
+          <div className="mb-3">
+            <label className="fin-fondo-check">
+              <input
+                type="checkbox"
+                checked={pagadoConAhorro}
+                disabled={guardando}
+                onChange={(e) => {
+                  setPagadoConAhorro(e.target.checked);
+                  setErrores((er) => ({ ...er, bolsaAhorro: "" }));
+                }}
+              />
+              <span>🏦 Lo pagué con el ahorro</span>
+            </label>
+
+            {conAhorro && (
+              <>
+                <select
+                  className={`form-select admin-select mt-2 ${errores.bolsaAhorro ? "admin-input--error" : ""}`}
+                  value={bolsaAhorro}
+                  disabled={guardando}
+                  onChange={(e) => {
+                    setBolsaAhorro(e.target.value);
+                    setErrores((er) => ({ ...er, bolsaAhorro: "" }));
+                  }}
+                >
+                  <option value="">¿De cuál ahorro salió?</option>
+                  {bolsas.map((b) => (
+                    <option key={b} value={b}>{iconoCat(b, "egreso")} {b}</option>
+                  ))}
+                </select>
+                {errores.bolsaAhorro && <div className="campo-error">{errores.bolsaAhorro}</div>}
+                <div className="fin-retiro-nota mt-2">
+                  Esta plata sale del ahorro, no del dinero del mes: no cambia tu saldo
+                  ni “Puedo gastar hasta”, solo baja tu ahorro acumulado.
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Descripción */}
         <div className="mb-3">
           <label className="admin-label">Descripción</label>
@@ -596,6 +684,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   const [page, setPage] = useState(1);
 
   const [categorias, setCategorias] = useState(null);   // { ingreso:[], egreso:[] }
+  const [ahorroCfg, setAhorroCfg] = useState(null);     // { bolsas:[], sinFondoAhorro:[] }
   const [resumen, setResumen] = useState(null);
   const [recomendaciones, setRecomendaciones] = useState([]);
   const [movimientos, setMovimientos] = useState([]);
@@ -614,7 +703,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   // Categorías: se cargan una sola vez (alimentan el select del modal) y quedan
   // cacheadas en memoria, así volver a la pestaña no repite la llamada.
   useEffect(() => {
-    if (catCache) { setCategorias(catCache); return; }
+    if (catCache) { setCategorias(catCache); setAhorroCfg(ahorroCfgCache); return; }
     let vivo = true;
     (async () => {
       try {
@@ -625,7 +714,11 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
         // el select es exactamente lo que se envía y lo que el backend valida,
         // así que agregar categorías allá no requiere tocar el frontend.
         catCache = res.data?.categorias || { ingreso: [], egreso: [] };
-        if (vivo) setCategorias(catCache);
+        ahorroCfgCache = {
+          bolsas: res.data?.bolsasAhorro || [],
+          sinFondoAhorro: res.data?.categoriasSinFondoAhorro || [],
+        };
+        if (vivo) { setCategorias(catCache); setAhorroCfg(ahorroCfgCache); }
       } catch (err) {
         manejarError(err);
       }
@@ -1070,6 +1163,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
         <MovimientoModal
           registro={modal.registro}
           categorias={categorias}
+          ahorroCfg={ahorroCfg}
           mes={mes}
           anio={anio}
           getAuthHeaders={getAuthHeaders}
