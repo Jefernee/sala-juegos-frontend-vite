@@ -23,7 +23,7 @@
 }
 
 .plays-title {
-  background: linear-gradient(90deg, #38bdf8, #22d3ee, #06b6d4);
+  background: linear-gradient(90deg, #3730a3, #6366f1, #818cf8);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
@@ -44,7 +44,7 @@
 }
 
 .bg-gradient-primary {
-  background: linear-gradient(135deg, #38bdf8, #22d3ee) !important;
+  background: linear-gradient(135deg, #3730a3, #6366f1) !important;
   border: none !important;
 }
 
@@ -52,7 +52,7 @@
 
 .card.bg-light {
   border-radius: 12px;
-  border: 2px solid #38bdf8 !important;
+  border: 2px solid #3730a3 !important;
 }
 
 .card.bg-light .card-body { padding: 1.25rem; }
@@ -80,8 +80,8 @@
 
 .formulario-panel .form-control:focus,
 .formulario-panel .form-select:focus {
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.15);
+  border-color: #3730a3;
+  box-shadow: 0 0 0 0.25rem rgba(55, 48, 163, 0.15);
   transform: translateY(-2px);
   outline: none;
 }
@@ -97,7 +97,7 @@
    ======================================== */
 
 .custom-select-mobile {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2338bdf8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%233730a3' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 16px 12px;
@@ -137,12 +137,12 @@
 }
 
 .select-juegos-mejorado option:hover {
-  background: linear-gradient(135deg, #e0f2fe, #bae6fd) !important;
-  color: #0369a1 !important;
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe) !important;
+  color: #312e81 !important;
 }
 
 .select-juegos-mejorado option:checked {
-  background: linear-gradient(135deg, #38bdf8, #22d3ee) !important;
+  background: linear-gradient(135deg, #3730a3, #6366f1) !important;
   color: white !important;
   font-weight: 700;
 }
@@ -161,10 +161,10 @@
 }
 
 .input-group .form-control { border-right: none; }
-.input-group .form-control:focus { border-color: #38bdf8; box-shadow: none; }
+.input-group .form-control:focus { border-color: #3730a3; box-shadow: none; }
 .input-group:focus-within .input-group-text {
-  border-color: #38bdf8;
-  background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+  border-color: #3730a3;
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
 }
 
 .input-group .form-control:disabled {
@@ -183,7 +183,7 @@
 }
 
 .border-bottom { border-bottom: 2px solid #e5e7eb !important; }
-.text-primary { color: #38bdf8 !important; }
+.text-primary { color: #3730a3 !important; }
 
 /* ========================================
    AVISO DENTRO DEL FORMULARIO
@@ -195,11 +195,11 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  background: linear-gradient(135deg, #e0f2fe, #bae6fd);
-  border: 2px solid #38bdf8;
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  border: 2px solid #3730a3;
   border-radius: 12px;
   padding: 0.75rem 1rem;
-  color: #075985;
+  color: #1e1b4b;
   font-weight: 600;
   font-size: 0.95rem;
   line-height: 1.35;
@@ -276,14 +276,14 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #38bdf8, #22d3ee);
+  background: linear-gradient(135deg, #3730a3, #6366f1);
   border: none;
-  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+  box-shadow: 0 4px 12px rgba(55, 48, 163, 0.3);
 }
 .btn-primary:hover {
-  background: linear-gradient(135deg, #22d3ee, #06b6d4);
+  background: linear-gradient(135deg, #6366f1, #818cf8);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.4);
+  box-shadow: 0 6px 16px rgba(55, 48, 163, 0.4);
 }
 
 .btn-danger {
@@ -323,18 +323,18 @@
 }
 
 .pagination .page-link:hover {
-  background: linear-gradient(135deg, #e0f2fe, #bae6fd);
-  border-color: #38bdf8;
-  color: #075985;
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  border-color: #3730a3;
+  color: #1e1b4b;
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(56, 189, 248, 0.2);
+  box-shadow: 0 4px 8px rgba(55, 48, 163, 0.2);
 }
 
 .pagination .page-item.active .page-link {
-  background: linear-gradient(135deg, #38bdf8, #22d3ee);
-  border-color: #38bdf8;
+  background: linear-gradient(135deg, #3730a3, #6366f1);
+  border-color: #3730a3;
   color: white;
-  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
+  box-shadow: 0 4px 12px rgba(55, 48, 163, 0.4);
   font-weight: 700;
 }
 
@@ -539,13 +539,13 @@ textarea { font-size: 16px !important; }
 
 @supports (-webkit-touch-callout: none) {
   select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
-  .btn, .page-link, select, option { -webkit-tap-highlight-color: rgba(56, 189, 248, 0.2); }
+  .btn, .page-link, select, option { -webkit-tap-highlight-color: rgba(55, 48, 163, 0.2); }
   .table-responsive { -webkit-overflow-scrolling: touch; }
 }
 
 @supports not (-webkit-touch-callout: none) {
   select option { background-color: white !important; color: #1f2937 !important; }
-  select option:checked { background-color: #38bdf8 !important; color: white !important; }
+  select option:checked { background-color: #3730a3 !important; color: white !important; }
 }
 
 /* ========================================
@@ -555,7 +555,7 @@ textarea { font-size: 16px !important; }
 .form-control:focus-visible,
 .form-select:focus-visible,
 .btn:focus-visible,
-.page-link:focus-visible { outline: 3px solid #38bdf8; outline-offset: 2px; }
+.page-link:focus-visible { outline: 3px solid #3730a3; outline-offset: 2px; }
 
 /* ========================================
    RENDIMIENTO
@@ -603,9 +603,9 @@ textarea { font-size: 16px !important; }
 }
 
 .pm-buscador:focus-within {
-  border-color: #38bdf8;
+  border-color: #3730a3;
   background: white;
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  box-shadow: 0 0 0 3px rgba(55, 48, 163, 0.18);
 }
 
 .pm-buscador-icono { font-size: 0.95rem; line-height: 1; flex-shrink: 0; opacity: 0.7; }
@@ -678,18 +678,18 @@ textarea { font-size: 16px !important; }
    apagados y azul sólido cuando están puestos. Así se ven botones en los dos
    estados y se nota de lejos cuál está activo. */
 .pm-chip--filtro {
-  background: #e0f2fe;
-  border-color: #38bdf8;
-  color: #075985;
+  background: #e0e7ff;
+  border-color: #3730a3;
+  color: #1e1b4b;
 }
-.pm-chip--filtro:hover:not(:disabled) { background: #bae6fd; border-color: #22d3ee; }
+.pm-chip--filtro:hover:not(:disabled) { background: #c7d2fe; border-color: #6366f1; }
 
 /* Abierto (los campos de h/min están desplegados) pero todavía sin aplicar:
    se hunde y se marca el borde, para que tocarlo se note de una. El estado
    "aplicado" de abajo le gana, porque tiene la misma especificidad y va después. */
 .pm-chip--filtro.pm-chip--abierto {
-  background: #bae6fd;
-  border-color: #0ea5e9;
+  background: #c7d2fe;
+  border-color: #4338ca;
   color: #0c4a6e;
   box-shadow: inset 0 2px 5px rgba(3, 105, 161, 0.25);
 }
@@ -704,24 +704,24 @@ textarea { font-size: 16px !important; }
 .pm-flecha--abierta { transform: rotate(180deg); }
 
 .pm-chip--filtro.pm-chip--activo {
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
-  border-color: #0284c7;
+  background: linear-gradient(135deg, #4338ca, #3730a3);
+  border-color: #3730a3;
   color: white;
   box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
 }
 .pm-chip--filtro.pm-chip--activo:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0284c7, #0369a1);
+  background: linear-gradient(135deg, #3730a3, #312e81);
 }
 
 .pm-chip--limpiar { border-color: #fca5a5; color: #b91c1c; }
 .pm-chip--limpiar:hover { background: #fef2f2; }
 
 .pm-chip--aplicar {
-  background: linear-gradient(135deg, #38bdf8, #22d3ee);
-  border-color: #22d3ee;
+  background: linear-gradient(135deg, #3730a3, #6366f1);
+  border-color: #6366f1;
   color: white;
 }
-.pm-chip--aplicar:hover { background: linear-gradient(135deg, #22d3ee, #06b6d4); }
+.pm-chip--aplicar:hover { background: linear-gradient(135deg, #6366f1, #818cf8); }
 
 /* Campos de pendiente mínimo (plegados por defecto) */
 .pm-minimo {
