@@ -6,6 +6,12 @@
 // agrupación futura y confunde al leer una receta. Acá quedan definidos los
 // valores válidos, y `normalizarUnidad` / `normalizarEnvase` traducen lo que ya
 // está guardado para que los datos viejos sigan mostrándose bien.
+//
+// ⚠️  ESPEJO DE config/unidadesEnvases.js DEL BACKEND.
+// Las dos listas TIENEN que decir lo mismo, porque el backend valida contra la
+// suya. Ofrecer acá una opción que allá no existe hace que el usuario elija algo
+// que se ve perfectamente bien en pantalla y el guardado se caiga con un 400.
+// Eso pasaba con "Lata" y "Display". Al tocar cualquiera de las dos, tocá la otra.
 
 // ── Unidades ─────────────────────────────────────────────────────────────────
 // `presets` son los botones de cantidad que se ofrecen para esa unidad, y `paso`
@@ -139,6 +145,13 @@ export const TIPOS_PRODUCTO = [
     envaseSugerido: "balde",
   },
   {
+    id: "helado_empacado",
+    label: "Helado empacado",
+    ejemplo: "Bolis, conos, sandwich, paletas",
+    unidad: "unidades",
+    envaseSugerido: "caja",
+  },
+  {
     id: "polvo",
     label: "Polvo o topping",
     ejemplo: "Gelatina, chispas, cacao",
@@ -169,9 +182,20 @@ export const TIPOS_PRODUCTO = [
 ];
 
 /**
- * Qué tipo le corresponde a una unidad ya guardada, para preseleccionar algo
- * coherente al editar. Devuelve null si la unidad no la cubre ningún tipo
- * (datos viejos en bolas, kilos o litros): en ese caso no se toca la unidad.
+ * RESPALDO PARA DATOS VIEJOS. El tipo ahora se guarda en la base
+ * (`producto.tipoProducto`) y es el que manda; esto solo se usa para
+ * preseleccionar algo coherente en los productos creados antes de que el campo
+ * existiera.
+ *
+ * No sirve para saber el tipo de verdad y nunca sirvió: devuelve el PRIMER tipo
+ * que use esa unidad, y cuatro se cuentan en "unidades" (bebida, golosina,
+ * desechable, otro) y dos en "gramos" (helado, polvo). Por eso elegir
+ * "Golosina o snack" y volver a entrar mostraba "Bebida": el formulario
+ * preguntaba el tipo, guardaba solo la unidad, y después intentaba deshacer esa
+ * cuenta que no se puede deshacer.
+ *
+ * Devuelve null si la unidad no la cubre ningún tipo (datos viejos en bolas,
+ * kilos o litros): en ese caso no se toca la unidad.
  */
 export function tipoProductoDe(unidad) {
   const id = normalizarUnidad(unidad);
@@ -189,6 +213,8 @@ export const TIPOS_ENVASE = [
   { id: "saco", label: "Saco" },
   { id: "bandeja", label: "Bandeja" },
   { id: "display", label: "Display" },
+  { id: "tarro", label: "Tarro" },
+  { id: "sobre", label: "Sobre" },
 ];
 
 const ALIAS_ENVASE = {
@@ -211,6 +237,10 @@ const ALIAS_ENVASE = {
   bandejas: "bandeja",
   display: "display",
   displays: "display",
+  tarro: "tarro",
+  tarros: "tarro",
+  sobre: "sobre",
+  sobres: "sobre",
 };
 
 const limpiar = (valor) =>

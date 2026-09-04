@@ -136,7 +136,12 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
         // vez de fijarle "Otros" para siempre sin que nadie lo haya elegido.
         categoria: producto.categoria ? categoriaDe(producto) : "",
       });
-      setTipoProducto(tipoProductoDe(producto.unidad)?.id || null);
+      // El tipo guardado manda. `tipoProductoDe` quedó solo como respaldo para
+      // los productos creados antes de que el campo existiera: deduce a partir
+      // de la unidad y por eso no distingue entre los tipos que comparten una
+      // (bebida/golosina/desechable/otro se cuentan igual). Para esos el dueño
+      // corrige una vez al editar y queda guardado de verdad.
+      setTipoProducto(producto.tipoProducto || tipoProductoDe(producto.unidad)?.id || null);
       if (producto.cantidadPorEnvase) {
         setMostrarConfigEnvase(true);
         if (producto.precioCompra && producto.cantidadPorEnvase) {
@@ -585,6 +590,18 @@ const ProductForm = ({ producto = null, onClose, onSuccess }) => {
         } else {
           payload.precioCompra = form.precioCompra;
         }
+        // Qué es la cosa, tal cual lo eligió el dueño. Va junto con la unidad
+        // porque es de donde sale: sin mandarlo, el backend guardaba solo la
+        // unidad y al reabrir el formulario no había forma de saber si un
+        // producto en "unidades" era una bebida, una golosina o un desechable.
+        // En un producto viejo, sin el campo todavía, lo que se manda es la
+        // opción que el formulario dedujo de la unidad y dejó marcada en
+        // pantalla. Eso es a propósito: el dueño la está viendo marcada cuando
+        // le da guardar, y si está mal la corrige ahí mismo y ahora sí queda.
+        // Los únicos casos donde la deducción falla (los tipos que comparten
+        // unidad) se arreglan con un clic y no cambian la unidad, así que no
+        // hay riesgo de descuadrar recetas.
+        if (tipoProducto) payload.tipoProducto = tipoProducto;
         // Se guarda el valor canónico en minúscula: es lo que evita que en la
         // base vuelvan a convivir "Gramos" y "gramos".
         payload.unidad = normalizarUnidad(form.unidad) || "unidades";
