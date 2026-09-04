@@ -87,6 +87,9 @@ const CAMPOS_ORDEN = [
 // Punto como separador de miles (estándar de Costa Rica): 1.234
 const fmtMiles = (n) => Math.round(n || 0).toLocaleString("es-CR").replace(/\s/g, ".");
 
+// En Ping Pong no hay consola: no se elige juego jugado ni controles.
+const esPingPong = (lugar) => lugar === "Ping Pong";
+
 // Precio por hora según el lugar de juego
 const precioPorHora = (lugar) => {
   if (!lugar) return 0;
@@ -506,7 +509,12 @@ const PlaysManagement = () => {
   // El costo de controles es independiente del tiempo (los 2 primeros gratis) y
   // SIEMPRE se suma aparte. En modo monto el subtotal de tiempo es el monto
   // ingresado; en modo tiempo se calcula desde el tiempo.
-  const controlesPagadosUI = Math.max(0, (Number(formData.totalControles) || 0) - 2);
+  // Ping Pong no lleva juego jugado ni controles: esos campos se ocultan.
+  const pingPong = esPingPong(formData.lugarDeJuego);
+
+  const controlesPagadosUI = pingPong
+    ? 0
+    : Math.max(0, (Number(formData.totalControles) || 0) - 2);
   const costoControlesUI = controlesPagadosUI * 200;
   const subtotalTiempoUI =
     modoRegistro === "monto"
@@ -518,12 +526,25 @@ const PlaysManagement = () => {
     const { name, value } = e.target;
     // Si el usuario escribe la Hora Inicio, dejamos de refrescarla automáticamente
     if (name === "horaInicio") setHoraInicioManual(true);
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        name === "totalControles" ? (value ? Number(value) : "") : value,
-    }));
-    setErrores((er) => (er[name] ? { ...er, [name]: "" } : er));
+    setFormData((prev) => {
+      const sig = {
+        ...prev,
+        [name]:
+          name === "totalControles" ? (value ? Number(value) : "") : value,
+      };
+      // Ping Pong no usa consola: se descartan juegos y controles elegidos antes.
+      if (name === "lugarDeJuego" && esPingPong(value)) {
+        sig.juegosJugados = [];
+        sig.totalControles = "";
+      }
+      return sig;
+    });
+    setErrores((er) => {
+      if (name === "lugarDeJuego" && esPingPong(value)) {
+        return { ...er, [name]: "", juegosJugados: "", totalControles: "" };
+      }
+      return er[name] ? { ...er, [name]: "" } : er;
+    });
   };
 
   // ✅ Al salir del campo Hora Inicio, lo dejamos en formato canónico "2:10 PM"
@@ -641,14 +662,16 @@ const PlaysManagement = () => {
     const err = {};
     if (!formData.cliente?.trim()) err.cliente = "Escribí el nombre del cliente";
     if (!formData.lugarDeJuego) err.lugarDeJuego = "Elegí el lugar de juego";
-    if (formData.juegosJugados.length === 0) err.juegosJugados = "Elegí al menos 1 juego";
+    if (!esPingPong(formData.lugarDeJuego) && formData.juegosJugados.length === 0)
+      err.juegosJugados = "Elegí al menos 1 juego";
     if (!formData.tiempoPagado) {
       err.tiempo = modoRegistro === "monto"
         ? "Ingresá el monto cobrado por el tiempo"
         : "Ingresá el tiempo pagado";
     }
     if (!formData.horaInicio) err.horaInicio = "Ingresá la hora de inicio";
-    if (!formData.totalControles) err.totalControles = "Elegí la cantidad de controles";
+    if (!esPingPong(formData.lugarDeJuego) && !formData.totalControles)
+      err.totalControles = "Elegí la cantidad de controles";
     if (!formData.estadoPago) err.estadoPago = "Elegí el estado del pago";
     return err;
   };
@@ -689,8 +712,12 @@ const PlaysManagement = () => {
         : convertir12hA24h(formData.horaFinal);
     try {
       const axios = await getAxios();
+      // Ping Pong no usa controles: se guardan 0 (no se usó ninguno).
+      const totalControlesAEnviar = esPingPong(formData.lugarDeJuego)
+        ? 0
+        : formData.totalControles;
       // Los 2 primeros controles son gratis; del 3.º en adelante ₡200 c/u.
-      const controlesPagados = Math.max(0, formData.totalControles - 2);
+      const controlesPagados = Math.max(0, totalControlesAEnviar - 2);
       // Monto real cobrado (ingreso): tiempo + controles en ambos modos.
       // En modo "monto" el monto ingresado es el pago del tiempo y los controles
       // se suman aparte; en modo "tiempo" es el total calculado.
@@ -700,7 +727,7 @@ const PlaysManagement = () => {
           : calcularCostos(
               formData.lugarDeJuego,
               formData.tiempoPagado,
-              formData.totalControles,
+              totalControlesAEnviar,
             ).total;
       const datosAEnviar = {
         cliente: formData.cliente,
@@ -710,8 +737,10 @@ const PlaysManagement = () => {
         horaInicio: horaInicio24,
         horaFinal: horaFinal24,
         lugarDeJuego: formData.lugarDeJuego,
-        juegosJugados: formData.juegosJugados,
-        totalControles: formData.totalControles, // total de controles usados (1-4)
+        juegosJugados: esPingPong(formData.lugarDeJuego)
+          ? []
+          : formData.juegosJugados,
+        totalControles: totalControlesAEnviar, // total de controles usados (1-4)
         controlAdicional: controlesPagados,       // controles pagados (compat. costo/reportes)
         montoPagado,                              // monto real cobrado (fuente de verdad del ingreso)
         estadoPago: formData.estadoPago,
@@ -933,6 +962,13 @@ const PlaysManagement = () => {
                         <div className="invalid-feedback d-block">{errores.lugarDeJuego}</div>
                       )}
                     </div>
+                    {pingPong ? (
+                      <div className="col-12">
+                        <div className="alert alert-info py-2 mb-0">
+                          🏓 En Ping Pong no se registra juego jugado ni controles.
+                        </div>
+                      </div>
+                    ) : (
                     <div className="col-12" id="campo-juegosJugados">
                       <label className="form-label fw-bold">
                         Juegos Jugados agregar almenos 1 (máx. 2) *
@@ -958,6 +994,7 @@ const PlaysManagement = () => {
                         </small>
                       )}
                     </div>
+                    )}
                     <div className="col-12 mt-4">
                       <h6 className="border-bottom pb-2 mb-3 text-primary fw-bold">
                         ⏰ Tiempos y Horarios
@@ -1167,6 +1204,7 @@ const PlaysManagement = () => {
                         💰 Costos y Estado
                       </h6>
                     </div>
+                    {!pingPong && (
                     <div className="col-12 col-md-6" id="campo-totalControles">
                       <label className="form-label fw-bold">
                         Controles <span className="text-danger">*</span>
@@ -1194,7 +1232,11 @@ const PlaysManagement = () => {
                         </small>
                       )}
                     </div>
-                    <div className="col-12 col-md-6" id="campo-estadoPago">
+                    )}
+                    <div
+                      className={`col-12 ${pingPong ? "" : "col-md-6"}`}
+                      id="campo-estadoPago"
+                    >
                       <label className="form-label fw-bold">
                         Estado del Pago <span className="text-danger">*</span>
                       </label>
@@ -1230,16 +1272,18 @@ const PlaysManagement = () => {
                               ₡{subtotalTiempoUI.toLocaleString()}
                             </strong>
                           </div>
-                          <div className="d-flex justify-content-between mb-2">
-                            <span>Controles ({formData.totalControles || "—"}):</span>
-                            <strong>
-                              {!formData.totalControles
-                                ? "—"
-                                : costoControlesUI > 0
-                                  ? `₡${costoControlesUI.toLocaleString()}`
-                                  : "Gratis"}
-                            </strong>
-                          </div>
+                          {!pingPong && (
+                            <div className="d-flex justify-content-between mb-2">
+                              <span>Controles ({formData.totalControles || "—"}):</span>
+                              <strong>
+                                {!formData.totalControles
+                                  ? "—"
+                                  : costoControlesUI > 0
+                                    ? `₡${costoControlesUI.toLocaleString()}`
+                                    : "Gratis"}
+                              </strong>
+                            </div>
+                          )}
                           <hr className="my-2" />
                           <div className="d-flex justify-content-between">
                             <span className="fw-bold fs-5">TOTAL A COBRAR:</span>
