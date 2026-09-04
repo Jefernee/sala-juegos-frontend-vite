@@ -893,7 +893,7 @@ const PlaysManagement = () => {
           <div className="d-flex justify-content-between align-items-center mb-4">
             <h2 className="plays-title mb-0">🎮 Control de Plays</h2>
             <button
-              className="btn btn-success btn-lg"
+              className="btn btn-primary btn-lg"
               onClick={() =>
                 mostrarFormulario ? limpiarFormulario() : abrirFormularioNuevo()
               }
@@ -964,8 +964,9 @@ const PlaysManagement = () => {
                     </div>
                     {pingPong ? (
                       <div className="col-12">
-                        <div className="alert alert-info py-2 mb-0">
-                          🏓 En Ping Pong no se registra juego jugado ni controles.
+                        <div className="aviso-formulario">
+                          <span className="aviso-icono" aria-hidden="true">🏓</span>
+                          <span>En Ping Pong no se registra juego jugado ni controles.</span>
                         </div>
                       </div>
                     ) : (
@@ -1305,7 +1306,7 @@ const PlaysManagement = () => {
                     </button>
                     <button
                       type="submit"
-                      className="btn btn-success btn-lg px-4"
+                      className="btn btn-primary btn-lg px-4"
                     >
                       {editando ? "💾 Actualizar" : "✅ Guardar"}
                     </button>
