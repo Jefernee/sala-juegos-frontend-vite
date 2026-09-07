@@ -265,7 +265,10 @@ const UsuariosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
             const esYo = !!miId && u._id === miId;
             return (
               <div key={u._id} className="col-12 col-lg-6">
-                <div className="activo-card w-100">
+                {/* El rol va también en la clase: le pinta el filo izquierdo
+                    de su color, para reconocerlo sin leer la insignia y para
+                    que la rejilla no sea una pared de tarjetas iguales. */}
+                <div className={`activo-card activo-card--rol activo-card--rol-${info.clase} w-100`}>
                   <div className="activo-card__body">
                     <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
                       <h6 className="activo-card__nombre mb-0">{u.nombre || "—"}</h6>

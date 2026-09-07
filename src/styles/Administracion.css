@@ -6,6 +6,73 @@
   display: flex;
   flex-direction: column;
   color: #ffffff;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* ─── SUPERFICIES DEL MÓDULO ────────────────────────────────────────────────
+   El fondo de la página se queda oscuro (es el mismo de Reportes y Plays), pero
+   todo lo que va ENCIMA —tarjetas, paneles, filas, modales— es blanco, como en
+   esos dos módulos. Antes las tarjetas eran del mismo #0f172a que el fondo y no
+   se despegaban.
+
+   Los colores semánticos vienen en dos juegos: el tono oscuro (--verde) para
+   texto sobre blanco, y el claro (#34d399 y compañía) que se sigue usando en lo
+   que quedó sobre el fondo oscuro (pestañas, encabezados, hero del ahorro). */
+.admin-container {
+  --sup: #ffffff;        /* tarjeta, panel, modal */
+  --sup-2: #f8fafc;      /* bloque o fila dentro de una tarjeta */
+  --sup-3: #f1f5f9;      /* hover de esa fila */
+  --borde: #e5e7eb;      /* borde de tarjeta */
+  --borde-2: #eef2f7;    /* borde interno, más suave */
+  --campo: #d1d5db;      /* borde de input */
+
+  --txt: #1f2937;        /* texto principal sobre blanco */
+  --txt-2: #4b5563;      /* texto secundario */
+  --txt-3: #6b7280;      /* rótulos, notas y ayudas */
+  --txt-4: #9ca3af;      /* placeholder y texto tenue */
+
+  /* Tres piezas por color: el tono OSCURO para el texto sobre blanco, el
+     TINTE para el fondo de insignias, encabezados y avisos, y el BORDE.
+     Los tintes están un escalón arriba del más claro de la escala a propósito:
+     con el nivel 50 (#ecfdf5 y compañía) las insignias y los encabezados se
+     perdían contra la tarjeta blanca y todo se veía descolorido. */
+  /* El color se reserva para lo único donde significa algo en un módulo de
+     plata: si entró (verde) o si salió (rojo). El ámbar queda para avisos.
+     Todo lo demás va en neutro.
+
+     Los tintes vuelven al nivel bajo: son fondos de aviso, no manchas de
+     color, y repetidos por la pantalla encendían el módulo entero. */
+  --verde: #047857;  --verde-bg: #ecfdf5;  --verde-bd: #a7f3d0;
+  --ambar: #b45309;  --ambar-bg: #fffbeb;  --ambar-bd: #fde68a;
+  --rojo:  #b91c1c;  --rojo-bg:  #fef2f2;  --rojo-bd:  #fecaca;
+  --azul:  #0369a1;  --azul-bg:  #f0f9ff;  --azul-bd:  #bae6fd;
+
+  /* Los botones NO van en blanco: sobre una tarjeta blanca no se despegan del
+     fondo y dejan de leerse como algo que se toca. Van un escalón más grises
+     que la tarjeta, y con el borde más marcado que el de las cajas. Esto es
+     buena parte de lo que hacía ver "todo blanco" la pantalla. */
+  /* El gris tiene que separarse de verdad del blanco de la tarjeta: con
+     #f1f5f9 quedaban a un pelo del fondo y no se leían como botones. */
+  --boton: #e2e8f0;
+  --boton-hover: #cbd5e1;
+  --boton-activo: #aab8c9;
+  --boton-borde: #94a3b8;
+  --boton-relieve: 0 1px 2px rgba(2, 6, 23, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+
+  --sombra: 0 4px 14px rgba(2, 6, 23, 0.22);
+  --sombra-alta: 0 10px 28px rgba(2, 6, 23, 0.3);
+
+  /* Tipografía: Inter en todo el módulo. Es una tipografía de interfaz, no de
+     display: sus numerales son parejos y sin adornos, que es justo lo que hace
+     falta cuando la pantalla está llena de montos. Se probó Syne (la que usa
+     Reportes en sus títulos) y en las cifras se leía mal, así que acá no entra.
+
+     --display  → títulos y rótulos
+     --cifras   → montos; lo que los ordena es `tabular-nums`, que le da a todos
+                  los dígitos el mismo ancho para que las cifras queden
+                  alineadas en columna de una fila a otra. */
+  --display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --cifras: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 /* En escritorio aprovecha la pantalla como los demás módulos (Reportes anda en
@@ -33,8 +100,10 @@
 }
 
 .admin-page-title {
+  font-family: var(--display);
   font-size: 1.75rem;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.5px;
   background: linear-gradient(90deg, #e2e8f0, #94a3b8);
   background-clip: text;
   -webkit-background-clip: text;
@@ -77,8 +146,8 @@
 .admin-tab:hover { color: #cbd5e1; }
 
 .admin-tab--activo {
-  background: rgba(16, 185, 129, 0.14);
-  color: #34d399;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 /* ─── DASHBOARD / RESUMEN ──────────────────────────────────────────────────── */
@@ -92,6 +161,7 @@
 }
 
 .resumen-header__titulo {
+  font-family: var(--display);
   font-weight: 700;
   color: #e2e8f0;
   text-transform: capitalize;
@@ -102,18 +172,22 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 0.35rem;
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  --rail: var(--borde);
+  background: var(--sup);
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--rail);
   border-radius: 16px;
   padding: 1.25rem 1.5rem;
   cursor: pointer;
   text-align: left;
-  transition: transform 0.2s ease, border-color 0.2s, box-shadow 0.2s;
+  box-shadow: var(--sombra);
+  color: var(--txt);
+  transition: transform 0.2s ease, box-shadow 0.2s;
   min-height: 130px;
   justify-content: center;
 }
 
-.resumen-card:hover { transform: translateY(-3px); }
+.resumen-card:hover { transform: translateY(-3px); box-shadow: var(--sombra-alta); }
 .resumen-card:active { transform: translateY(-1px); }
 
 .resumen-card__icono { font-size: 1.6rem; line-height: 1; }
@@ -121,113 +195,107 @@
 .resumen-card__titulo {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--txt-3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .resumen-card__valor {
+  font-family: var(--cifras);
   font-size: clamp(1.4rem, 4.5vw, 1.9rem);
   font-weight: 800;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.8px;
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
   word-break: break-word;
 }
 
-.resumen-card--verde {
-  border-color: rgba(16, 185, 129, 0.3);
-  background: linear-gradient(160deg, #0d2118 0%, #0f172a 100%);
-}
-.resumen-card--verde .resumen-card__valor { color: #34d399; }
-.resumen-card--verde:hover { border-color: rgba(16, 185, 129, 0.6); box-shadow: 0 10px 30px rgba(16, 185, 129, 0.15); }
-
-.resumen-card--naranja {
-  border-color: rgba(245, 158, 11, 0.3);
-  background: linear-gradient(160deg, #1f1408 0%, #0f172a 100%);
-}
-.resumen-card--naranja .resumen-card__valor { color: #fbbf24; }
-.resumen-card--naranja:hover { border-color: rgba(245, 158, 11, 0.6); box-shadow: 0 10px 30px rgba(245, 158, 11, 0.15); }
-
-.resumen-card--rojo {
-  border-color: rgba(239, 68, 68, 0.3);
-  background: linear-gradient(160deg, #210d0d 0%, #0f172a 100%);
-}
-.resumen-card--rojo .resumen-card__valor { color: #f87171; }
-.resumen-card--rojo:hover { border-color: rgba(239, 68, 68, 0.6); box-shadow: 0 10px 30px rgba(239, 68, 68, 0.15); }
-
-.resumen-card--azul {
-  border-color: rgba(59, 130, 246, 0.3);
-  background: linear-gradient(160deg, #0d1a2e 0%, #0f172a 100%);
-}
-.resumen-card--azul .resumen-card__valor { color: #60a5fa; }
-.resumen-card--azul:hover { border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 10px 30px rgba(59, 130, 246, 0.15); }
+/* Las cuatro tarjetas eran verde, naranja, roja y azul, una al lado de la
+   otra. Ahora el filo va neutro en todas y el color queda solo en la cifra,
+   que es donde dice algo: verde lo que entró, rojo lo que salió. Un acumulado
+   no es ni lo uno ni lo otro, así que va en negro. */
+.resumen-card--verde .resumen-card__valor   { color: var(--verde); }
+.resumen-card--naranja .resumen-card__valor { color: var(--rojo); }
+.resumen-card--rojo .resumen-card__valor    { color: var(--rojo); }
+.resumen-card--azul .resumen-card__valor    { color: var(--txt); }
 
 .resumen-card--secundaria {
   flex-direction: row;
   align-items: center;
   gap: 1rem;
   min-height: auto;
-  border-color: rgba(251, 191, 36, 0.2);
 }
-.resumen-card--secundaria:hover { border-color: rgba(251, 191, 36, 0.45); }
 
 .resumen-card__col { display: flex; flex-direction: column; gap: 0.2rem; }
-.resumen-card__valor--sec { font-size: 1.3rem; color: #fbbf24; }
+.resumen-card__valor--sec { font-size: 1.3rem; color: var(--txt); }
+.resumen-card--secundaria .resumen-card__titulo { letter-spacing: 0.4px; }
 
 .resumen-card__desc {
   font-size: 0.74rem;
-  color: #64748b;
+  color: var(--txt-3);
   line-height: 1.35;
 }
 
 /* ─── PANEL FORMULARIO ─────────────────────────────────────────────────────── */
 
 .admin-panel {
-  background: #0f172a;
+  background: var(--sup);
+  border: 1px solid var(--borde);
   border-radius: 16px;
   overflow: hidden;
+  box-shadow: var(--sombra);
+  color: var(--txt);
 }
 
-.admin-panel--green  { border: 1px solid rgba(16, 185, 129, 0.25); }
-.admin-panel--blue   { border: 1px solid rgba(59, 130, 246, 0.25); }
-.admin-panel--orange { border: 1px solid rgba(245, 158, 11, 0.25); }
+.admin-panel--green  { border-color: var(--verde-bd); }
+.admin-panel--blue   { border-color: var(--azul-bd); }
+.admin-panel--orange { border-color: var(--ambar-bd); }
 
 .admin-panel__header {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   padding: 0.875rem 1.5rem;
-  font-weight: 600;
+  font-family: var(--display);
+  font-weight: 700;
   font-size: 0.9rem;
   letter-spacing: 0.3px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--borde);
 }
 
-.admin-panel__header--green  { color: #34d399; background: rgba(16, 185, 129, 0.1); }
-.admin-panel__header--blue   { color: #60a5fa; background: rgba(59, 130, 246, 0.1); }
-.admin-panel__header--orange { color: #fbbf24; background: rgba(245, 158, 11, 0.1); }
+/* Los tres encabezados van iguales y en neutro. Que cada panel tuviera su
+   color no aportaba nada —el título ya dice qué es— y metía tres tonos más. */
+.admin-panel__header--green,
+.admin-panel__header--blue,
+.admin-panel__header--orange {
+  color: var(--txt);
+  background: var(--sup-2);
+  border-bottom: 1px solid var(--borde);
+}
 
 .admin-panel__body { padding: 1.5rem; }
 
-/* ─── INPUTS DARK THEME ────────────────────────────────────────────────────── */
+/* ─── INPUTS ───────────────────────────────────────────────────────────────── */
+/* Los campos viven siempre dentro de un panel o de un modal, así que van en
+   blanco con texto oscuro. */
 
 .admin-input,
 .admin-select {
-  background: #0f172a !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: #e2e8f0 !important;
+  background: #ffffff !important;
+  border: 1px solid var(--campo) !important;
+  color: var(--txt) !important;
   border-radius: 8px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.admin-input::placeholder { color: #475569 !important; }
+.admin-input::placeholder { color: var(--txt-4) !important; }
 
 .admin-input:focus,
 .admin-select:focus {
-  background: #0f172a !important;
+  background: #ffffff !important;
   border-color: #10b981 !important;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
-  color: #e2e8f0 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18) !important;
+  color: var(--txt) !important;
   outline: none;
 }
 
@@ -238,21 +306,21 @@
 }
 
 .campo-error {
-  color: #f87171;
+  color: #dc2626;
   font-size: 0.78rem;
   margin-top: 0.3rem;
 }
 
 .admin-select option {
-  background: #1e293b;
-  color: #e2e8f0;
+  background: #ffffff;
+  color: var(--txt);
 }
 
 .admin-input-prefix {
-  background: #1e293b !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: var(--sup-3) !important;
+  border: 1px solid var(--campo) !important;
   border-right: none !important;
-  color: #94a3b8 !important;
+  color: var(--txt-3) !important;
   font-weight: 600;
 }
 
@@ -260,20 +328,20 @@
   display: block;
   font-size: 0.78rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--txt-3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 0.4rem;
 }
 
 .admin-hint {
-  color: #475569;
+  color: var(--txt-3);
   font-size: 0.8rem;
 }
 
-/* Fecha en dark theme (ícono del calendario) */
+/* Ícono del calendario: sobre blanco ya viene oscuro, solo se baja un poco */
 .admin-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.6);
+  opacity: 0.6;
   cursor: pointer;
 }
 
@@ -291,50 +359,83 @@
   gap: 0.45rem;
 }
 
-.admin-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
-.admin-btn:active { transform: translateY(0); }
+.admin-btn {
+  box-shadow: 0 1px 3px rgba(2, 6, 23, 0.2);
+}
+.admin-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(2, 6, 23, 0.25); }
+.admin-btn:active { transform: translateY(1px); box-shadow: inset 0 2px 4px rgba(2, 6, 23, 0.25); }
 .admin-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .admin-btn--green  { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
 .admin-btn--blue   { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; }
 .admin-btn--orange { background: linear-gradient(135deg, #f59e0b, #f97316); color: #fff; }
 .admin-btn--red    { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
-.admin-btn--gris   { background: rgba(255, 255, 255, 0.1); color: #e2e8f0; }
+.admin-btn--gris   { background: #64748b; color: #fff; }
 
 .admin-btn--green:hover, .admin-btn--blue:hover,
 .admin-btn--orange:hover, .admin-btn--red:hover { color: #fff; }
 
+/* Casi todos los fantasma viven dentro de un panel o un modal (ambos blancos),
+   así que el estilo base es oscuro sobre claro. Los tres que quedaron sobre el
+   fondo del módulo se corrigen más abajo. */
+/* Cancelar / Volver / Refrescar van neutros a propósito: son la salida, y
+   resaltarlas compite con la acción que la pantalla sí quiere que hagas. */
 .admin-btn-ghost {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #94a3b8;
+  background: var(--boton);
+  border: 1px solid var(--boton-borde);
+  color: var(--txt);
   border-radius: 8px;
+  box-shadow: var(--boton-relieve);
   font-size: 0.875rem;
-  padding: 0.375rem 1rem;
+  font-weight: 600;
+  padding: 0.45rem 1.1rem;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
   white-space: nowrap;
 }
-.admin-btn-ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.06); color: #e2e8f0; }
+.admin-btn-ghost:hover:not(:disabled) { background: var(--boton-hover); border-color: #94a3b8; color: var(--txt); }
+.admin-btn-ghost:active:not(:disabled) {
+  background: var(--boton-activo);
+  box-shadow: inset 0 2px 4px rgba(2, 6, 23, 0.16);
+  transform: translateY(1px);
+}
 .admin-btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .admin-btn-ghost--rojo {
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.3);
+  color: #dc2626;
+  border-color: var(--rojo-bd);
 }
 
 .admin-btn-ghost--rojo:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.12);
-  color: #f87171;
+  background: var(--rojo-bg);
+  color: var(--rojo);
+}
+
+/* Los fantasma que NO están dentro de una tarjeta: el de refrescar el resumen,
+   el de volver del reporte anual y el del saldo de apertura. Van directo sobre
+   el degradado oscuro, así que ahí sí se pintan claros. */
+.resumen-header > .admin-btn-ghost,
+.fin-anual-head > .admin-btn-ghost,
+.fin-acciones > .admin-btn-ghost {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #cbd5e1;
+}
+
+.resumen-header > .admin-btn-ghost:hover:not(:disabled),
+.fin-anual-head > .admin-btn-ghost:hover:not(:disabled),
+.fin-acciones > .admin-btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
 }
 
 /* Caja de confirmación para quitar la reparación */
 .aviso-quitar {
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: var(--rojo-bg);
+  border: 1px solid var(--rojo-bd);
   border-radius: 10px;
   padding: 0.85rem 1rem;
-  color: #fca5a5;
+  color: var(--rojo);
   font-size: 0.88rem;
 }
 
@@ -358,16 +459,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #111827;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--sup);
+  border: 1px solid var(--borde);
   border-radius: 12px;
   padding: 0.6rem 0.75rem;
+  box-shadow: var(--sombra);
+  color: var(--txt);
 }
 
 .mes-nav__btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  background: var(--boton);
+  border: 1px solid var(--boton-borde);
+  box-shadow: var(--boton-relieve);
+  color: var(--txt-2);
   border-radius: 8px;
   width: 42px;
   height: 42px;
@@ -381,8 +485,8 @@
 }
 
 .mes-nav__btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--boton-hover);
+  color: var(--txt);
 }
 
 .mes-nav__btn:disabled { opacity: 0.3; cursor: not-allowed; }
@@ -400,17 +504,17 @@
   transition: background 0.2s;
 }
 
-.mes-nav__label:hover { background: rgba(255, 255, 255, 0.05); }
+.mes-nav__label:hover { background: var(--sup-3); }
 
 .mes-nav__mes {
   font-weight: 700;
   font-size: 1.05rem;
-  color: #e2e8f0;
+  color: var(--txt);
 }
 
 .mes-nav__anio {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--txt-3);
 }
 
 /* Picker de mes/año */
@@ -420,11 +524,12 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--sup);
+  border: 1px solid var(--borde);
   border-radius: 14px;
   padding: 0.85rem;
-  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.5);
+  color: var(--txt);
+  box-shadow: 0 16px 50px rgba(2, 6, 23, 0.45);
   width: min(320px, calc(100vw - 2rem));
 }
 
@@ -437,14 +542,15 @@
 
 .mes-picker__anio span {
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--txt);
   font-size: 1rem;
 }
 
 .mes-picker__anio button {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  background: var(--boton);
+  border: 1px solid var(--boton-borde);
+  box-shadow: var(--boton-relieve);
+  color: var(--txt-2);
   border-radius: 8px;
   width: 34px;
   height: 34px;
@@ -452,7 +558,7 @@
   font-size: 0.8rem;
 }
 
-.mes-picker__anio button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.mes-picker__anio button:hover:not(:disabled) { background: var(--boton-hover); color: var(--txt); }
 .mes-picker__anio button:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .mes-picker__grid {
@@ -462,9 +568,9 @@
 }
 
 .mes-picker__mes {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--boton);
   border: 1px solid transparent;
-  color: #cbd5e1;
+  color: var(--txt-2);
   border-radius: 8px;
   padding: 0.55rem 0;
   font-size: 0.82rem;
@@ -473,13 +579,13 @@
   transition: background 0.15s, color 0.15s;
 }
 
-.mes-picker__mes:hover:not(:disabled) { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-.mes-picker__mes:disabled { opacity: 0.25; cursor: not-allowed; }
+.mes-picker__mes:hover:not(:disabled) { background: var(--verde-bg); color: var(--verde); }
+.mes-picker__mes:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .mes-picker__mes--activo {
-  background: rgba(16, 185, 129, 0.2);
-  border-color: rgba(16, 185, 129, 0.5);
-  color: #34d399;
+  background: var(--verde-bg);
+  border-color: #10b981;
+  color: var(--verde);
 }
 
 /* Chip de mes no actual */
@@ -518,9 +624,10 @@
 
 /* Aviso dentro del modal cuando no es el mes actual */
 .aviso-mes {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #fbbf24;
+  background: var(--ambar-bg);
+  border: 1px solid var(--ambar-bd);
+  border-left: 4px solid #d97706;
+  color: var(--ambar);
   border-radius: 10px;
   padding: 0.6rem 0.9rem;
   font-size: 0.85rem;
@@ -529,7 +636,7 @@
 /* ─── CAJAS DE TOTAL ───────────────────────────────────────────────────────── */
 
 .total-box {
-  background: #0f172a;
+  background: var(--sup);
   border-radius: 12px;
   padding: 1rem 1.25rem;
   display: flex;
@@ -537,64 +644,86 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra);
+  color: var(--txt);
   gap: 0.25rem;
 }
 
 .total-box__label {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--txt-3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .total-box__value {
+  font-family: var(--cifras);
   font-size: 1.4rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
   word-break: break-word;
 }
 
-.total-box--green  { border-color: rgba(16, 185, 129, 0.2); }
-.total-box--yellow { border-color: rgba(251, 191, 36, 0.2); }
-.total-box--red    { border-color: rgba(239, 68, 68, 0.2); }
-
-.total-box--green .total-box__value  { color: #34d399; }
-.total-box--yellow .total-box__value { color: #fbbf24; }
-.total-box--red .total-box__value    { color: #f87171; }
+/* Sin filo de color arriba: el dato ya lo da la cifra. El total histórico va
+   en negro porque es un acumulado, no una ganancia del mes. */
+.total-box--green .total-box__value  { color: var(--verde); }
+.total-box--yellow .total-box__value { color: var(--txt); }
+.total-box--red .total-box__value    { color: var(--rojo); }
 
 /* ─── BADGES DE REGISTROS ──────────────────────────────────────────────────── */
 
 .registro-item__badge {
   display: inline-block;
   padding: 0.25rem 0.65rem;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 0.8rem;
   font-weight: 600;
   width: fit-content;
 }
 
-.registro-item__badge--green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-.registro-item__badge--blue  { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-.registro-item__badge--red   { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+/* Neutras a propósito: cada fila ya lleva el filo de color a la izquierda y el
+   monto en el color que corresponde. Pintar además el chip era decir lo mismo
+   tres veces y llenaba la lista de manchas. */
+.registro-item__badge {
+  background: #f1f5f9;
+  border: 1px solid #dde3ea;
+  color: #334155;
+}
+.registro-item__badge--green,
+.registro-item__badge--blue,
+.registro-item__badge--red { background: #f1f5f9; border-color: #dde3ea; color: #334155; }
 
 /* ─── TABLA / CARDS DE MOVIMIENTOS (Ganancias y Pagos) ─────────────────────── */
 
+/* La lista de movimientos es UNA tabla, no veinte tarjetas sueltas. Antes cada
+   fila era su propia tarjeta blanca con borde y sombra: con veinte movimientos
+   la pantalla se llenaba de bordes repetidos y se leía como un bloque blanco.
+   Ahora el blanco lo pone el contenedor una sola vez, las filas se separan con
+   una línea fina, y el color del tipo sigue en el filo izquierdo de cada una. */
 .mov-tabla {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  background: var(--sup);
+  color: var(--txt);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  box-shadow: var(--sombra);
+  overflow: hidden;
 }
 
 .mov-tabla__head {
   display: grid;
   grid-template-columns: 1.4fr 1fr 1.5fr 1.2fr 110px;
   gap: 0.75rem;
-  padding: 0.4rem 1.1rem;
+  padding: 0.65rem 1.1rem;
+  background: var(--sup-2);
+  border-bottom: 1px solid var(--borde);
   font-size: 0.72rem;
-  font-weight: 600;
-  color: #475569;
+  font-weight: 700;
+  color: var(--txt-3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -604,48 +733,55 @@
   grid-template-columns: 1.4fr 1fr 1.5fr 1.2fr 110px;
   gap: 0.75rem;
   align-items: center;
-  background: #111827;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--borde-2);
+  border-left: 4px solid transparent;
+  border-radius: 0;
   padding: 0.75rem 1.1rem;
-  border-left-width: 3px;
+  color: var(--txt);
   transition: background 0.15s;
 }
 
-.mov-row:hover { background: #1a2333; }
+.mov-row:last-child { border-bottom: 0; }
 
-.mov-row--green { border-left-color: #10b981; }
-.mov-row--blue  { border-left-color: #3b82f6; }
-.mov-row--red   { border-left-color: #ef4444; }
+.mov-row:hover { background: var(--sup-2); }
+
+/* Filo tenue: el monto ya va en verde o rojo, así que el filo separa la fila
+   sin repetir la información con una franja saturada. */
+.mov-row--green { border-left-color: #a7f3d0; }
+.mov-row--blue  { border-left-color: #dde3ea; }
+.mov-row--red   { border-left-color: #fecaca; }
 
 .mov-row__monto {
   font-weight: 700;
   font-size: 1rem;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.mov-row__monto--verde { color: #34d399; }
-.mov-row__monto--rojo  { color: #f87171; }
+.mov-row__monto--verde { color: var(--verde); }
+.mov-row__monto--rojo  { color: var(--rojo); }
 
 /* Detalle del pago en dólares debajo del monto en colones */
 .mov-row__usd {
   display: block;
   font-size: 0.72rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--txt-3);
   white-space: nowrap;
   margin-top: 0.1rem;
 }
 
 .mov-row__desc {
   font-size: 0.83rem;
-  color: #94a3b8;
+  color: var(--txt-2);
   overflow-wrap: anywhere;
 }
 
 .mov-row__fecha {
   font-size: 0.78rem;
-  color: #64748b;
+  color: var(--txt-3);
 }
 
 .mov-row__acciones {
@@ -654,10 +790,29 @@
   justify-content: flex-end;
 }
 
+/* ─── BOTONES DE ACCIÓN ──────────────────────────────────────────────────
+   El color dice qué pasa si lo tocás, que es la única razón para ponérselo:
+
+     azul  → editar y demás acciones que se pueden deshacer
+     ámbar → mantenimiento: abre reparaciones, cambia una contraseña
+     rojo  → destruye algo y no hay vuelta atrás
+
+   Cada uno lleva el tinte de fondo, el borde y la letra del mismo color. No van
+   a color pleno porque hay dos o tres por tarjeta y en una rejilla de doce
+   serían un tablero de fichas; el tinte se lee igual de rápido y no grita.
+   Al pasar por encima sube al tono fuerte, para confirmar antes de tocar.    */
 .accion-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  --b-tinte: #eef2f7;
+  --b-borde: #b3c0d0;
+  --b-texto: #334155;
+  --b-tinte-fuerte: #dde3ea;
+  --b-borde-fuerte: #94a3b8;
+
+  background: var(--b-tinte);
+  color: var(--b-texto);
+  border: 1px solid var(--b-borde);
   border-radius: 8px;
+  box-shadow: var(--boton-relieve);
   width: 38px;
   height: 38px;
   display: flex;
@@ -665,14 +820,49 @@
   justify-content: center;
   cursor: pointer;
   font-size: 0.95rem;
-  transition: background 0.2s, border-color 0.2s;
+  font-weight: 600;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.1s;
 }
 
-.accion-btn:hover { background: rgba(255, 255, 255, 0.12); }
+/* Azul por defecto: la acción de la que siempre se puede volver. */
+.accion-btn--texto,
+.accion-btn--azul {
+  --b-tinte: #eff6ff;
+  --b-borde: #bfdbfe;
+  --b-texto: #1d4ed8;
+  --b-tinte-fuerte: #dbeafe;
+  --b-borde-fuerte: #60a5fa;
+}
 
-.accion-btn--rojo:hover {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.4);
+/* Ámbar: mantenimiento. Toca algo, pero no borra nada. */
+.accion-btn--naranja {
+  --b-tinte: #fffbeb;
+  --b-borde: #fde68a;
+  --b-texto: #b45309;
+  --b-tinte-fuerte: #fef3c7;
+  --b-borde-fuerte: #f59e0b;
+}
+
+/* Rojo: destruye. Es el único que conviene que frene al ojo. */
+.accion-btn--rojo {
+  --b-tinte: #fef2f2;
+  --b-borde: #fecaca;
+  --b-texto: #b91c1c;
+  --b-tinte-fuerte: #fee2e2;
+  --b-borde-fuerte: #f87171;
+}
+
+.accion-btn:hover {
+  background: var(--b-tinte-fuerte);
+  border-color: var(--b-borde-fuerte);
+}
+
+/* Se hunde al presionar: es la señal más clara de que algo es un botón. */
+.accion-btn:active {
+  background: var(--b-tinte-fuerte);
+  border-color: var(--b-borde-fuerte);
+  box-shadow: inset 0 2px 5px rgba(2, 6, 23, 0.18);
+  transform: translateY(1px);
 }
 
 /* Variante con texto (cards de activos) */
@@ -682,7 +872,6 @@
   gap: 0.3rem;
   font-size: 0.78rem;
   font-weight: 600;
-  color: #cbd5e1;
   padding: 0.4rem 0.5rem;
   /* Etiquetas largas: se ajustan en varias líneas y el botón crece de alto
      (antes con nowrap + alto fijo se desbordaban en móvil). */
@@ -693,14 +882,11 @@
   text-align: center;
 }
 
-.accion-btn--texto.accion-btn--rojo { color: #f87171; }
-
-.accion-btn--naranja { color: #fbbf24; }
-
-.accion-btn--naranja:hover {
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.4);
-}
+/* Los botones van neutros y solo el destructivo lleva color: es el único donde
+   avisar vale la pena. Lo que les faltaba cuando se veían apagados no era
+   color, era una superficie con borde que los distinguiera de la tarjeta. */
+/* La variante con texto no necesita nada más: hereda el color de su acción
+   (.accion-btn--naranja, .accion-btn--rojo) igual que la de solo ícono. */
 
 /* Versión móvil: cada fila se convierte en card apilada */
 @media (max-width: 767px) {
@@ -743,8 +929,8 @@
 }
 
 .admin-paginacion__btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   color: #94a3b8;
   border-radius: 8px;
   width: 42px;
@@ -804,8 +990,9 @@
 }
 
 .admin-modal {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--sup);
+  border: 1px solid var(--borde);
+  color: var(--txt);
   border-radius: 16px;
   width: 100%;
   max-width: 480px;
@@ -824,17 +1011,18 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.9rem 1.25rem;
-  font-weight: 600;
+  font-family: var(--display);
+  font-weight: 700;
   font-size: 0.95rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--borde);
   flex-shrink: 0;
 }
 
 .admin-modal__cerrar {
   margin-left: auto;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.55);
   border: none;
-  color: #94a3b8;
+  color: var(--txt-2);
   border-radius: 8px;
   width: 32px;
   height: 32px;
@@ -847,7 +1035,7 @@
   flex-shrink: 0;
 }
 
-.admin-modal__cerrar:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.admin-modal__cerrar:hover:not(:disabled) { background: #ffffff; color: var(--txt); }
 .admin-modal__cerrar:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .admin-modal__body {
@@ -865,13 +1053,14 @@
 .confirm-icono { font-size: 2.4rem; margin-bottom: 0.5rem; }
 
 .confirm-titulo {
+  font-family: var(--display);
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--txt);
   margin-bottom: 0.5rem;
 }
 
 .confirm-texto {
-  color: #94a3b8;
+  color: var(--txt-3);
   font-size: 0.88rem;
   margin-bottom: 1.25rem;
 }
@@ -920,8 +1109,10 @@
 }
 
 .ahorro-hero__amount {
+  font-family: var(--cifras);
   font-size: clamp(2.2rem, 8vw, 3.6rem);
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
   color: #10b981;
   letter-spacing: -1px;
   line-height: 1;
@@ -994,6 +1185,7 @@
 
 /* Encabezado de la sección de filtros */
 .activos-filtros-titulo {
+  font-family: var(--display);
   font-size: 0.9rem;
   font-weight: 700;
   color: #e2e8f0;
@@ -1006,8 +1198,8 @@
   flex-direction: column;
   gap: 1rem;
   padding: 1rem 1.1rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 14px;
 }
 
@@ -1018,8 +1210,8 @@
   flex-direction: column;
   gap: 1rem;
   padding: 1rem 1.1rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 14px;
 }
 
@@ -1034,7 +1226,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .filtro-chips {
@@ -1044,9 +1236,9 @@
 }
 
 .filtro-chip {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
   border-radius: 999px;
   padding: 0.4rem 1rem;
   font-size: 0.82rem;
@@ -1055,12 +1247,12 @@
   transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 
-.filtro-chip:hover { background: rgba(255, 255, 255, 0.08); }
+.filtro-chip:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
 
 .filtro-chip--activo {
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.5);
-  color: #fbbf24;
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
 }
 
 /* ─── ACTIVOS CARDS ────────────────────────────────────────────────────────── */
@@ -1068,11 +1260,25 @@
 .activo-card {
   border-radius: 14px;
   overflow: hidden;
-  background: #111827;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--sup);
+  border: 1px solid var(--borde);
+  color: var(--txt);
+  box-shadow: var(--sombra);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   height: 100%;
 }
+
+/* Tarjetas sin foto (Usuarios): como no tienen la banda oscura de la imagen,
+   el color entra por el filo izquierdo, que además dice el rol. Sin esto la
+   rejilla queda como una pared de tarjetas blancas iguales. */
+.activo-card--rol {
+  border-left: 4px solid var(--rol, var(--borde));
+}
+
+.activo-card--rol-azul     { --rol: #3b82f6; }
+.activo-card--rol-verde    { --rol: #10b981; }
+.activo-card--rol-amarillo { --rol: #f59e0b; }
+.activo-card--rol-gris     { --rol: #94a3b8; }
 
 .activo-card--btn {
   display: block;
@@ -1083,13 +1289,14 @@
 
 .activo-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--sombra-alta);
 }
 
 .activo-card__img-wrap {
   position: relative;
   height: 200px;
   background: #0b1120;
+  border-bottom: 1px solid var(--borde);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1124,8 +1331,8 @@
   align-items: center;
   justify-content: center;
   font-size: 2.2rem;
-  background: #0f172a;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: #0b1120;
+  border-bottom: 1px solid var(--borde);
 }
 
 .activo-card__body { padding: 1rem; }
@@ -1140,7 +1347,7 @@
 
 .activo-card__nombre {
   font-weight: 700;
-  color: #fff;
+  color: var(--txt);
   margin: 0;
   font-size: 1rem;
   text-align: left;
@@ -1156,9 +1363,9 @@
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.5px;
-  color: #60a5fa;
-  background: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #475569;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
   border-radius: 6px;
   padding: 0.2rem 0.5rem;
   white-space: nowrap;
@@ -1175,8 +1382,9 @@
   align-items: center;
   gap: 0.85rem;
   flex-wrap: wrap;
-  background: #111827;
-  border: 1px dashed rgba(59, 130, 246, 0.4);
+  background: var(--sup-2);
+  color: var(--txt);
+  border: 1px dashed var(--azul-bd);
   border-radius: 10px;
   padding: 0.7rem 0.95rem;
 }
@@ -1184,7 +1392,7 @@
 .placa-preview__label {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--txt-3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1194,9 +1402,9 @@
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.6px;
-  color: #60a5fa;
-  background: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #475569;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
   border-radius: 6px;
   padding: 0.25rem 0.6rem;
   white-space: nowrap;
@@ -1211,8 +1419,9 @@
 
 /* Bloque de costos con etiquetas */
 .activo-card__costos {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--sup-2);
+  color: var(--txt);
+  border: 1px solid var(--borde-2);
   border-radius: 8px;
   padding: 0.5rem 0.7rem;
   display: flex;
@@ -1230,35 +1439,42 @@
 .activo-card__costo-label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--txt-3);
   text-transform: uppercase;
   letter-spacing: 0.4px;
   white-space: nowrap;
 }
 
 .activo-card__costo {
-  color: #34d399;
+  color: var(--txt);
+  font-weight: 700;
   font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .activo-card__costo--rep {
-  color: #fbbf24;
+  color: var(--ambar);
 }
 
 .activo-card__tipo-chip {
+  background: #f1f5f9;
+  border: 1px solid #dde3ea;
+  color: #334155;
   white-space: nowrap;
   font-size: 0.72rem;
   font-weight: 600;
   padding: 0.25rem 0.6rem;
-  border-radius: 5px;
+  border-radius: 4px;
 }
 
-.activo-card__tipo-chip--green  { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-.activo-card__tipo-chip--orange { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+/* Ambos chips van en neutro: el estado del activo ya lo dice la insignia de
+   al lado, y dos colores repitiendo lo mismo llenaban la tarjeta de manchas. */
+.activo-card__tipo-chip--green,
+.activo-card__tipo-chip--orange { background: #e2e8f0; border-color: #cbd5e1; color: #475569; }
 
 .activo-card__problema {
-  color: #fbbf24;
+  color: var(--ambar);
   font-size: 0.78rem;
 }
 
@@ -1267,7 +1483,7 @@
   margin-top: 0.7rem;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #60a5fa;
+  color: var(--txt-3);
   text-align: right;
   opacity: 0.8;
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -1285,7 +1501,7 @@
   gap: 0.5rem;
   margin-top: 0.85rem;
   padding-top: 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid var(--borde);
 }
 
 .activo-card__acciones .accion-btn {
@@ -1303,29 +1519,27 @@
   overflow: visible;
 }
 
-/* Texto auxiliar DENTRO de las cards oscuras (usuarios/torneos). Por defecto
-   .admin-hint / .admin-label son oscuros (pensados para modales claros) y no se
-   leen sobre el fondo #111827 de la card; acá los aclaramos. Los modales no se
-   ven afectados porque el override está acotado a .activo-card. */
-.activo-card .admin-hint { color: #94a3b8; }
-.activo-card .admin-label { color: #94a3b8; }
+/* Texto auxiliar dentro de las cards (usuarios/torneos). Ahora la card es
+   blanca igual que los modales, así que .admin-hint y .admin-label ya sirven
+   tal cual; lo único propio es el `code`. */
 .activo-card code {
-  color: #e2e8f0;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--txt);
+  background: var(--sup-3);
   padding: 0.1rem 0.35rem;
   border-radius: 6px;
 }
 
 /* Sección destacada de reparación en el formulario */
 .seccion-reparacion {
-  background: rgba(245, 158, 11, 0.06);
-  border: 1px dashed rgba(245, 158, 11, 0.4);
+  background: var(--ambar-bg);
+  color: var(--txt);
+  border: 1px dashed var(--ambar-bd);
   border-radius: 12px;
   padding: 1rem;
 }
 
 .seccion-reparacion__titulo {
-  color: #fbbf24;
+  color: var(--ambar);
   font-weight: 700;
   font-size: 0.82rem;
   text-transform: uppercase;
@@ -1340,15 +1554,16 @@
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
-  background: rgba(245, 158, 11, 0.06);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: var(--ambar-bg);
+  color: var(--txt);
+  border: 1px solid var(--ambar-bd);
   border-radius: 10px;
   padding: 0.6rem 0.9rem;
   margin-bottom: 1rem;
 }
 
-.rep-total__label { font-size: 0.8rem; color: #94a3b8; font-weight: 600; }
-.rep-total__monto { font-size: 1.05rem; font-weight: 700; color: #fbbf24; }
+.rep-total__label { font-size: 0.8rem; color: var(--txt-3); font-weight: 600; }
+.rep-total__monto { font-size: 1.05rem; font-weight: 700; color: var(--ambar); font-variant-numeric: tabular-nums; }
 
 .rep-lista {
   display: flex;
@@ -1357,8 +1572,9 @@
 }
 
 .rep-item {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--sup-2);
+  color: var(--txt);
+  border: 1px solid var(--borde);
   border-radius: 12px;
   padding: 0.85rem 1rem;
 }
@@ -1372,21 +1588,21 @@
   margin-bottom: 0.4rem;
 }
 
-.rep-item__monto { font-size: 1.05rem; font-weight: 700; color: #fbbf24; }
-.rep-item__fecha { font-size: 0.78rem; color: #94a3b8; margin-bottom: 0.3rem; }
+.rep-item__monto { font-size: 1.05rem; font-weight: 700; color: var(--ambar); font-variant-numeric: tabular-nums; }
+.rep-item__fecha { font-size: 0.78rem; color: var(--txt-3); margin-bottom: 0.3rem; }
 
 .rep-item__dato {
   font-size: 0.85rem;
-  color: #cbd5e1;
+  color: var(--txt-2);
   margin-top: 0.15rem;
 }
 
-.rep-item__dato strong { color: #e2e8f0; font-weight: 600; }
+.rep-item__dato strong { color: var(--txt); font-weight: 600; }
 
 .rep-item__factura {
   margin-top: 0.6rem;
   display: inline-flex;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--borde);
   border-radius: 8px;
   overflow: hidden;
   background: none;
@@ -1401,23 +1617,42 @@
   gap: 0.5rem;
   margin-top: 0.7rem;
   padding-top: 0.6rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid var(--borde);
 }
 
 /* Badges de estado */
+/* El estado NO va como píldora de color. El chip es neutro y el color entra
+   en un punto de 7 px: se reconoce igual de rápido, pero una rejilla de doce
+   tarjetas deja de parecer un tablero de fichas. Es lo que usan los paneles de
+   administración serios, y aguanta bien que haya cinco estados distintos. */
 .estado-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 0.72rem;
   font-weight: 600;
-  border-radius: 5px;
+  border-radius: 4px;
   padding: 0.25rem 0.6rem;
   white-space: nowrap;
+  background: #f1f5f9;
+  border: 1px solid #dde3ea;
+  color: #334155;
 }
 
-.estado-badge--verde    { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-.estado-badge--amarillo { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
-.estado-badge--azul     { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-.estado-badge--rojo     { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-.estado-badge--gris     { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+.estado-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--punto, #94a3b8);
+  flex-shrink: 0;
+}
+
+.estado-badge--verde    { --punto: #10b981; }
+.estado-badge--amarillo { --punto: #f59e0b; }
+.estado-badge--azul     { --punto: #3b82f6; }
+.estado-badge--rojo     { --punto: #ef4444; }
+.estado-badge--gris     { --punto: #94a3b8; }
 
 /* ─── DETALLE DE ACTIVO ────────────────────────────────────────────────────── */
 
@@ -1426,11 +1661,11 @@
   display: block;
   width: 100%;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--borde);
   border-radius: 12px;
   overflow: hidden;
   cursor: zoom-in;
-  background: #020617;
+  background: #0b1120;
 }
 
 .detalle-img {
@@ -1469,8 +1704,9 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 1rem;
-  background: #111827;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--sup-2);
+  color: var(--txt);
+  border: 1px solid var(--borde);
   border-radius: 10px;
   padding: 0.65rem 0.9rem;
 }
@@ -1478,27 +1714,28 @@
 .detalle-dato__label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--txt-3);
   text-transform: uppercase;
   letter-spacing: 0.4px;
   white-space: nowrap;
 }
 
 .detalle-dato__valor {
-  color: #e2e8f0;
+  color: var(--txt);
   font-size: 0.88rem;
   text-align: right;
   overflow-wrap: anywhere;
 }
 
 .detalle-dato__valor--monto {
-  color: #34d399;
+  color: var(--verde);
   font-weight: 700;
   font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .detalle-dato__valor--monto-rep {
-  color: #fbbf24;
+  color: var(--ambar);
   font-weight: 700;
   font-size: 1.05rem;
 }
@@ -1511,7 +1748,7 @@
   max-height: 220px;
   object-fit: contain;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--borde);
   display: block;
   margin: 0 auto;
 }
@@ -1581,6 +1818,17 @@
 }
 
 .admin-error-estado__icono { font-size: 2.5rem; }
+
+/* Los mismos estados, cuando caen dentro de una superficie blanca */
+.admin-modal .admin-empty,
+.admin-panel .admin-empty,
+.fin-tarjeta .admin-empty,
+.fin-anual-panel .admin-empty { color: var(--txt-3); }
+
+.admin-modal .admin-error-estado,
+.admin-panel .admin-error-estado,
+.fin-tarjeta .admin-error-estado,
+.fin-anual-panel .admin-error-estado { color: var(--txt-2); }
 
 /* ─── SPINNER ──────────────────────────────────────────────────────────────── */
 
@@ -1680,7 +1928,7 @@
   }
 
   .activo-card:hover {
-    border-color: rgba(255, 255, 255, 0.07);
+    border-color: var(--borde);
   }
 }
 
@@ -1751,29 +1999,33 @@
 
 /* Aviso de sección privada */
 .fin-aviso {
-  background: rgba(59, 130, 246, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.28);
+  background: var(--azul-bg);
+  border: 1px solid var(--azul-bd);
+  border-left: 4px solid #2563eb;
   border-radius: 12px;
   padding: 0.75rem 1rem;
-  color: #93c5fd;
+  color: var(--azul);
   font-size: 0.85rem;
   line-height: 1.45;
 }
 
-.fin-aviso strong { color: #bfdbfe; }
+.fin-aviso strong { color: #075985; }
 
 /* ─── RESUMEN INTELIGENTE (recomendaciones) ───────────────────────────────── */
 .fin-recom-panel {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--sup);
+  border: 1px solid var(--borde);
   border-radius: 16px;
   padding: 1rem 1.1rem;
+  box-shadow: var(--sombra);
+  color: var(--txt);
 }
 
 .fin-recom-titulo {
+  font-family: var(--display);
   font-size: 0.8rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--txt);
   margin: 0 0 0.75rem;
 }
 
@@ -1787,14 +2039,15 @@
   display: flex;
   align-items: flex-start;
   gap: 0.65rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--borde);
   border-left-width: 4px;
   border-radius: 12px;
   padding: 0.75rem 0.95rem;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--sup-2);
+  color: var(--txt);
 }
 
-.fin-recom__icono { font-size: 1.15rem; line-height: 1.35; flex-shrink: 0; }
+.fin-recom__icono { font-size: 1.3rem; line-height: 1.3; flex-shrink: 0; }
 
 /* Los mensajes explican el porqué y ocupan 2-3 líneas: la tarjeta crece con el
    contenido y el texto NUNCA se trunca (nada de ellipsis ni line-clamp). El
@@ -1803,40 +2056,56 @@
   flex: 1;
   min-width: 0;
   font-size: 0.88rem;
-  color: #cbd5e1;
+  color: var(--txt-2);
   line-height: 1.5;
   white-space: normal;
   overflow-wrap: break-word;
 }
 
 /* Colores por nivel. Crítico y advertencia resaltan más (fondo tintado). */
+/* Las cinco van sobre el mismo fondo neutro, con el texto en negro. La
+   urgencia la dice el filo izquierdo —lo único de color— y el ícono que manda
+   el backend. Cinco fondos tintados apilados eran demasiado. */
+/* Acá el color SÍ dice algo: es el nivel de urgencia que manda el backend
+   (crítico → advertencia → consejo → bien → info). Sin él los cinco avisos se
+   leen igual y hay que leerlos enteros para saber cuál corre prisa.
+
+   Cada uno lleva tres cosas: el tinte de fondo, el filo izquierdo saturado y
+   el texto en el tono oscuro del color. Los dos primeros son los que apremian,
+   así que van con el tinte más presente. */
 .fin-recom--critico {
-  border-color: rgba(239, 68, 68, 0.5);
-  background: linear-gradient(160deg, rgba(239, 68, 68, 0.14) 0%, rgba(239, 68, 68, 0.05) 100%);
+  background: #fee2e2;
+  border-color: #fca5a5;
+  border-left-color: #dc2626;
 }
-.fin-recom--critico .fin-recom__msg { color: #fecaca; }
+.fin-recom--critico .fin-recom__msg { color: #991b1b; }
 
 .fin-recom--advertencia {
-  border-color: rgba(245, 158, 11, 0.5);
-  background: linear-gradient(160deg, rgba(245, 158, 11, 0.13) 0%, rgba(245, 158, 11, 0.04) 100%);
+  background: #fef3c7;
+  border-color: #fcd34d;
+  border-left-color: #d97706;
 }
-.fin-recom--advertencia .fin-recom__msg { color: #fde68a; }
+.fin-recom--advertencia .fin-recom__msg { color: #92400e; }
 
 .fin-recom--bien {
-  border-color: rgba(16, 185, 129, 0.4);
-  background: rgba(16, 185, 129, 0.06);
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  border-left-color: #059669;
 }
-.fin-recom--bien .fin-recom__msg { color: #a7f3d0; }
+.fin-recom--bien .fin-recom__msg { color: #065f46; }
 
 .fin-recom--consejo {
-  border-color: rgba(59, 130, 246, 0.4);
-  background: rgba(59, 130, 246, 0.06);
+  background: #f0f9ff;
+  border-color: #bae6fd;
+  border-left-color: #0284c7;
 }
-.fin-recom--consejo .fin-recom__msg { color: #bfdbfe; }
+.fin-recom--consejo .fin-recom__msg { color: #075985; }
 
 .fin-recom--info {
-  border-color: rgba(148, 163, 184, 0.35);
-  background: rgba(148, 163, 184, 0.05);
+  border-color: var(--borde);
+  border-left-color: #cbd5e1;
+  background: var(--sup-2);
+  color: var(--txt);
 }
 
 /* Ahorro del mes: bloque aparte del gráfico de gastos (el ahorro no es consumo) */
@@ -1845,10 +2114,11 @@
 .fin-ahorro {
   margin-top: 0.55rem;
   padding: 0.75rem 1.1rem 0.85rem;
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  border-left-width: 4px;
+  border: 1px solid var(--ambar-bd);
+  border-left: 4px solid #f59e0b;
   border-radius: 14px;
-  background: linear-gradient(160deg, rgba(251, 191, 36, 0.08) 0%, rgba(251, 191, 36, 0.02) 100%);
+  background: var(--ambar-bg);
+  color: var(--txt);
 }
 
 .fin-ahorro__head {
@@ -1862,13 +2132,15 @@
 .fin-ahorro__titulo {
   font-size: 0.9rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--txt);
 }
 
 .fin-ahorro__total {
+  font-family: var(--cifras);
   font-size: 1.15rem;
   font-weight: 800;
-  color: #7dd3fc;
+  color: var(--ambar);
+  font-variant-numeric: tabular-nums;
 }
 
 .fin-ahorro__lista {
@@ -1877,7 +2149,7 @@
   gap: 0.4rem;
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--ambar-bd);
 }
 
 .fin-ahorro__item {
@@ -1889,7 +2161,7 @@
 
 .fin-ahorro__item-nombre {
   font-size: 0.85rem;
-  color: #cbd5e1;
+  color: var(--txt-2);
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -1898,13 +2170,14 @@
 .fin-ahorro__item-monto {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #bae6fd;
+  color: var(--ambar);
+  font-variant-numeric: tabular-nums;
 }
 
 .fin-ahorro__nota {
   margin: 0.7rem 0 0;
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--txt-3);
   line-height: 1.4;
 }
 
@@ -1923,21 +2196,24 @@
 }
 
 .fin-desglose {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--sup);
+  border: 1px solid var(--borde);
   border-radius: 14px;
   padding: 1rem 1.1rem;
+  box-shadow: var(--sombra);
+  color: var(--txt);
 }
 
 .fin-desglose__titulo {
+  font-family: var(--display);
   font-size: 0.8rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--txt);
   margin: 0 0 0.85rem;
 }
 
 .fin-desglose__vacio {
-  color: #475569;
+  color: var(--txt-3);
   font-size: 0.82rem;
   margin: 0;
 }
@@ -1961,7 +2237,7 @@
   align-items: center;
   gap: 0.35rem;
   font-size: 0.83rem;
-  color: #cbd5e1;
+  color: var(--txt-2);
   font-weight: 600;
   min-width: 0;
   overflow-wrap: anywhere;
@@ -1976,22 +2252,23 @@
 
 .fin-cat__cantidad {
   font-size: 0.72rem;
-  color: #64748b;
+  color: var(--txt-3);
   font-weight: 500;
 }
 
 .fin-cat__monto {
   font-size: 0.9rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.fin-cat__monto--verde { color: #34d399; }
-.fin-cat__monto--rojo  { color: #f87171; }
+.fin-cat__monto--verde { color: var(--verde); }
+.fin-cat__monto--rojo  { color: var(--rojo); }
 
 .fin-cat__barra {
   height: 6px;
-  background: rgba(255, 255, 255, 0.06);
+  background: #e2e8f0;
   border-radius: 999px;
   overflow: hidden;
 }
@@ -2008,11 +2285,13 @@
 
 /* Panel de la dona de gastos */
 .fin-donut-panel {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--sup);
+  border: 1px solid var(--borde);
   border-radius: 14px;
   padding: 1rem 1.1rem;
   text-align: center;
+  box-shadow: var(--sombra);
+  color: var(--txt);
 }
 
 .fin-donut {
@@ -2021,6 +2300,11 @@
   height: 150px;
   margin: 0.25rem auto 0.75rem;
 }
+
+/* Aro de fondo de la dona: se ve en los huecos cuando hay pocas categorías.
+   Los colores de los segmentos NO se tocan acá: salen de PALETA, en
+   finanzasComunes.js, y son los mismos de los puntitos de la leyenda. */
+.fin-donut__pista { stroke: var(--sup-3); }
 
 .fin-donut__centro {
   position: absolute;
@@ -2037,14 +2321,14 @@
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #64748b;
+  color: var(--txt-3);
   font-weight: 600;
 }
 
 .fin-donut__centro-monto {
   font-size: 0.92rem;
   font-weight: 800;
-  color: #f87171;
+  color: var(--rojo);
 }
 
 .fin-donut-leyenda {
@@ -2059,7 +2343,7 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.78rem;
-  color: #cbd5e1;
+  color: var(--txt-2);
 }
 
 /* Tablet: la dona baja debajo de las dos columnas */
@@ -2082,8 +2366,9 @@
 .moneda-toggle {
   display: inline-flex;
   gap: 0.25rem;
-  background: #0b1120;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--boton);
+  color: var(--txt);
+  border: 1px solid var(--borde);
   border-radius: 8px;
   padding: 0.2rem;
 }
@@ -2091,7 +2376,7 @@
 .moneda-toggle__btn {
   background: transparent;
   border: none;
-  color: #64748b;
+  color: var(--txt-3);
   border-radius: 6px;
   padding: 0.28rem 0.7rem;
   font-size: 0.78rem;
@@ -2101,18 +2386,20 @@
   white-space: nowrap;
 }
 
-.moneda-toggle__btn:hover:not(:disabled) { color: #cbd5e1; }
+.moneda-toggle__btn:hover:not(:disabled) { color: var(--txt); }
 .moneda-toggle__btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .moneda-toggle__btn--activo {
-  background: rgba(59, 130, 246, 0.16);
-  color: #60a5fa;
+  background: #ffffff;
+  color: var(--azul);
+  box-shadow: 0 1px 3px rgba(2, 6, 23, 0.12);
 }
 
 /* Bloque de conversión (tipo de cambio del día + vista previa en colones) */
 .moneda-conversion {
-  background: rgba(59, 130, 246, 0.06);
-  border: 1px solid rgba(59, 130, 246, 0.22);
+  background: var(--azul-bg);
+  color: var(--txt);
+  border: 1px solid var(--azul-bd);
   border-radius: 10px;
   padding: 0.75rem 0.85rem;
 }
@@ -2125,7 +2412,7 @@
 }
 
 .moneda-tc-fila--cargando {
-  color: #93c5fd;
+  color: var(--azul);
   font-size: 0.85rem;
   justify-content: flex-start;
 }
@@ -2135,26 +2422,28 @@
 .moneda-tc-label {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: var(--txt-2);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 
-.moneda-tc-fuente { font-size: 0.72rem; color: #64748b; }
+.moneda-tc-fuente { font-size: 0.72rem; color: var(--txt-3); }
 
 .moneda-tc-derecha { display: flex; align-items: center; gap: 0.5rem; }
 
 .moneda-tc-valor {
+  font-family: var(--cifras);
   font-size: 1.15rem;
   font-weight: 800;
-  color: #60a5fa;
+  color: var(--azul);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .moneda-tc-reintentar {
-  background: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #93c5fd;
+  background: var(--boton);
+  border: 1px solid var(--azul-bd);
+  color: var(--azul);
   border-radius: 7px;
   padding: 0.2rem 0.55rem;
   font-size: 0.78rem;
@@ -2163,7 +2452,7 @@
   transition: background 0.2s;
 }
 
-.moneda-tc-reintentar:hover:not(:disabled) { background: rgba(59, 130, 246, 0.22); }
+.moneda-tc-reintentar:hover:not(:disabled) { background: var(--azul-bg); }
 .moneda-tc-reintentar:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .moneda-tc-error {
@@ -2171,24 +2460,24 @@
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
-  color: #fbbf24;
+  color: var(--ambar);
   font-size: 0.82rem;
 }
 
 .moneda-preview {
   margin-top: 0.6rem;
   padding-top: 0.55rem;
-  border-top: 1px solid rgba(59, 130, 246, 0.18);
+  border-top: 1px solid var(--azul-bd);
   font-size: 0.82rem;
-  color: #93c5fd;
+  color: var(--azul);
 }
 
-.moneda-preview strong { color: #bfdbfe; }
+.moneda-preview strong { color: #075985; }
 
 .moneda-tc-nota {
   margin-top: 0.4rem;
   font-size: 0.74rem;
-  color: #64748b;
+  color: var(--txt-3);
   line-height: 1.35;
 }
 
@@ -2245,19 +2534,20 @@
 
 /* ─── MODAL DE SALDO DE APERTURA ──────────────────────────────────────────── */
 .fin-apertura-ayuda {
-  background: rgba(59, 130, 246, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  background: var(--azul-bg);
+  border: 1px solid var(--azul-bd);
   border-radius: 10px;
   padding: 0.7rem 0.85rem;
-  color: #93c5fd;
+  color: var(--azul);
   font-size: 0.8rem;
   line-height: 1.5;
 }
 
 /* Selector de mes de corte: mismo lenguaje que el picker del selector de mes */
 .fin-apertura-mes {
-  background: #0b1120;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--sup-2);
+  color: var(--txt);
+  border: 1px solid var(--borde);
   border-radius: 10px;
   padding: 0.6rem;
 }
@@ -2269,13 +2559,13 @@
   gap: 1rem;
   margin-bottom: 0.55rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--txt);
 }
 
 .fin-apertura-mes__anio button {
-  background: rgba(255, 255, 255, 0.08);
-  border: none;
-  color: #cbd5e1;
+  background: var(--boton);
+  border: 1px solid var(--boton-borde);
+  color: var(--txt-2);
   border-radius: 7px;
   width: 28px;
   height: 28px;
@@ -2291,9 +2581,9 @@
 }
 
 .fin-apertura-mes__btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid transparent;
-  color: #cbd5e1;
+  background: var(--boton);
+  border: 1px solid var(--boton-borde);
+  color: var(--txt-2);
   border-radius: 7px;
   padding: 0.35rem 0;
   font-size: 0.76rem;
@@ -2302,26 +2592,26 @@
   transition: background 0.15s, color 0.15s;
 }
 
-.fin-apertura-mes__btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); }
+.fin-apertura-mes__btn:hover:not(:disabled) { background: var(--boton-hover); }
 .fin-apertura-mes__btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .fin-apertura-mes__btn--activo {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.5);
-  color: #93c5fd;
+  background: var(--azul-bg);
+  border-color: #3b82f6;
+  color: var(--azul);
 }
 
 .fin-apertura-preview {
-  background: rgba(251, 191, 36, 0.07);
-  border: 1px solid rgba(251, 191, 36, 0.25);
+  background: var(--ambar-bg);
+  border: 1px solid var(--ambar-bd);
   border-radius: 10px;
   padding: 0.6rem 0.8rem;
-  color: #fcd34d;
+  color: var(--ambar);
   font-size: 0.8rem;
   line-height: 1.5;
 }
 
-.fin-apertura-preview strong { color: #fde68a; }
+.fin-apertura-preview strong { color: #92400e; }
 
 .fin-apertura-acciones {
   display: flex;
@@ -2340,6 +2630,7 @@
 
 .fin-anual-titulo {
   margin: 0;
+  font-family: var(--display);
   font-weight: 800;
   color: #e2e8f0;
   font-size: 1.05rem;
@@ -2378,24 +2669,26 @@
 
 /* Aviso de año en curso: los totales son parciales */
 .fin-aviso--curso {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.3);
-  color: #fbbf24;
+  background: var(--ambar-bg);
+  border-color: var(--ambar-bd);
+  color: var(--ambar);
 }
-.fin-aviso--curso strong { color: #fde68a; }
+.fin-aviso--curso strong { color: #92400e; }
 
 /* Contenedor genérico de las secciones del reporte */
 .fin-anual-panel {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--sup);
+  border: 1px solid var(--borde);
   border-radius: 16px;
   padding: 1rem 1.1rem;
+  box-shadow: var(--sombra);
+  color: var(--txt);
 }
 
 .fin-anual-nota {
   margin: 0.75rem 0 0;
   font-size: 0.74rem;
-  color: #64748b;
+  color: var(--txt-3);
   line-height: 1.45;
 }
 
@@ -2404,11 +2697,11 @@
 .fin-anual-apertura {
   margin: 0.5rem 0 0.35rem;
   padding: 0.45rem 0.7rem;
-  background: rgba(251, 191, 36, 0.09);
-  border-left: 3px solid rgba(251, 191, 36, 0.55);
+  background: var(--ambar-bg);
+  border-left: 3px solid #f59e0b;
   border-radius: 6px;
   font-size: 0.76rem;
-  color: #fcd34d;
+  color: var(--ambar);
   line-height: 1.4;
 }
 
@@ -2416,7 +2709,7 @@
 .fin-anual-desglose { grid-template-columns: repeat(3, 1fr); }
 
 /* Variante ámbar del desglose, para el bloque de ahorro */
-.fin-cat__monto--ahorro { color: #fbbf24; }
+.fin-cat__monto--ahorro { color: var(--txt); }
 .fin-cat__barra-fill--ahorro { background: linear-gradient(90deg, #d97706, #fbbf24); }
 
 /* Destacados del año */
@@ -2430,46 +2723,49 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--sup-2);
+  color: var(--txt);
+  border: 1px solid var(--borde);
   border-left-width: 3px;
   border-radius: 10px;
   padding: 0.7rem 0.85rem;
 }
 
-.fin-destacado--verde  { border-left-color: rgba(16, 185, 129, 0.6); }
-.fin-destacado--rojo   { border-left-color: rgba(239, 68, 68, 0.6); }
-.fin-destacado--ahorro { border-left-color: rgba(251, 191, 36, 0.6); }
+.fin-destacado--verde  { border-left-color: #a7f3d0; }
+.fin-destacado--rojo   { border-left-color: #fecaca; }
+.fin-destacado--ahorro { border-left-color: #fde68a; }
 
 .fin-destacado__label {
   font-size: 0.68rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--txt-3);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 
 .fin-destacado__titulo {
   font-size: 0.9rem;
-  color: #e2e8f0;
+  color: var(--txt);
   line-height: 1.3;
 }
 
 .fin-destacado__monto {
+  font-family: var(--cifras);
   font-size: 1.05rem;
   font-weight: 800;
-  color: #cbd5e1;
+  color: var(--txt);
   letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
 }
 
-.fin-destacado__pie { font-size: 0.7rem; color: #64748b; line-height: 1.35; }
+.fin-destacado__pie { font-size: 0.7rem; color: var(--txt-3); line-height: 1.35; }
 
 .fin-anual-rojos {
   margin: 0.85rem 0 0;
   padding-top: 0.7rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--borde);
   font-size: 0.78rem;
-  color: #fca5a5;
+  color: var(--rojo);
   line-height: 1.45;
 }
 
@@ -2519,39 +2815,39 @@
   flex-wrap: wrap;
   margin-top: 0.45rem;
   font-size: 0.78rem;
-  color: #93c5fd;
+  color: var(--azul);
 }
 
-.fin-retiro-tope strong { color: #bfdbfe; }
+.fin-retiro-tope strong { color: #075985; }
 
 /* Monto azul en la lista de movimientos del mes */
-.mov-row__monto--azul { color: #60a5fa; }
+.mov-row__monto--azul { color: var(--txt); }
 
 /* Bloque de ahorro del mes: lo apartado, lo sacado y el neto */
 .fin-ahorro__subtitulo {
   margin-top: 0.35rem;
   padding-top: 0.5rem;
-  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  border-top: 1px dashed var(--ambar-bd);
   font-size: 0.78rem;
   font-weight: 700;
-  color: #93c5fd;
+  color: var(--azul);
 }
 
-.fin-ahorro__item-monto--retiro { color: #60a5fa; }
+.fin-ahorro__item-monto--retiro { color: var(--azul); }
 
 .fin-ahorro__item--neto {
   margin-top: 0.2rem;
   padding-top: 0.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--ambar-bd);
   font-weight: 700;
 }
 
-.fin-ahorro__item--neto .fin-ahorro__item-nombre { color: #e2e8f0; font-weight: 700; }
+.fin-ahorro__item--neto .fin-ahorro__item-nombre { color: var(--txt); font-weight: 700; }
 
 /* Variante azul del desglose y de los destacados, para los retiros */
-.fin-cat__monto--azul { color: #60a5fa; }
+.fin-cat__monto--azul { color: var(--txt); }
 .fin-cat__barra-fill--azul { background: linear-gradient(90deg, #2563eb, #60a5fa); }
-.fin-destacado--azul { border-left-color: rgba(59, 130, 246, 0.6); }
+.fin-destacado--azul { border-left-color: #dde3ea; }
 
 /* ─── ACCESO DEL DUEÑO ─────────────────────────────────────────────────────── */
 
@@ -2572,7 +2868,7 @@
   gap: 0.6rem;
   align-items: start;
   font-size: 0.9rem;
-  color: #e2e8f0;
+  color: var(--txt);
 }
 
 .privilegio__icono {
@@ -2592,8 +2888,9 @@
 }
 
 .lista-cortadas li {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--sup-2);
+  color: var(--txt);
+  border: 1px solid var(--borde);
   border-radius: 10px;
   padding: 0.5rem 0.75rem;
   font-size: 0.88rem;
@@ -2621,8 +2918,10 @@
 .fin-bolsa {
   position: relative;
   overflow: hidden;
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--sup);
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra);
+  color: var(--txt);
   border-radius: 16px;
   padding: 1rem 1.1rem 1.1rem;
   display: flex;
@@ -2639,29 +2938,34 @@
   background: var(--fin-marca);
 }
 
-.fin-bolsa--plata  { --fin-marca: #60a5fa; }
-.fin-bolsa--ahorro { --fin-marca: #fbbf24; }
+/* Son solo dos y el color ES su identidad (azul la plata, ámbar el ahorro),
+   así que el filo se queda. El rótulo va en gris para no repetirlo. */
+.fin-bolsa--plata  { --fin-marca: #3b82f6; --fin-texto: var(--txt-3); }
+.fin-bolsa--ahorro { --fin-marca: #f59e0b; --fin-texto: var(--txt-3); }
 
 .fin-bolsa__rotulo {
+  font-family: var(--display);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--fin-marca);
+  color: var(--fin-texto);
 }
 
 .fin-bolsa__monto {
+  font-family: var(--cifras);
   font-size: clamp(1.5rem, 5vw, 1.95rem);
   font-weight: 800;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.8px;
   line-height: 1.1;
-  color: #e2e8f0;
+  color: var(--txt);
+  font-variant-numeric: tabular-nums;
   word-break: break-word;
 }
 
 .fin-bolsa__pie {
   font-size: 0.78rem;
-  color: #64748b;
+  color: var(--txt-3);
 }
 
 /* ─── ESCALERAS ───────────────────────────────────────────────────────────────
@@ -2682,20 +2986,23 @@
 
 .fin-escalera-card,
 .fin-tarjeta {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--sup);
+  border: 1px solid var(--borde);
   border-radius: 16px;
   padding: 0.9rem 1.1rem 1rem;
+  box-shadow: var(--sombra);
+  color: var(--txt);
 }
 
 .fin-escalera__titulo,
 .fin-tarjeta__titulo {
   margin: 0 0 0.5rem;
+  font-family: var(--display);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--txt-3);
 }
 
 .fin-escalon {
@@ -2704,18 +3011,18 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.55rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--borde-2);
 }
 
 .fin-escalon__que {
   font-size: 0.9rem;
-  color: #cbd5e1;
+  color: var(--txt-2);
 }
 
 .fin-escalon__nota {
   display: block;
   font-size: 0.74rem;
-  color: #64748b;
+  color: var(--txt-3);
 }
 
 .fin-escalon__cuanto {
@@ -2723,34 +3030,35 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  color: #cbd5e1;
+  color: var(--txt);
 }
 
-.fin-escalon--suma  .fin-escalon__cuanto { color: #34d399; }
-.fin-escalon--resta .fin-escalon__cuanto { color: #f87171; }
+.fin-escalon--suma  .fin-escalon__cuanto { color: var(--verde); }
+.fin-escalon--resta .fin-escalon__cuanto { color: var(--rojo); }
 
 /* La última línea: la que tiene que cerrar */
 .fin-escalon--total {
   margin-top: 0.25rem;
   padding-top: 0.75rem;
-  border-top: 2px solid rgba(255, 255, 255, 0.14);
+  border-top: 2px solid var(--campo);
   border-bottom: none;
 }
 
 .fin-escalon--total .fin-escalon__que {
-  color: #e2e8f0;
+  color: var(--txt);
   font-weight: 700;
 }
 
 .fin-escalon--total .fin-escalon__cuanto {
+  font-family: var(--cifras);
   font-size: clamp(1.15rem, 3.5vw, 1.4rem);
   font-weight: 800;
   letter-spacing: -0.3px;
 }
 
-.fin-escalon__cuanto--plata  { color: #60a5fa; }
-.fin-escalon__cuanto--ahorro { color: #fbbf24; }
-.fin-escalon__cuanto--rojo   { color: #f87171; }
+.fin-escalon__cuanto--plata  { color: var(--txt); }
+.fin-escalon__cuanto--ahorro { color: var(--txt); }
+.fin-escalon__cuanto--rojo   { color: var(--rojo); }
 
 /* ─── ANOTAR (el formulario, arriba de todo) ──────────────────────────────────
    Tres botones grandes para las tres únicas cosas que se pueden hacer, y luego
@@ -2758,11 +3066,12 @@
 
 .fin-pregunta {
   margin: 0 0 0.55rem;
+  font-family: var(--display);
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--txt-3);
 }
 
 .fin-acciones-grid {
@@ -2784,10 +3093,10 @@
   align-items: center;
   gap: 0.3rem;
   padding: 0.75rem 0.5rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  background: var(--boton);
+  border: 1.5px solid var(--boton-borde);
   border-radius: 12px;
-  color: #94a3b8;
+  color: var(--txt-2);
   font-size: 0.84rem;
   font-weight: 600;
   line-height: 1.2;
@@ -2796,21 +3105,33 @@
   transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
-.fin-accion:hover:not(:disabled) { border-color: rgba(255, 255, 255, 0.2); }
+/* Al pasar por encima ya asoma el color de la acción, para saber qué vas a
+   elegir antes de tocarlo. */
+.fin-accion:hover:not(:disabled) {
+  border-color: var(--fin-solido, var(--campo));
+  color: var(--fin-texto, var(--txt));
+}
 .fin-accion:disabled { opacity: 0.6; cursor: default; }
 
 .fin-accion__emoji { font-size: 1.3rem; line-height: 1; }
 
+/* El elegido va a color pleno, no a un tinte. Es EL control de la pantalla —
+   decide qué se está anotando— y con el tinte pálido quedaba casi igual que los
+   otros dos: había que fijarse para saber cuál estaba puesto. */
 .fin-accion--activa {
-  background: var(--fin-tinte);
-  border-color: var(--fin-borde);
-  color: #e2e8f0;
+  background: var(--fin-solido);
+  border-color: var(--fin-solido);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: none;
 }
 
-.fin-accion--verde { --fin-tinte: rgba(16, 185, 129, 0.14); --fin-borde: #10b981; }
-.fin-accion--rojo  { --fin-tinte: rgba(239, 68, 68, 0.14);  --fin-borde: #ef4444; }
-.fin-accion--ambar { --fin-tinte: rgba(251, 191, 36, 0.14); --fin-borde: #fbbf24; }
-.fin-accion--azul  { --fin-tinte: rgba(59, 130, 246, 0.14); --fin-borde: #3b82f6; }
+.fin-accion--activa:hover:not(:disabled) { color: #ffffff; }
+
+.fin-accion--verde { --fin-solido: #047857; --fin-texto: var(--verde); }
+.fin-accion--rojo  { --fin-solido: #b91c1c; --fin-texto: var(--rojo); }
+.fin-accion--ambar { --fin-solido: #b45309; --fin-texto: var(--ambar); }
+.fin-accion--azul  { --fin-solido: #1d4ed8; --fin-texto: var(--azul); }
 
 .fin-campos {
   margin-top: 0.9rem;
@@ -2828,16 +3149,16 @@
 .fin-campo__label {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: var(--txt);
 }
 
-.fin-campo__opcional { font-weight: 400; color: #64748b; }
+.fin-campo__opcional { font-weight: 400; color: var(--txt-3); }
 
 .fin-campo__ayuda {
   margin: 0;
   font-size: 0.76rem;
   line-height: 1.45;
-  color: #fcd34d;
+  color: var(--ambar);
 }
 
 /* ¿De dónde salió la plata? — de mi plata o de mis ahorros */
@@ -2856,12 +3177,12 @@
   align-items: center;
   gap: 0.55rem;
   padding: 0.6rem 0.75rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  background: var(--boton);
+  border: 1.5px solid var(--boton-borde);
   border-radius: 11px;
   font-size: 0.86rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--txt-2);
   cursor: pointer;
   user-select: none;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
@@ -2871,42 +3192,44 @@
   width: 1.05rem;
   height: 1.05rem;
   margin: 0;
-  accent-color: #fbbf24;
+  accent-color: #f59e0b;
   cursor: pointer;
   flex-shrink: 0;
 }
 
+/* Acá el tinte sí sirve —es una elección secundaria, no la principal— pero
+   sube de tono para que se note cuál está marcada. */
 .fin-radio--activo {
-  background: rgba(251, 191, 36, 0.12);
-  border-color: #fbbf24;
-  color: #e2e8f0;
+  background: #f1f5f9;
+  border-color: #64748b;
+  color: var(--txt);
 }
 
 /* ─── DETALLE DE LOS AHORROS ──────────────────────────────────────────────── */
-.fin-ahorro__item-monto--apartado { color: #fbbf24; }
-.fin-ahorro__item-monto--pagado   { color: #f87171; }
+.fin-ahorro__item-monto--apartado { color: var(--ambar); }
+.fin-ahorro__item-monto--pagado   { color: var(--rojo); }
 
 .fin-ahorro__bolsas {
   margin: 0.3rem 0 0;
   font-size: 0.76rem;
   line-height: 1.45;
-  color: #64748b;
+  color: var(--txt-3);
 }
 
 /* ─── LISTA DE MOVIMIENTOS ────────────────────────────────────────────────────
    Los colores de fila siguen la acción, no el `tipo` crudo: un gasto pagado con
    el ahorro va en ámbar porque no movió la plata del mes. */
-.mov-row--verde { border-left-color: #10b981; }
-.mov-row--rojo  { border-left-color: #ef4444; }
-.mov-row--azul  { border-left-color: #3b82f6; }
-.mov-row--ambar { border-left-color: #fbbf24; }
+.mov-row--verde { border-left-color: #a7f3d0; }
+.mov-row--rojo  { border-left-color: #fecaca; }
+.mov-row--azul  { border-left-color: #dde3ea; }
+.mov-row--ambar { border-left-color: #fde68a; }
 
-.mov-row__monto--ambar { color: #fbbf24; }
+.mov-row__monto--ambar { color: var(--txt); }
 
-.registro-item__badge--verde { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-.registro-item__badge--rojo  { background: rgba(239, 68, 68, 0.15);  color: #f87171; }
-.registro-item__badge--azul  { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-.registro-item__badge--ambar { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.registro-item__badge--verde,
+.registro-item__badge--rojo,
+.registro-item__badge--azul,
+.registro-item__badge--ambar { background: #f1f5f9; border-color: #dde3ea; color: #334155; }
 
 /* "pagado con Ahorro MEP" — de cuál bolsa salió, junto a la categoría */
 .mov-row__etiqueta {
@@ -2914,8 +3237,8 @@
   margin-left: 0.35rem;
   padding: 0.1rem 0.4rem;
   border-radius: 5px;
-  background: rgba(251, 191, 36, 0.14);
-  color: #fbbf24;
+  background: var(--ambar-bg);
+  color: var(--ambar);
   font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -2939,8 +3262,9 @@
   flex-direction: column;
   gap: 0.15rem;
   padding: 0.75rem 0.85rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--sup-2);
+  color: var(--txt);
+  border: 1px solid var(--borde);
   border-radius: 12px;
 }
 
@@ -2949,24 +3273,26 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--txt-3);
 }
 
 .fin-ritmo__valor {
   font-size: clamp(1.1rem, 3.5vw, 1.4rem);
   font-weight: 800;
   letter-spacing: -0.3px;
-  color: #e2e8f0;
+  color: var(--txt);
+  font-family: var(--cifras);
+  font-variant-numeric: tabular-nums;
 }
 
-.fin-ritmo__valor--verde { color: #34d399; }
-.fin-ritmo__valor--rojo  { color: #f87171; }
-.fin-ritmo__valor--ambar { color: #fbbf24; }
+.fin-ritmo__valor--verde { color: var(--verde); }
+.fin-ritmo__valor--rojo  { color: var(--rojo); }
+.fin-ritmo__valor--ambar { color: var(--txt); }
 
 .fin-ritmo__pie {
   font-size: 0.74rem;
   line-height: 1.35;
-  color: #64748b;
+  color: var(--txt-3);
 }
 
 /* ─── REPORTE DEL AÑO · MES POR MES ───────────────────────────────────────────
@@ -2989,12 +3315,12 @@
 
 .fin-meses__head {
   padding: 0 0.5rem 0.4rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--campo);
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--txt-3);
 }
 
 .fin-meses__head span:not(:first-child) { text-align: right; }
@@ -3005,7 +3331,7 @@
   width: 100%;
   padding: 0.55rem 0.5rem;
   border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--borde-2);
   border-radius: 9px;
   background: none;
   color: inherit;
@@ -3014,14 +3340,15 @@
 }
 
 .fin-mes-fila--btn { cursor: pointer; }
-.fin-mes-fila--btn:hover { background: rgba(255, 255, 255, 0.035); }
-.fin-mes-fila--abierta { background: rgba(96, 165, 250, 0.07); }
+.fin-mes-fila--btn:hover { background: var(--sup-2); }
+.fin-mes-fila--abierta { background: var(--azul-bg);
+ color: var(--txt); }
 
 .fin-mes-fila__mes {
   min-width: 0;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--txt);
   overflow-wrap: anywhere;
 }
 
@@ -3032,16 +3359,16 @@
   height: 3px;
   margin-top: 4px;
   border-radius: 2px;
-  background: #60a5fa;
-  opacity: 0.55;
+  background: #3b82f6;
+  opacity: 0.85;
 }
 
-.fin-mes-fila--sin .fin-mes-fila__mes { color: #64748b; font-weight: 500; }
+.fin-mes-fila--sin .fin-mes-fila__mes { color: var(--txt-3); font-weight: 500; }
 
 .fin-mes-fila__nada {
   grid-column: 2 / -1;
   font-size: 0.84rem;
-  color: #64748b;
+  color: var(--txt-3);
   text-align: right;
 }
 
@@ -3053,11 +3380,11 @@
   overflow-wrap: anywhere;
 }
 
-.fin-mes-fila__dato--verde { color: #34d399; }
-.fin-mes-fila__dato--rojo  { color: #f87171; }
-.fin-mes-fila__dato--ambar { color: #fbbf24; }
-.fin-mes-fila__dato--saldo { color: #e2e8f0; font-weight: 700; }
-.fin-mes-fila__dato--vacio { color: #64748b; }
+.fin-mes-fila__dato--verde { color: var(--verde); }
+.fin-mes-fila__dato--rojo  { color: var(--rojo); }
+.fin-mes-fila__dato--ambar { color: var(--txt-2); }
+.fin-mes-fila__dato--saldo { color: var(--txt); font-weight: 700; }
+.fin-mes-fila__dato--vacio { color: var(--txt-4); }
 
 /* Lo que no salió de la plata del mes se dice en su propia línea, no en una
    columna más: son meses contados, y una columna extra costaba el ancho de
@@ -3067,23 +3394,23 @@
   margin-top: 0.2rem;
   font-size: 0.73rem;
   line-height: 1.35;
-  color: #fbbf24;
+  color: var(--ambar);
 }
 
-.fin-mes-fila__nota--azul { color: #60a5fa; }
+.fin-mes-fila__nota--azul { color: var(--azul); }
 
 .fin-mes-detalle {
   margin: 0 0 0.35rem;
   padding: 0.7rem 0.85rem 0.8rem;
-  background: rgba(96, 165, 250, 0.06);
-  border: 1px solid rgba(96, 165, 250, 0.22);
+  background: var(--azul-bg);
+  border: 1px solid var(--azul-bd);
   border-radius: 12px;
   font-size: 0.84rem;
   line-height: 1.5;
-  color: #cbd5e1;
+  color: var(--txt-2);
 }
 
-.fin-mes-detalle strong { color: #e2e8f0; font-variant-numeric: tabular-nums; }
+.fin-mes-detalle strong { color: var(--txt); font-variant-numeric: tabular-nums; }
 
 .fin-mes-detalle__abrir {
   display: block;
@@ -3091,19 +3418,19 @@
   padding: 0;
   background: none;
   border: 0;
-  color: #60a5fa;
+  color: var(--azul);
   font: inherit;
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
 }
 
-.fin-mes-detalle__abrir:hover { color: #93c5fd; }
+.fin-mes-detalle__abrir:hover { color: #075985; }
 
 .fin-anual-hint {
   margin: -0.3rem 0 0.6rem;
   font-size: 0.78rem;
-  color: #64748b;
+  color: var(--txt-3);
 }
 
 /* En el teléfono la fila deja de ser tabla: el mes ocupa el ancho completo y
@@ -3125,7 +3452,7 @@
 
   .fin-mes-fila__dato::before {
     content: attr(data-lbl) " ";
-    color: #64748b;
+    color: var(--txt-3);
     font-weight: 500;
     font-size: 0.72rem;
   }
@@ -3143,7 +3470,7 @@
   flex-wrap: wrap;
   gap: 0.2rem 0.6rem;
   padding: 0.55rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--borde-2);
 }
 
 .fin-contra__fila:last-child { border-bottom: none; }
@@ -3151,14 +3478,15 @@
 .fin-contra__que {
   min-width: 8.5rem;
   font-size: 0.9rem;
-  color: #cbd5e1;
+  color: var(--txt-2);
 }
 
 .fin-contra__monto {
+  font-family: var(--cifras);
   font-size: 1rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  color: #e2e8f0;
+  color: var(--txt);
 }
 
 .fin-contra__dif {
@@ -3166,13 +3494,13 @@
   overflow-wrap: anywhere;
 }
 
-.fin-contra__dif--verde  { color: #34d399; }
-.fin-contra__dif--rojo   { color: #f87171; }
-.fin-contra__dif--neutro { color: #64748b; }
+.fin-contra__dif--verde  { color: var(--verde); }
+.fin-contra__dif--rojo   { color: var(--rojo); }
+.fin-contra__dif--neutro { color: var(--txt-3); }
 
 @media (max-width: 560px) {
   .fin-contra__que { min-width: 100%; }
 }
 
 /* El destacado del mes que más sobró usa el azul de "Tu plata". */
-.fin-destacado--plata { border-left-color: rgba(96, 165, 250, 0.6); }
+.fin-destacado--plata { border-left-color: #dde3ea; }

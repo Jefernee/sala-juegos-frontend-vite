@@ -1,6 +1,5 @@
 import React, { lazy, Suspense, useEffect, useState } from "react";
 import axios from "axios";
-import "bootstrap/dist/css/bootstrap.min.css";
 import { Link, useNavigate } from "react-router-dom";
 import { API_URL, formatFecha, formatCRC } from "../components/admin/adminUtils";
 import { getToken } from "../utils/auth";

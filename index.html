@@ -13,6 +13,19 @@
     <link rel="icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/logo192.png" />
 
+    <!-- Tipografía del sistema.
+         · Inter  → la de la interfaz: Administración, Finanzas y el resto.
+                    Numerales parejos, que es lo que hace falta con montos.
+         · DM Sans y Syne → las que ya usaban los módulos de Reportes.
+         Antes cada CSS de Reportes las pedía con su propio @import (tres veces,
+         y bloqueando el render). Ahora se piden una sola vez acá. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap"
+    />
+
     <title>Sala de Juegos Ruiz - Diversión en Batán de Limón</title>
 
     <!-- SEO -->

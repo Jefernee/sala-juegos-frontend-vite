@@ -145,7 +145,9 @@ const DonutGastos = ({ items }) => {
   return (
     <div className="fin-donut">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Gastos por categoría">
-        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+        {/* Aro de fondo. El color lo pone el CSS (.fin-donut__pista) y no acá,
+            porque depende del fondo del panel. */}
+        <circle className="fin-donut__pista" cx={cx} cy={cy} r={radius} fill="none" strokeWidth={stroke} />
         {segmentos.map((s) => (
           <circle
             key={s.categoria}
