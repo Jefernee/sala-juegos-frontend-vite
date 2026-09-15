@@ -104,32 +104,20 @@
   font-size: 1.75rem;
   font-weight: 800;
   letter-spacing: -0.5px;
-  /* El color REAL del titulo. El degradado de abajo lo tapa cuando funciona; si
-     no funciona, este es el que se ve. Antes decia `color: transparent` y el
-     texto no tenia color propio: lo unico visible era el degradado asomando por
-     la forma de las letras, asi que cualquier cosa que lo estropeara dejaba el
-     titulo en NADA. Por eso ahora lo transparente es -webkit-text-fill-color,
-     que si no se aplica deja el color de verdad debajo. */
-  color: #e2e8f0;
-  background: linear-gradient(90deg, #e2e8f0, #94a3b8);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  /* Color SOLIDO, sin degradado.
+     Antes esto era un degradado recortado a la forma de las letras
+     (background-clip: text + el relleno del texto en transparente). Esa tecnica
+     no pinta el texto: pinta un fondo y deja que asome por los huecos de las
+     letras. Si cualquier cosa estropea ese fondo -el filtro de modo oscuro de
+     un telefono, un navegador embebido como el de WhatsApp, un motor que no
+     recorta bien- no queda un titulo feo: no queda NADA.
+     Se probo protegerlo con un color de respaldo y con una regla aparte para
+     modo oscuro, y el titulo se seguia viendo mal igual. Asi que se quita la
+     tecnica en vez de seguir parchandola: un color plano no se puede romper.
+     El #f1f5f9 es el mismo blanco roto que .admin-container ya usa para todo el
+     texto sobre el fondo oscuro del modulo, que nunca dio problemas. */
+  color: #f1f5f9;
   margin: 0;
-}
-
-/* En un telefono con el modo oscuro del sistema encendido, el navegador oscurece
-   el degradado -que son dos grises CLAROS- hasta dejarlo casi negro sobre el
-   fondo oscuro del modulo, y el titulo desaparecia.
-   Aca se renuncia al degradado y se usa el gris claro solido, que se lee
-   siempre. Los demas titulos de la app no necesitan esto: usan colores vivos
-   (celeste #38bdf8, verde #10b981, rojo, indigo) que el filtro respeta, y estan
-   confirmados como que se ven bien. */
-@media (prefers-color-scheme: dark) {
-  .admin-page-title {
-    background: none;
-    -webkit-text-fill-color: #e2e8f0;
-  }
 }
 
 /* ─── TABS DEL MÓDULO ──────────────────────────────────────────────────────── */
