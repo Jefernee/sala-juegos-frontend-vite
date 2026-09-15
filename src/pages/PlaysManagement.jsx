@@ -135,6 +135,18 @@ const obtenerHoraActual12h = () => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")} ${p}`;
 };
 
+// El turno de tiempo pendiente de un play, SOLO si todavia no vencio.
+//
+// Quien lo cierra de verdad es el backend, al leer la lista. Pero si la
+// pantalla se queda abierta nadie vuelve a leer, y el registro seguiria
+// diciendo "corriendo" con la hora de fin ya pasada. Con esto la pantalla deja
+// de mostrarlo apenas vence, sin esperar la respuesta del servidor.
+const turnoCorriendo = (play) => {
+  const t = play?.pendienteEnCurso;
+  if (!t?.fin) return null;
+  return new Date(t.fin).getTime() > Date.now() ? t : null;
+};
+
 // Instante -> "4:55 PM". Lo usa el turno de tiempo pendiente, que guarda un
 // Date real (no el string "HH:MM" del resto de la pantalla). El navegador del
 // local esta en Costa Rica, asi que la hora local ya es la correcta.
@@ -916,6 +928,36 @@ const PlaysManagement = () => {
   const recargarLista = () =>
     fetchPlays(paginacion.page, filtrosAplicados, busquedaAplicada);
 
+  // Cierre automatico del turno de tiempo pendiente.
+  //
+  // El backend lo cierra al LEER la lista (descuenta los minutos jugados y
+  // borra el turno), pero si la pantalla se queda abierta nadie vuelve a leer:
+  // el registro seguia diciendo "corriendo" y habia que detenerlo a mano.
+  //
+  // Esto programa UNA recarga para el instante en que vence el turno mas
+  // proximo. Ahi el backend lo cierra y la lista vuelve con el tiempo pendiente
+  // ya descontado, sin tocar nada.
+  //
+  // Solo se programa si el vencimiento esta en el FUTURO. Si ya paso, no se
+  // recarga: el backend ya lo habria cerrado en esa misma lectura, y
+  // `turnoCorriendo` lo deja de mostrar igual. Asi no queda un ciclo de
+  // recargas si algo saliera mal del otro lado.
+  useEffect(() => {
+    const vencimientos = plays
+      .filter((p) => p.pendienteEnCurso?.fin)
+      .map((p) => new Date(p.pendienteEnCurso.fin).getTime())
+      .filter((t) => t > Date.now());
+    if (!vencimientos.length) return;
+
+    // +2 s de colchon: pedir la lista justo en el limite podria llegar antes de
+    // que el turno cuente como vencido del otro lado.
+    const espera = Math.min(...vencimientos) - Date.now() + 2000;
+    const t = setTimeout(() => {
+      fetchPlays(paginacion.page, filtrosAplicados, busquedaAplicada);
+    }, espera);
+    return () => clearTimeout(t);
+  }, [plays, paginacion.page, filtrosAplicados, busquedaAplicada, fetchPlays]);
+
   const errorDeTurno = (error, porDefecto) => {
     console.error("\u274c Error:", error);
     const msg = error.response?.data?.message || porDefecto;
@@ -1642,7 +1684,7 @@ const PlaysManagement = () => {
                             {/* Turno de tiempo pendiente. Corriendo: lo que
                                 importa es a que hora termina. Parado: el
                                 pendiente es un boton, no un rotulo. */}
-                            {play.pendienteEnCurso ? (
+                            {turnoCorriendo(play) ? (
                               <button
                                 type="button"
                                 className="turno-chip turno-chip--corriendo"
@@ -1942,10 +1984,15 @@ const PlaysManagement = () => {
                   </p>
                 );
               }
-              const fin = new Date(Date.now() + total * 60000);
+              // El turno arranca cuando se toca "Arrancar", asi que el inicio
+              // es ahora. Se muestran los dos extremos para poder ver de un
+              // vistazo desde que hora y hasta cual va.
+              const inicio = new Date();
+              const fin = new Date(inicio.getTime() + total * 60000);
               return (
                 <p className="turno-modal__fin">
-                  Termina a las <strong>{horaDeInstante(fin)}</strong>
+                  De <strong>{horaDeInstante(inicio)}</strong> a{" "}
+                  <strong>{horaDeInstante(fin)}</strong>
                   <small>Avisa por WhatsApp al grupo, igual que un tiempo nuevo.</small>
                 </p>
               );
