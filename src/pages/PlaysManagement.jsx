@@ -231,6 +231,17 @@ const PlaysManagement = () => {
   const [turnoIniciar, setTurnoIniciar] = useState(null);   // { play, horas, minutos }
   const [turnoDetener, setTurnoDetener] = useState(null);   // { play, jugados }
   const [turnoGuardando, setTurnoGuardando] = useState(false);
+  // Doble toque en "Guardar": el boton no tenia ningun freno, y dos toques
+  // seguidos creaban DOS registros.
+  //
+  // Van los dos juntos y no uno solo a proposito:
+  //  - el REF es el cerrojo de verdad. Cambia en el acto, asi que el segundo
+  //    toque lo ve puesto aunque llegue en el mismo tick. Con solo el estado no
+  //    alcanza: setState no actualiza la variable al instante y dos toques
+  //    rapidos pueden entrar los dos antes de que React vuelva a pintar.
+  //  - el ESTADO es para que se vea: apaga el boton y le cambia el texto.
+  const guardandoRef = useRef(false);
+  const [guardandoPlay, setGuardandoPlay] = useState(false);
   const [mostrarNotificacion, setMostrarNotificacion] = useState(false);
   const [notificacion, setNotificacion] = useState(null);
   // ✅ Marca si el usuario escribió la Hora Inicio a mano (para no sobrescribirla)
@@ -694,6 +705,10 @@ const PlaysManagement = () => {
   };
 
   const handleSubmit = async (e) => {
+    // Cerrojo contra el doble toque. Va ANTES que todo y sobre el ref, no
+    // sobre el estado, porque el ref ya esta puesto cuando entra el segundo
+    // toque. Sirve igual para crear y para actualizar: los dos pasan por aca.
+    if (guardandoRef.current) return;
     e.preventDefault();
     const err = validarFormulario();
     if (Object.keys(err).length > 0) {
@@ -727,6 +742,8 @@ const PlaysManagement = () => {
       formData.tiempoPagado > 0
         ? sumarMinutosAHora(horaInicio24, formData.tiempoPagado)
         : convertir12hA24h(formData.horaFinal);
+    guardandoRef.current = true;
+    setGuardandoPlay(true);
     try {
       const axios = await getAxios();
       // Ping Pong no usa controles: se guardan 0 (no se usó ninguno).
@@ -797,6 +814,10 @@ const PlaysManagement = () => {
         detalle = error.message;
       }
       mostrarNotif(mensajeError, "error", detalle);
+    } finally {
+      // Se suelta pase lo que pase: si fallo, hay que poder reintentar.
+      guardandoRef.current = false;
+      setGuardandoPlay(false);
     }
   };
 
@@ -1404,9 +1425,14 @@ const PlaysManagement = () => {
                     </button>
                     <button
                       type="submit"
+                      disabled={guardandoPlay}
                       className="btn btn-primary btn-lg px-4"
                     >
-                      {editando ? "💾 Actualizar" : "✅ Guardar"}
+                      {guardandoPlay
+                        ? "Guardando..."
+                        : editando
+                          ? "💾 Actualizar"
+                          : "✅ Guardar"}
                     </button>
                   </div>
                 </form>
