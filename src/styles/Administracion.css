@@ -104,11 +104,32 @@
   font-size: 1.75rem;
   font-weight: 800;
   letter-spacing: -0.5px;
+  /* El color REAL del titulo. El degradado de abajo lo tapa cuando funciona; si
+     no funciona, este es el que se ve. Antes decia `color: transparent` y el
+     texto no tenia color propio: lo unico visible era el degradado asomando por
+     la forma de las letras, asi que cualquier cosa que lo estropeara dejaba el
+     titulo en NADA. Por eso ahora lo transparente es -webkit-text-fill-color,
+     que si no se aplica deja el color de verdad debajo. */
+  color: #e2e8f0;
   background: linear-gradient(90deg, #e2e8f0, #94a3b8);
   background-clip: text;
   -webkit-background-clip: text;
-  color: transparent;
+  -webkit-text-fill-color: transparent;
   margin: 0;
+}
+
+/* En un telefono con el modo oscuro del sistema encendido, el navegador oscurece
+   el degradado -que son dos grises CLAROS- hasta dejarlo casi negro sobre el
+   fondo oscuro del modulo, y el titulo desaparecia.
+   Aca se renuncia al degradado y se usa el gris claro solido, que se lee
+   siempre. Los demas titulos de la app no necesitan esto: usan colores vivos
+   (celeste #38bdf8, verde #10b981, rojo, indigo) que el filtro respeta, y estan
+   confirmados como que se ven bien. */
+@media (prefers-color-scheme: dark) {
+  .admin-page-title {
+    background: none;
+    -webkit-text-fill-color: #e2e8f0;
+  }
 }
 
 /* ─── TABS DEL MÓDULO ──────────────────────────────────────────────────────── */
@@ -3066,6 +3087,12 @@
   border-top: 1px solid var(--borde-2);
   border-bottom: none;
 }
+
+/* El rotulo va en negrita: es la lectura que se busca de un vistazo. La
+   aclaracion de abajo NO -heredaria la negrita del padre-, para que siga
+   leyendose como una nota al pie y no como parte de la frase. */
+.fin-escalon--pie .fin-escalon__que { font-weight: 700; }
+.fin-escalon--pie .fin-escalon__nota { font-weight: 400; }
 
 .fin-escalon__cuanto--plata  { color: var(--txt); }
 .fin-escalon__cuanto--ahorro { color: var(--txt); }
