@@ -778,3 +778,152 @@ textarea { font-size: 16px !important; }
   .pm-chips { width: 100%; }
   .pm-chip { flex: 1 1 auto; text-align: center; }
 }
+
+/* ─── TURNO DE TIEMPO PENDIENTE ───────────────────────────────────────────────
+   Poner a correr tiempo que el cliente ya pagó y no usó. El pendiente dejó de
+   ser un rótulo y pasó a ser un botón: es la acción que se hace con él. */
+
+.turno-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.turno-chip small {
+  font-size: 0.68rem;
+  opacity: 0.75;
+}
+
+/* Parado: el ámbar de siempre del pendiente, ahora tocable. */
+.turno-chip--pendiente {
+  color: #b45309;
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+.turno-chip--pendiente:hover { background: #fef3c7; border-color: #fcd34d; }
+
+/* Corriendo: verde, y lo que manda es a qué hora termina. */
+.turno-chip--corriendo {
+  color: #047857;
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  font-weight: 600;
+}
+.turno-chip--corriendo:hover { background: #d1fae5; border-color: #6ee7b7; }
+
+/* ─── Los dos modales (arrancar / detener) ───────────────────────────────── */
+
+.turno-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.6);
+}
+
+.turno-modal {
+  width: 100%;
+  max-width: 400px;
+  padding: 1.25rem;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #1f2937;
+  box-shadow: 0 18px 45px rgba(2, 6, 23, 0.35);
+}
+
+.turno-modal__titulo {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.turno-modal__sub {
+  margin: 0 0 1rem;
+  font-size: 0.86rem;
+  color: #4b5563;
+}
+
+.turno-modal__campos {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.turno-modal__campos label {
+  flex: 1;
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.turno-modal__campos .form-select { margin-top: 0.25rem; }
+
+.turno-modal__jugados {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.turno-modal__jugados-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.turno-modal__jugados-fila .form-control { max-width: 110px; }
+
+.turno-modal__jugados small,
+.turno-modal__fin small {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #6b7280;
+}
+
+/* La línea que contesta lo único que importa: a qué hora termina, o cuánto le
+   queda. Va destacada porque es la que se lee antes de tocar el botón. */
+.turno-modal__fin {
+  margin: 1rem 0 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  font-size: 0.86rem;
+  color: #0c4a6e;
+}
+
+.turno-modal__aviso {
+  margin: 1rem 0 0;
+  font-size: 0.82rem;
+  color: #6b7280;
+}
+.turno-modal__aviso--error { color: #b91c1c; font-weight: 600; }
+
+.turno-modal__botones {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+}
+.turno-modal__botones > * { flex: 1; }

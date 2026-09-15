@@ -135,6 +135,16 @@ const obtenerHoraActual12h = () => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")} ${p}`;
 };
 
+// Instante -> "4:55 PM". Lo usa el turno de tiempo pendiente, que guarda un
+// Date real (no el string "HH:MM" del resto de la pantalla). El navegador del
+// local esta en Costa Rica, asi que la hora local ya es la correcta.
+const horaDeInstante = (fecha) => {
+  if (!fecha) return "";
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("es-CR", { hour: "numeric", minute: "2-digit", hour12: true });
+};
+
 const convertirA12Horas = (hora24) => {
   if (!hora24) return "";
   const [h, m] = hora24.split(":").map(Number);
@@ -214,6 +224,13 @@ const PlaysManagement = () => {
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const formularioRef = useRef(null);
   const [editando, setEditando] = useState(null);
+  // Turno de tiempo pendiente: poner a correr tiempo que el cliente ya pago y no
+  // uso. No cobra nada ni crea una sesion (ver el backend), asi que no toca
+  // reportes. `turnoIniciar` es el modal de arrancar; `turnoDetener`, el de
+  // cortarlo antes de tiempo.
+  const [turnoIniciar, setTurnoIniciar] = useState(null);   // { play, horas, minutos }
+  const [turnoDetener, setTurnoDetener] = useState(null);   // { play, jugados }
+  const [turnoGuardando, setTurnoGuardando] = useState(false);
   const [mostrarNotificacion, setMostrarNotificacion] = useState(false);
   const [notificacion, setNotificacion] = useState(null);
   // ✅ Marca si el usuario escribió la Hora Inicio a mano (para no sobrescribirla)
@@ -851,6 +868,87 @@ const PlaysManagement = () => {
     document
       .querySelector(".tabla-panel")
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // ── TURNO DE TIEMPO PENDIENTE ──────────────────────────────────────────────
+  // El pendiente NO baja al arrancar el turno: baja al cerrarlo, y con lo que
+  // realmente se jugo. Por eso detener nunca pregunta "cuanto le queda" (una
+  // resta) sino "cuanto jugo" (un dato que se vio), y ese numero viene ya
+  // calculado desde la hora de arranque.
+
+  const abrirTurno = (play) => {
+    const pend = play.tiempoPendiente || 0;
+    // Precargado con TODO el pendiente, que es el caso normal.
+    setTurnoIniciar({ play, horas: Math.floor(pend / 60), minutos: pend % 60 });
+  };
+
+  const abrirDetener = (play) => {
+    const turno = play.pendienteEnCurso;
+    if (!turno) return;
+    // Lo que marca el reloj desde que arranco, recortado a lo que se puso a
+    // correr: detener tarde no puede descontar tiempo que nunca se jugo.
+    const corridos = Math.round((Date.now() - new Date(turno.inicio).getTime()) / 60000);
+    const jugados = Math.min(Math.max(corridos, 0), turno.minutos || 0);
+    setTurnoDetener({ play, jugados });
+  };
+
+  const recargarLista = () =>
+    fetchPlays(paginacion.page, filtrosAplicados, busquedaAplicada);
+
+  const errorDeTurno = (error, porDefecto) => {
+    console.error("\u274c Error:", error);
+    const msg = error.response?.data?.message || porDefecto;
+    mostrarNotif(msg, "error");
+  };
+
+  const confirmarIniciarTurno = async () => {
+    if (!turnoIniciar || turnoGuardando) return;
+    const total = turnoIniciar.horas * 60 + turnoIniciar.minutos;
+    if (total <= 0) {
+      mostrarNotif("Pone cuantos minutos va a jugar", "warning");
+      return;
+    }
+    setTurnoGuardando(true);
+    try {
+      const axios = await getAxios();
+      const { data } = await axios.post(
+        `${API_URL}/api/plays/${turnoIniciar.play._id}/pendiente/iniciar`,
+        { minutos: total },
+        getAuthHeaders(),
+      );
+      const fin = data?.data?.pendienteEnCurso?.fin;
+      mostrarNotif(
+        `Corriendo ${minutosATexto(total)} de tiempo pendiente`,
+        "success",
+        fin ? `Termina a las ${horaDeInstante(fin)} y avisa por WhatsApp.` : "",
+      );
+      setTurnoIniciar(null);
+      recargarLista();
+    } catch (error) {
+      errorDeTurno(error, "No se pudo iniciar el tiempo pendiente");
+    } finally {
+      setTurnoGuardando(false);
+    }
+  };
+
+  const confirmarDetenerTurno = async () => {
+    if (!turnoDetener || turnoGuardando) return;
+    setTurnoGuardando(true);
+    try {
+      const axios = await getAxios();
+      const { data } = await axios.post(
+        `${API_URL}/api/plays/${turnoDetener.play._id}/pendiente/detener`,
+        { minutosJugados: turnoDetener.jugados },
+        getAuthHeaders(),
+      );
+      mostrarNotif(data?.message || "Tiempo pendiente detenido", "success");
+      setTurnoDetener(null);
+      recargarLista();
+    } catch (error) {
+      errorDeTurno(error, "No se pudo detener el tiempo pendiente");
+    } finally {
+      setTurnoGuardando(false);
+    }
   };
 
   const minutosATexto = (minutos) => {
@@ -1515,11 +1613,34 @@ const PlaysManagement = () => {
                             <div className="fw-bold text-primary">
                               ⏱️ {minutosATexto(play.tiempoPagado)}
                             </div>
-                            {play.tiempoPendiente > 0 && (
-                              <small className="text-warning d-block">
-                                ⏳ {minutosATexto(play.tiempoPendiente)}
-                              </small>
-                            )}
+                            {/* Turno de tiempo pendiente. Corriendo: lo que
+                                importa es a que hora termina. Parado: el
+                                pendiente es un boton, no un rotulo. */}
+                            {play.pendienteEnCurso ? (
+                              <button
+                                type="button"
+                                className="turno-chip turno-chip--corriendo"
+                                onClick={() => abrirDetener(play)}
+                                title="Detener el tiempo pendiente"
+                              >
+                                <span>
+                                  ▶️ {minutosATexto(play.pendienteEnCurso.minutos)} corriendo
+                                </span>
+                                <small>
+                                  termina {horaDeInstante(play.pendienteEnCurso.fin)} · detener
+                                </small>
+                              </button>
+                            ) : play.tiempoPendiente > 0 ? (
+                              <button
+                                type="button"
+                                className="turno-chip turno-chip--pendiente"
+                                onClick={() => abrirTurno(play)}
+                                title="Poner a correr el tiempo pendiente"
+                              >
+                                <span>⏳ {minutosATexto(play.tiempoPendiente)}</span>
+                                <small>tocar para jugarlo</small>
+                              </button>
+                            ) : null}
                           </td>
                           <td className="px-3 py-3">
                             <small className="d-block">
@@ -1731,6 +1852,183 @@ const PlaysManagement = () => {
             >
               ✕
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── ARRANCAR EL TIEMPO PENDIENTE ──────────────────────────────────────
+          Los mismos selectores de horas/minutos del formulario de siempre, ya
+          precargados con todo el pendiente, y la hora de fin calculada DESDE
+          AHORA — que es justo lo que el formulario normal no sabe hacer. */}
+      {turnoIniciar && (
+        <div className="turno-overlay" onClick={() => !turnoGuardando && setTurnoIniciar(null)}>
+          <div className="turno-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="turno-modal__titulo">⏳ Jugar tiempo pendiente</h3>
+            <p className="turno-modal__sub">
+              {turnoIniciar.play.cliente} tiene{" "}
+              <strong>{minutosATexto(turnoIniciar.play.tiempoPendiente || 0)}</strong> pendientes.
+              ¿Cuánto va a jugar ahora?
+            </p>
+
+            <div className="turno-modal__campos">
+              <label>
+                Horas
+                <select
+                  className="form-select"
+                  value={turnoIniciar.horas}
+                  disabled={turnoGuardando}
+                  onChange={(e) =>
+                    setTurnoIniciar((t) => ({ ...t, horas: Number(e.target.value) }))
+                  }
+                >
+                  {[0, 1, 2, 3, 4, 5, 6].map((h) => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Minutos
+                <select
+                  className="form-select"
+                  value={turnoIniciar.minutos}
+                  disabled={turnoGuardando}
+                  onChange={(e) =>
+                    setTurnoIniciar((t) => ({ ...t, minutos: Number(e.target.value) }))
+                  }
+                >
+                  {Array.from({ length: 60 }, (_, i) => i).map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {(() => {
+              const total = turnoIniciar.horas * 60 + turnoIniciar.minutos;
+              const disp = turnoIniciar.play.tiempoPendiente || 0;
+              if (total <= 0) {
+                return <p className="turno-modal__aviso">Poné cuánto va a jugar.</p>;
+              }
+              if (total > disp) {
+                return (
+                  <p className="turno-modal__aviso turno-modal__aviso--error">
+                    Solo quedan {minutosATexto(disp)} pendientes.
+                  </p>
+                );
+              }
+              const fin = new Date(Date.now() + total * 60000);
+              return (
+                <p className="turno-modal__fin">
+                  Termina a las <strong>{horaDeInstante(fin)}</strong>
+                  <small>Avisa por WhatsApp al grupo, igual que un tiempo nuevo.</small>
+                </p>
+              );
+            })()}
+
+            <div className="turno-modal__botones">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setTurnoIniciar(null)}
+                disabled={turnoGuardando}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn btn-success fw-bold"
+                onClick={confirmarIniciarTurno}
+                disabled={
+                  turnoGuardando ||
+                  turnoIniciar.horas * 60 + turnoIniciar.minutos <= 0 ||
+                  turnoIniciar.horas * 60 + turnoIniciar.minutos >
+                    (turnoIniciar.play.tiempoPendiente || 0)
+                }
+              >
+                {turnoGuardando ? "Arrancando..." : "▶️ Arrancar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DETENER EL TIEMPO PENDIENTE ───────────────────────────────────────
+          La pregunta es "cuánto jugó", no "cuánto le queda": el dato que se vio,
+          no una resta. Viene calculado desde la hora de arranque y se puede
+          corregir para el caso de tocar el botón tarde. */}
+      {turnoDetener && (
+        <div className="turno-overlay" onClick={() => !turnoGuardando && setTurnoDetener(null)}>
+          <div className="turno-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="turno-modal__titulo">⏹️ Detener el tiempo pendiente</h3>
+            <p className="turno-modal__sub">
+              Arrancó a las{" "}
+              <strong>{horaDeInstante(turnoDetener.play.pendienteEnCurso?.inicio)}</strong> con{" "}
+              {minutosATexto(turnoDetener.play.pendienteEnCurso?.minutos || 0)}.
+            </p>
+
+            <label className="turno-modal__jugados">
+              ¿Cuánto jugó?
+              <div className="turno-modal__jugados-fila">
+                <input
+                  type="number"
+                  className="form-control"
+                  min={0}
+                  max={turnoDetener.play.pendienteEnCurso?.minutos || 0}
+                  value={turnoDetener.jugados}
+                  disabled={turnoGuardando}
+                  onChange={(e) =>
+                    setTurnoDetener((t) => ({
+                      ...t,
+                      jugados: Math.max(
+                        0,
+                        Math.min(
+                          Number(e.target.value) || 0,
+                          t.play.pendienteEnCurso?.minutos || 0,
+                        ),
+                      ),
+                    }))
+                  }
+                />
+                <span>min</span>
+              </div>
+              <small>
+                Es lo que marca el reloj. Corregilo si tocaste detener después de
+                que se fue.
+              </small>
+            </label>
+
+            <p className="turno-modal__fin">
+              Le quedan{" "}
+              <strong>
+                {minutosATexto(
+                  Math.max(
+                    0,
+                    (turnoDetener.play.tiempoPendiente || 0) - turnoDetener.jugados,
+                  ),
+                )}
+              </strong>{" "}
+              pendientes
+              <small>El aviso de WhatsApp de este turno se cancela.</small>
+            </p>
+
+            <div className="turno-modal__botones">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setTurnoDetener(null)}
+                disabled={turnoGuardando}
+              >
+                Seguir jugando
+              </button>
+              <button
+                type="button"
+                className="btn btn-warning fw-bold"
+                onClick={confirmarDetenerTurno}
+                disabled={turnoGuardando}
+              >
+                {turnoGuardando ? "Deteniendo..." : "⏹️ Detener"}
+              </button>
+            </div>
           </div>
         </div>
       )}
