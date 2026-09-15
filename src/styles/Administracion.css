@@ -3056,9 +3056,64 @@
   letter-spacing: -0.3px;
 }
 
+/* El pie de la escalera: una lectura DERIVADA del total, no otro sumando. Usa la
+   misma fila que los escalones —mismo tamaño, mismo rótulo a la izquierda, mismo
+   monto a la derecha, misma nota chiquita debajo del rótulo—, así que lo único
+   que lo separa es la línea de arriba y que va después del total.
+   Hoy lo usa "Podés gastar hasta / sin tocar lo del mes pasado". */
+.fin-escalon--pie {
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--borde-2);
+  border-bottom: none;
+}
+
 .fin-escalon__cuanto--plata  { color: var(--txt); }
 .fin-escalon__cuanto--ahorro { color: var(--txt); }
+.fin-escalon__cuanto--ambar  { color: var(--ambar); }
 .fin-escalon__cuanto--rojo   { color: var(--rojo); }
+
+/* El aviso de "con esto empezás a gastar lo del mes pasado". Va INLINE, encima
+   del botón que se iba a tocar —no en un modal ni en un toast— para que se lea
+   con el monto recién escrito a la vista. Ámbar, el mismo color que toma el
+   monto de "Podés gastar hasta" cuando queda poco margen: el aviso del
+   formulario y el de la escalera son la misma señal. */
+.fin-aviso-raya {
+  margin-bottom: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 12px;
+  background: var(--ambar-bg);
+  border: 1px solid var(--ambar-bd);
+}
+
+.fin-aviso-raya__titulo {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ambar);
+}
+
+.fin-aviso-raya__texto {
+  margin: 0 0 0.75rem;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.fin-aviso-raya__texto strong {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--txt);
+}
+
+.fin-aviso-raya__botones {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* En el teléfono los dos botones ocupan la fila entera: "Gastarlo igual" no
+   puede quedar de un tamaño en el que se toque sin querer. */
+.fin-aviso-raya__botones > * { flex: 1 1 140px; }
 
 /* ─── ANOTAR (el formulario, arriba de todo) ──────────────────────────────────
    Tres botones grandes para las tres únicas cosas que se pueden hacer, y luego

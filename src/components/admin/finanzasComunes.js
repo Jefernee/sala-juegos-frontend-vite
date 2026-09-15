@@ -48,6 +48,36 @@ export const limpiarMontoInput = (texto, esUSD) => {
   return rest.length ? `${ent}.${rest.join("").slice(0, 2)}` : ent;
 };
 
+// ─── EL MARGEN DEL MES ───────────────────────────────────────────────────────
+// El margen es "Te queda" − "Tenías del mes pasado" (el backend lo manda como
+// `variacionSaldo`): lo que se puede gastar sin tocar el arrastre. Mientras sea
+// positivo, lo que se gasta salió de lo que entró ESTE mes; cuando llega a 0, el
+// siguiente colón ya sale de lo del mes pasado.
+//
+// El aviso NO se dispara con un monto fijo: ₡25.000 de margen es holgado en un
+// mes en que entraron ₡200.000 y no es nada en uno de ₡835.000. Se avisa cuando
+// el margen baja del 10% de lo que entró en el mes, con un piso de ₡25.000 para
+// que en un mes de ingresos chicos —o con el salario todavía sin anotar— el
+// aviso siga existiendo en vez de desaparecer.
+export const MARGEN_PCT_AVISO = 0.1;
+export const MARGEN_PISO_AVISO = 25000;
+
+export const umbralMargen = (totalIngresos) =>
+  Math.max(Math.round((Number(totalIngresos) || 0) * MARGEN_PCT_AVISO), MARGEN_PISO_AVISO);
+
+// "bien" → hay aire · "ojo" → queda poco, avisar · "pasado" → ya se está
+// gastando lo del mes pasado.
+export const estadoMargen = (margen, totalIngresos) => {
+  const m = Number(margen) || 0;
+  if (m <= 0) return "pasado";
+  return m <= umbralMargen(totalIngresos) ? "ojo" : "bien";
+};
+
+// El color que le toca a cada estado. Es el MISMO nombre que usan las clases de
+// los montos (fin-escalon__cuanto--*), así que el aviso y el número siempre van
+// del mismo color sin tener que acordarse de cambiar los dos.
+export const COLOR_MARGEN = { bien: "plata", ojo: "ambar", pasado: "rojo" };
+
 // Paleta para el desglose y la dona (mismo espíritu que el estado de resultados).
 export const PALETA = ["#f97316", "#ef4444", "#eab308", "#8b5cf6", "#ec4899", "#06b6d4", "#14b8a6", "#f59e0b", "#a3e635"];
 
@@ -71,7 +101,7 @@ export const ICONOS_CAT = {
   "Compras personales": "🧺", Educación: "📚", Entretenimiento: "🎬",
   Suscripciones: "🔁", Mascotas: "🐾",
   // Egresos · ocasiones
-  Regalos: "🎁", Cumpleaños: "🎂", Rifas: "🎟️",
+  "Salidas y viajes": "🧳", Regalos: "🎁", Cumpleaños: "🎂", Rifas: "🎟️",
   // Egresos · compromisos financieros
   "Deudas/Préstamos": "💳", "Cuota banco (BCR)": "🏦", Seguros: "🛡️",
   // Egresos · ahorro

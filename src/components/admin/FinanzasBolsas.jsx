@@ -35,7 +35,14 @@ export const Bolsas = ({ plata, ahorros, pieP, pieA }) => (
 // `filas`: { clave, que, nota?, monto, signo?: "+" | "−" }
 // Una fila sin signo es un arrastre y puede ser negativa (se venía debiendo),
 // así que va con su propio signo en vez de en valor absoluto.
-export const Escalera = ({ titulo, filas, totalQue, totalMonto, totalClase }) => (
+//
+// `pie` (opcional): { que, nota, monto, clase? } — una lectura que se DERIVA del
+// total en vez de sumar a él, así que va después de la línea de cierre. Se pinta
+// con la misma fila que los escalones —rótulo a la izquierda, monto a la
+// derecha, la aclaración chiquita debajo del rótulo— para que se lea parejo con
+// el resto; lo único que la separa es la línea de arriba. Hoy lo usa
+// "Podés gastar hasta / sin tocar lo del mes pasado".
+export const Escalera = ({ titulo, filas, totalQue, totalMonto, totalClase, pie }) => (
   <div className="fin-escalera-card">
     <p className="fin-escalera__titulo">{titulo}</p>
     <div className="fin-escalera">
@@ -61,6 +68,17 @@ export const Escalera = ({ titulo, filas, totalQue, totalMonto, totalClase }) =>
           {formatCRCsigned(totalMonto)}
         </span>
       </div>
+      {pie && (
+        <div className="fin-escalon fin-escalon--pie">
+          <span className="fin-escalon__que">
+            {pie.que}
+            {pie.nota && <span className="fin-escalon__nota">{pie.nota}</span>}
+          </span>
+          <span className={`fin-escalon__cuanto fin-escalon__cuanto--${pie.clase || "plata"}`}>
+            {formatCRC(pie.monto)}
+          </span>
+        </div>
+      )}
     </div>
   </div>
 );

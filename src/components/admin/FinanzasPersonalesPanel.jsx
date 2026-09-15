@@ -23,6 +23,7 @@ import { getAxios, formatCRC, formatFecha, nombreMes, MESES } from "./adminUtils
 import {
   FIN_BASE as BASE, formatMontoInput, limpiarMontoInput,
   PALETA, iconoCat, esAhorro,
+  estadoMargen, COLOR_MARGEN,
 } from "./finanzasComunes";
 import { Bolsas, Escalera } from "./FinanzasBolsas";
 import MesSelector from "./MesSelector";
@@ -283,7 +284,7 @@ const AhorroDetalle = ({ apartado, pagado, pagadoPorBolsa, retiros }) => {
 // cuatro tipos con nombres del backend; ahora son tres botones en lenguaje
 // llano y, si es un gasto, UNA sola pregunta más: ¿de dónde salió la plata?
 const FormMovimiento = ({
-  registro, categorias, ahorroCfg, mes, anio, enModal,
+  registro, categorias, ahorroCfg, mes, anio, enModal, margen,
   getAuthHeaders, mostrarNotif, manejarError, onCancelar, onExito, onGuardando,
 }) => {
   const esEdicion = !!registro;
@@ -342,6 +343,9 @@ const FormMovimiento = ({
   const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
   const [topeAhorro, setTopeAhorro] = useState(null); // tope que devolvió el 400
+  // Aviso de "este gasto cruza la raya": se arma al intentar guardar y hay que
+  // confirmarlo. Mientras no sea null, el botón de guardar cede el lugar.
+  const [avisoRaya, setAvisoRaya] = useState(null);
 
   const hoy = new Date();
   const esMesActual = mes === hoy.getMonth() + 1 && anio === hoy.getFullYear();
@@ -384,6 +388,30 @@ const FormMovimiento = ({
   const montoCRC = Math.round(esUSD ? montoNum * tcNum : montoNum);
   const tcListo = tcNum > 0;
 
+  // ─── ¿ESTE GASTO CRUZA LA RAYA? ────────────────────────────────────────────
+  // La raya es el margen del mes: lo que se puede gastar sin tocar el arrastre
+  // del mes pasado. Solo la cruza un "Gasté" del bolsillo del mes:
+  //   · un gasto pagado CON el ahorro no toca el margen (sale del otro bolsillo);
+  //   · un ingreso lo sube;
+  //   · "Ahorré" sí lo baja, pero apartar plata no es consumirla y avisar ahí
+  //     sería pelear con lo único que la pantalla quiere premiar.
+  //
+  // Al EDITAR, el monto viejo ya está contado dentro del margen que llegó del
+  // backend: hay que devolverlo antes de restar el nuevo, o un cambio de
+  // ₡50.000 a ₡51.000 se leería como un gasto de ₡51.000.
+  const margenActual = Number(margen?.disponible) || 0;
+  const yaContado =
+    esEdicion && registro.tipo === "egreso" && registro.fondo !== "ahorro"
+      ? Number(registro.monto) || 0
+      : 0;
+  const margenDespues = margenActual + yaContado - montoCRC;
+  // Se avisa solo en el CRUCE: se venía con margen y este movimiento lo agota.
+  // Si el mes ya estaba pasado, la fila roja de la escalera es el aviso
+  // permanente — pedir confirmación en cada gasto de lo que queda del mes
+  // volvería la pantalla inusable.
+  const cruzaLaRaya =
+    esGasto && !desdeAhorro && montoCRC > 0 && margenActual > 0 && margenDespues < 0;
+
   // Trae el tipo de cambio del día (Hacienda). Cacheado por día; `forzar` refresca.
   const cargarTC = useCallback(async (forzar = false) => {
     setCargandoTC(true);
@@ -414,6 +442,9 @@ const FormMovimiento = ({
   const handleMontoChange = (e) => {
     setMonto(limpiarMontoInput(e.target.value, esUSD));
     setErrores((er) => ({ ...er, monto: "" }));
+    // El aviso hablaba del monto anterior: si se corrige la cifra, se vuelve a
+    // chequear desde cero en el próximo intento de guardar.
+    setAvisoRaya(null);
   };
 
   // Al cambiar de botón la categoría elegida casi nunca sirve para el nuevo (las
@@ -425,6 +456,7 @@ const FormMovimiento = ({
     setAccion(nueva);
     setErrores({});
     setTopeAhorro(null);
+    setAvisoRaya(null);
     if (nueva !== "gaste") setOrigen("mano");
     const nuevas = catsDe(nueva);
     setCategoria((actual) => (actual && nuevas.includes(actual) ? actual : ""));
@@ -462,6 +494,13 @@ const FormMovimiento = ({
   const handleSubmit = async (ev) => {
     ev.preventDefault();
     if (!validar() || guardando) return;
+    // La advertencia se interpone ANTES de guardar: el primer intento no manda
+    // nada, solo arma el aviso. El segundo (el botón "Guardar igual" del propio
+    // aviso) ya pasa de largo, porque `avisoRaya` quedó puesto.
+    if (cruzaLaRaya && !avisoRaya) {
+      setAvisoRaya({ seVa: montoCRC, margen: margenActual, deMasPasado: -margenDespues });
+      return;
+    }
     setGuardando(true);
     onGuardando?.(true);
     try {
@@ -503,6 +542,7 @@ const FormMovimiento = ({
         setErrores({});
         setTopeAhorro(null);
       }
+      setAvisoRaya(null);
       onExito();
     } catch (err) {
       // Al gastar más ahorro del que hay, el backend responde 400 con un
@@ -564,7 +604,7 @@ const FormMovimiento = ({
                   name={`origen-${registro?._id || "nuevo"}`}
                   checked={origen === "mano"}
                   disabled={guardando}
-                  onChange={() => { setOrigen("mano"); setErrores((er) => ({ ...er, bolsaAhorro: "" })); }}
+                  onChange={() => { setOrigen("mano"); setAvisoRaya(null); setErrores((er) => ({ ...er, bolsaAhorro: "" })); }}
                 />
                 <span>De mi plata</span>
               </label>
@@ -574,7 +614,7 @@ const FormMovimiento = ({
                   name={`origen-${registro?._id || "nuevo"}`}
                   checked={origen === "ahorro"}
                   disabled={guardando}
-                  onChange={() => setOrigen("ahorro")}
+                  onChange={() => { setOrigen("ahorro"); setAvisoRaya(null); }}
                 />
                 <span>De mis ahorros</span>
               </label>
@@ -759,20 +799,61 @@ const FormMovimiento = ({
           />
         </div>
 
+        {/* La advertencia de cruzar la raya. No es un modal a propósito: se
+            planta justo encima del botón que se iba a tocar, con el monto que
+            se acaba de escribir a la vista y sin tapar el formulario. Es la
+            misma decisión que ya se había tomado con el tope del ahorro
+            (inline, no en un toast que se va solo). */}
+        {avisoRaya && (
+          <div className="fin-aviso-raya" role="alert">
+            <p className="fin-aviso-raya__titulo">
+              ⚠️ Con esto empezás a gastar lo del mes pasado
+            </p>
+            <p className="fin-aviso-raya__texto">
+              Sin tocar el arrastre te quedaban <strong>{formatCRC(avisoRaya.margen)}</strong>
+              {" "}y este gasto es de <strong>{formatCRC(avisoRaya.seVa)}</strong>: se irían{" "}
+              <strong>{formatCRC(avisoRaya.deMasPasado)}</strong> de lo que traías del mes pasado.
+            </p>
+            <div className="fin-aviso-raya__botones">
+              <button
+                type="button"
+                className="admin-btn-ghost"
+                onClick={() => setAvisoRaya(null)}
+                disabled={guardando}
+              >
+                Mejor no
+              </button>
+              <button
+                type="submit"
+                className="btn admin-btn admin-btn--orange fw-bold"
+                disabled={guardando || (esUSD && !tcListo)}
+              >
+                {guardando && <span className="btn-spinner" />}
+                {guardando ? "Guardando..." : "Gastarlo igual"}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className={enModal ? "d-flex gap-2 justify-content-end" : ""}>
           {onCancelar && (
             <button type="button" className="admin-btn-ghost" onClick={onCancelar} disabled={guardando}>
               Cancelar
             </button>
           )}
-          <button
-            type="submit"
-            className={`btn admin-btn admin-btn--green fw-bold ${enModal ? "px-4" : "w-100"}`}
-            disabled={guardando || (esUSD && !tcListo)}
-          >
-            {guardando && <span className="btn-spinner" />}
-            {guardando ? "Guardando..." : esEdicion ? "Guardar cambios" : "Guardar"}
-          </button>
+          {/* Mientras el aviso está en pantalla, el botón normal desaparece: la
+              decisión pasa a ser "Mejor no" / "Gastarlo igual", sin una tercera
+              vía que se saltee el aviso sin leerlo. */}
+          {!avisoRaya && (
+            <button
+              type="submit"
+              className={`btn admin-btn admin-btn--green fw-bold ${enModal ? "px-4" : "w-100"}`}
+              disabled={guardando || (esUSD && !tcListo)}
+            >
+              {guardando && <span className="btn-spinner" />}
+              {guardando ? "Guardando..." : esEdicion ? "Guardar cambios" : "Guardar"}
+            </button>
+          )}
         </div>
       </div>
     </form>
@@ -984,6 +1065,37 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
     { clave: "ahorro", que: "Ahorraste", monto: totalAhorro, signo: "−" },
   ];
 
+  // Cuánto se puede gastar SIN tocar lo que se traía del mes pasado. Es
+  // exactamente la resta de las dos puntas de la escalera de arriba —"Te queda"
+  // menos "Tenías del mes pasado"—, así que se puede verificar a ojo en la
+  // misma tarjeta. El backend ya lo manda como `variacionSaldo`; la resta queda
+  // de respaldo por si el backend es viejo.
+  //
+  // Va con la misma fila que los escalones, pero DESPUÉS del total: no es otro
+  // sumando, es una lectura del total.
+  //
+  // Tres estados, y el monto se pinta del color del estado (ver estadoMargen):
+  //   bien   → hay aire, va en negro como cualquier otra fila.
+  //   ojo    → queda poco (menos del 10% de lo que entró): ámbar y avisa que lo
+  //            siguiente ya sale del arrastre. Es el aviso ANTES de pasarse.
+  //   pasado → el mes ya se comió parte del arrastre. Ahí no hay margen que
+  //            anunciar, así que el monto queda en ₡0 —un "podés gastar hasta
+  //            −₡40.000" no se entiende— y la nota dice cuánto ya se usó.
+  // El rótulo no cambia nunca, para que la fila se lea igual en los tres casos.
+  const margenMes = resumen?.variacionSaldo ?? saldoFinal - saldoInicial;
+  const estadoM = estadoMargen(margenMes, totalIngresos);
+  const puedoGastar = {
+    que: "Podés gastar hasta",
+    monto: Math.max(0, margenMes),
+    nota:
+      estadoM === "pasado"
+        ? `ya usaste ${formatCRC(Math.abs(margenMes))} de lo del mes pasado`
+        : estadoM === "ojo"
+          ? "⚠️ te queda poco: pasado esto, gastás lo del mes pasado"
+          : "sin tocar lo del mes pasado",
+    clase: COLOR_MARGEN[estadoM],
+  };
+
   const filasAhorro = [
     { clave: "arrastre", que: "Tenías ahorrado", monto: ahorroInicial },
     { clave: "aparte", que: "Ahorraste", monto: totalAhorro, signo: "+" },
@@ -1099,6 +1211,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                 ahorroCfg={ahorroCfg}
                 mes={mes}
                 anio={anio}
+                margen={{ disponible: margenMes }}
                 getAuthHeaders={getAuthHeaders}
                 mostrarNotif={mostrarNotif}
                 manejarError={manejarError}
@@ -1118,6 +1231,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
               totalQue="Te queda"
               totalMonto={saldoFinal}
               totalClase={saldoFinal >= 0 ? "plata" : "rojo"}
+              pie={puedoGastar}
             />
             <div>
               <Escalera
@@ -1281,6 +1395,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
           ahorroCfg={ahorroCfg}
           mes={mes}
           anio={anio}
+          margen={{ disponible: margenMes }}
           getAuthHeaders={getAuthHeaders}
           mostrarNotif={mostrarNotif}
           manejarError={manejarError}
