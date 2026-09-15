@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#000000" />
 
+    <!-- La app es de tema CLARO siempre (tarjetas blancas, texto oscuro). Sin
+         esto, en un teléfono con el modo oscuro del sistema el navegador pinta
+         los controles nativos —select, input, la lista de opciones, el
+         calendario, el autocompletado— con fondo oscuro debajo del texto
+         oscuro que pide el CSS, y Chrome de Android además le aplica su "Auto
+         Dark Theme" a toda la página. Va acá además de en index.css para que
+         valga desde el primer pintado, antes de que cargue el CSS. -->
+    <meta name="color-scheme" content="light" />
+
     <!-- Pre-conectar al backend -->
     <link rel="preconnect" href="https://chosen-sandra-jefernee-f13f70d9.koyeb.app/" />
     <link rel="dns-prefetch" href="https://chosen-sandra-jefernee-f13f70d9.koyeb.app/" />

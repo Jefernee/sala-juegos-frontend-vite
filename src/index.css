@@ -1,3 +1,32 @@
+/* ─── EL TEMA DE LA APP ES CLARO, SIEMPRE ────────────────────────────────────
+   La app está diseñada en claro: las tarjetas, los paneles, los modales y los
+   campos son blancos con texto oscuro (#1f2937). No hay una versión oscura.
+
+   Sin esta línea el navegador no sabe eso, y en un teléfono con el modo oscuro
+   del sistema encendido pasan dos cosas, las dos rompiendo el texto:
+
+   1. Los controles NATIVOS (input, select, la lista de <option>, textarea, el
+      calendario de los campos de fecha, el relleno del autocompletado y las
+      barras de scroll) los pinta el sistema, no el CSS. En modo oscuro los
+      pinta con fondo oscuro… y encima queda el texto oscuro que pide el CSS:
+      oscuro sobre oscuro, ilegible. Es lo que se ve peor en los formularios
+      de Finanzas, que son casi todos selects.
+   2. Chrome de Android, además, enciende su "Auto Dark Theme": repinta de
+      oscuro los fondos claros que él decide, pero respeta los colores de texto
+      que el CSS fija explícitamente. El resultado es el mismo: texto oscuro
+      sobre una tarjeta que él oscureció.
+
+   `color-scheme: light` resuelve las dos de una: le dice al navegador que
+   pinte los controles nativos en claro y lo saca del Auto Dark Theme. Va en
+   :root (y también como <meta> en index.html, para que aplique desde el primer
+   pintado y no haya un parpadeo mientras carga el CSS).
+
+   Bootstrap 5.3 NO lo declara por su cuenta: solo pone `color-scheme: dark`
+   dentro de [data-bs-theme=dark], que la app no usa. Por eso hace falta acá. */
+:root {
+  color-scheme: light;
+}
+
 body {
   margin: 0;
   /* Las fuentes se cargan en index.html. El stack de atrás es el que había
