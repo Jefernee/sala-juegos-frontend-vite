@@ -723,7 +723,6 @@ const PlaysManagement = () => {
     setErrores({});
     setTiempoPagadoInput({ horas: "", minutos: "" });
     setTiempoPendienteInput({ horas: "", minutos: "" });
-    setDesgloseCostos({ subtotal: 0, costoControles: 0, total: 0 });
     setCobroOriginal(null);   // formulario limpio: no hay cobro que conservar
     setModoRegistro("tiempo");
     setMontoInput("");
