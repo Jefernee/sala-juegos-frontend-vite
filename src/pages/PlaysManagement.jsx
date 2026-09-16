@@ -255,8 +255,12 @@ const PlaysManagement = () => {
   const guardandoRef = useRef(false);
   // Foto del cobro tal como estaba al ABRIR una edición. Sirve para no
   // recalcular el monto cuando la edición no tocó nada que lo afecte: ver
-  // `cobroIntacto` en handleSubmit. null = no estamos editando.
-  const cobroOriginalRef = useRef(null);
+  // `cobroIntacto`. null = no estamos editando.
+  //
+  // Es estado y no ref a propósito: el Resumen de Cobro tiene que mostrar este
+  // monto, y un ref no vuelve a pintar. Con un ref, la pantalla mostraba el
+  // monto recalculado (₡667) mientras se guardaba el conservado (₡700).
+  const [cobroOriginal, setCobroOriginal] = useState(null);
   const [guardandoPlay, setGuardandoPlay] = useState(false);
   const [mostrarNotificacion, setMostrarNotificacion] = useState(false);
   const [notificacion, setNotificacion] = useState(null);
@@ -305,11 +309,6 @@ const PlaysManagement = () => {
   const [tiempoPendienteInput, setTiempoPendienteInput] = useState({
     horas: "",
     minutos: "",
-  });
-  const [desgloseCostos, setDesgloseCostos] = useState({
-    subtotal: 0,
-    costoControles: 0,
-    total: 0,
   });
   // Modo de registro: "tiempo" (calcula monto desde el tiempo) o
   // "monto" (calcula el tiempo desde el monto recibido, guardando el monto exacto)
@@ -366,21 +365,6 @@ const PlaysManagement = () => {
       }
     }
   }, [formData.horaInicio, formData.tiempoPagado]);
-
-  useEffect(() => {
-    setDesgloseCostos(
-      calcularCostos(
-        formData.lugarDeJuego,
-        formData.tiempoPagado,
-        formData.totalControles,
-      ),
-    );
-  }, [
-    formData.lugarDeJuego,
-    formData.tiempoPagado,
-    formData.totalControles,
-    calcularCostos,
-  ]);
 
   // En modo "monto": el monto ingresado es el pago por el TIEMPO. Los controles
   // se cobran aparte (se suman al total). Convertimos el monto a minutos según
@@ -556,14 +540,48 @@ const PlaysManagement = () => {
   // Ping Pong no lleva juego jugado ni controles: esos campos se ocultan.
   const pingPong = esPingPong(formData.lugarDeJuego);
 
+  // ¿La edición dejó intacto lo que se cobró por el TIEMPO?
+  //
+  // Si no se tocó ni el tiempo ni el lugar, lo cobrado por el tiempo se conserva
+  // tal cual y sólo se le vuelven a sumar los controles (que sí pueden haber
+  // cambiado). Recalcularlo desde el tiempo lo movería, porque un play cobrado
+  // por monto guarda el tiempo redondeado a múltiplos de 5 min y volver atrás no
+  // devuelve el mismo número (₡700 en un Play 5 → 40 min → ₡667).
+  //
+  // Se calcula acá, en el render, para que el Resumen de Cobro y el guardado
+  // salgan del MISMO número. Si se calculara sólo al guardar, la pantalla
+  // mostraría una cosa y se grabaría otra.
+  //
+  // Sólo aplica en modo "tiempo", que es como se abre toda edición. Si el
+  // usuario cambió a modo monto a mano, quiso escribir un monto nuevo y ese
+  // manda (cambiarModo ya limpió esta foto).
+  const cobroIntacto = Boolean(
+    editando &&
+      modoRegistro === "tiempo" &&
+      cobroOriginal &&
+      cobroOriginal.tiempoPagado === formData.tiempoPagado &&
+      cobroOriginal.lugarDeJuego === formData.lugarDeJuego,
+  );
+
   const controlesPagadosUI = pingPong
     ? 0
     : Math.max(0, (Number(formData.totalControles) || 0) - 2);
   const costoControlesUI = controlesPagadosUI * 200;
+  // Lo que se cobra por el TIEMPO (sin controles). Se calcula acá en el render,
+  // no en un useEffect, para que nunca vaya un paso atrás de lo que se ve.
   const subtotalTiempoUI =
     modoRegistro === "monto"
       ? Number(montoInput) || 0
-      : desgloseCostos.subtotal;
+      : cobroIntacto
+        ? cobroOriginal.montoTiempo
+        : calcularCostos(
+            formData.lugarDeJuego,
+            formData.tiempoPagado,
+            formData.totalControles,
+          ).subtotal;
+
+  // ESTE es el número que se muestra Y el que se guarda. Uno solo, para que no
+  // puedan discrepar (antes la pantalla mostraba ₡667 y se grababa ₡700).
   const montoFinalUI = subtotalTiempoUI + costoControlesUI;
 
   const handleInputChange = (e) => {
@@ -600,18 +618,26 @@ const PlaysManagement = () => {
     }
   };
 
+  // Cambiar de modo es cambiar CÓMO se escribe el cobro, no cuánto es. El total
+  // tiene que quedar igual: se arrastra el valor de un modo al otro.
+  //
+  // Antes esto vaciaba el monto y ponía el tiempo en 0, así que apenas tocabas
+  // el botón el cobro final caía a ₡0 y había que volver a escribir todo.
   const cambiarModo = (modo) => {
-    // Cambiar de modo a mano es decir "quiero cobrar esto de otra forma": se
-    // limpia el campo y el monto pasa a salir de lo que se escriba ahora, no
-    // del que traía el registro.
-    cobroOriginalRef.current = null;
-    setModoRegistro(modo);
-    setMontoInput("");
+    if (modo === modoRegistro) return;
     if (modo === "monto") {
-      // El tiempo se calculará desde el monto; limpiamos el tiempo manual.
-      setTiempoPagadoInput({ horas: "", minutos: "" });
-      setFormData((prev) => ({ ...prev, tiempoPagado: 0 }));
+      // Lo que ya se cobra por el tiempo pasa al campo de monto. Vacío sólo si
+      // todavía no hay nada que cobrar (formulario recién abierto).
+      setMontoInput(subtotalTiempoUI > 0 ? String(subtotalTiempoUI) : "");
+    } else {
+      // Volviendo a tiempo: el tiempo ya está derivado del monto y se conserva,
+      // así que el total se sostiene solo. El campo de monto deja de aplicar.
+      setMontoInput("");
     }
+    setModoRegistro(modo);
+    // Ojo: NO se limpia cobroOriginal. Si la vuelta deja el tiempo y el lugar
+    // como estaban, el monto original sigue valiendo y el total vuelve a ser el
+    // mismo; y si el tiempo cambió, `cobroIntacto` da false solo y se recalcula.
   };
 
   const handleTiempoPagadoChange = (tipo, valor) => {
@@ -698,7 +724,7 @@ const PlaysManagement = () => {
     setTiempoPagadoInput({ horas: "", minutos: "" });
     setTiempoPendienteInput({ horas: "", minutos: "" });
     setDesgloseCostos({ subtotal: 0, costoControles: 0, total: 0 });
-    cobroOriginalRef.current = null;   // formulario limpio: no hay cobro que conservar
+    setCobroOriginal(null);   // formulario limpio: no hay cobro que conservar
     setModoRegistro("tiempo");
     setMontoInput("");
     setEditando(null);
@@ -773,38 +799,12 @@ const PlaysManagement = () => {
         : formData.totalControles;
       // Los 2 primeros controles son gratis; del 3.º en adelante ₡200 c/u.
       const controlesPagados = Math.max(0, totalControlesAEnviar - 2);
-      // ¿La edición dejó intacto lo que se cobró por el TIEMPO?
-      //
-      // Si no se tocó ni el tiempo ni el lugar, lo cobrado por el tiempo no
-      // tiene por qué moverse: se conserva tal cual y sólo se le vuelven a sumar
-      // los controles (que sí pueden haber cambiado en esta edición).
-      // Recalcularlo desde el tiempo lo cambiaría, porque un play cobrado por
-      // monto guarda el tiempo redondeado a múltiplos de 5 min y volver atrás no
-      // devuelve el mismo número (₡700 en un Play 5 → 40 min → ₡667).
-      //
-      // Sólo aplica en modo "tiempo", que es como se abre toda edición. Si el
-      // usuario cambió a modo monto a mano, quiso escribir un monto nuevo y ese
-      // manda (cambiarModo ya limpió esta foto).
-      const orig = cobroOriginalRef.current;
-      const cobroIntacto =
-        editando &&
-        modoRegistro === "tiempo" &&
-        orig &&
-        orig.tiempoPagado === formData.tiempoPagado &&
-        orig.lugarDeJuego === formData.lugarDeJuego;
-
-      // Monto real cobrado (ingreso): tiempo + controles en ambos modos.
-      // En modo "monto" el monto ingresado es el pago del tiempo y los controles
-      // se suman aparte; en modo "tiempo" es el total calculado.
-      const montoPagado = cobroIntacto
-        ? orig.montoTiempo + controlesPagados * 200
-        : modoRegistro === "monto"
-          ? (Number(montoInput) || 0) + controlesPagados * 200
-          : calcularCostos(
-              formData.lugarDeJuego,
-              formData.tiempoPagado,
-              totalControlesAEnviar,
-            ).total;
+      // Se guarda EXACTAMENTE el número que el usuario está viendo en el
+      // Resumen de Cobro. No se recalcula acá: cualquier cuenta paralela vuelve
+      // a abrir la puerta a que la pantalla diga una cosa y se grabe otra.
+      // `montoFinalUI` ya contempla los tres casos (monto escrito a mano, monto
+      // conservado de la edición, y cálculo por tiempo) más los controles.
+      const montoPagado = montoFinalUI;
       const datosAEnviar = {
         cliente: formData.cliente,
         atendio: formData.atendio,
@@ -916,14 +916,14 @@ const PlaysManagement = () => {
       0,
       play.controlAdicional ?? Math.max(0, (play.totalControles || 0) - 2),
     );
-    cobroOriginalRef.current = {
+    setCobroOriginal({
       montoTiempo: Math.max(
         0,
         Math.round(play.montoPagado || 0) - controlesPagadosOriginal * 200,
       ),
       tiempoPagado: play.tiempoPagado,
       lugarDeJuego: play.lugarDeJuego,
-    };
+    });
     setEditando(play._id);
     setMostrarFormulario(true);
   };
