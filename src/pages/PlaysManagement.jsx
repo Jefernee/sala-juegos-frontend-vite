@@ -99,6 +99,34 @@ const precioPorHora = (lugar) => {
   return 0;
 };
 
+// Controles cobrados: los 2 primeros son gratis, del 3.º en adelante ₡200 c/u.
+// Se lee de `controlAdicional`, que YA son los controles cobrados, porque los
+// registros viejos pueden no tener `totalControles`.
+const costoDeControles = (play) =>
+  Math.max(
+    0,
+    play.controlAdicional ?? Math.max(0, (play.totalControles || 0) - 2),
+  ) * 200;
+
+// ¿Este play se cobró escribiendo el MONTO (y no el tiempo)?
+//
+// Importa al editar: hay que reabrir el formulario en el modo en que se
+// registró. Si un play cobrado por monto se reabre en modo tiempo, al guardar
+// el monto se recalcula desde el tiempo y cambia solo, porque al derivar el
+// tiempo se redondeó a múltiplos de 5 min (₡700 en Play 5 → 40 min → ₡667).
+//
+// Los registros nuevos traen `modoRegistro` y no hay nada que adivinar. Los
+// viejos no lo tienen, así que se deduce: si el monto cobrado NO coincide con
+// lo que daría el tiempo, sólo pudo escribirse a mano. Si coincide, da igual
+// cuál haya sido —ambos modos producen el mismo número— y "tiempo" es correcto.
+const fueRegistradoPorMonto = (play) => {
+  if (play.modoRegistro) return play.modoRegistro === "monto";
+  const pph = precioPorHora(play.lugarDeJuego);
+  if (!pph || !play.tiempoPagado) return false;
+  const esperado = Math.round((play.tiempoPagado / 60) * pph) + costoDeControles(play);
+  return Math.round(play.montoPagado || 0) !== esperado;
+};
+
 // ✅ Constante fuera del componente para que useEffect no la detecte como cambio
 const FILTROS_VACIOS = {
   soloPendiente: false,
@@ -253,6 +281,13 @@ const PlaysManagement = () => {
   //    rapidos pueden entrar los dos antes de que React vuelva a pintar.
   //  - el ESTADO es para que se vea: apaga el boton y le cambia el texto.
   const guardandoRef = useRef(false);
+  // Al ABRIR la edición de un play cobrado por monto se rellena el campo de
+  // monto, y eso dispararía el efecto que deriva el tiempo, pisando el tiempo
+  // que el registro ya tenía guardado. Con descuentos ese tiempo NO se deduce
+  // del monto (₡900 por una hora de Play 5 daría 55 min, no 60), así que
+  // derivarlo sería corromperlo. Esta bandera se salta esa primera derivación;
+  // si después el usuario toca el monto, el efecto vuelve a funcionar normal.
+  const saltarDerivacionRef = useRef(false);
   const [guardandoPlay, setGuardandoPlay] = useState(false);
   const [mostrarNotificacion, setMostrarNotificacion] = useState(false);
   const [notificacion, setNotificacion] = useState(null);
@@ -383,6 +418,11 @@ const PlaysManagement = () => {
   // ₡/hora del lugar, redondeando a múltiplos de 5 min.
   useEffect(() => {
     if (modoRegistro !== "monto") return;
+    // Abriendo una edición: el tiempo ya viene del registro, no se deriva.
+    if (saltarDerivacionRef.current) {
+      saltarDerivacionRef.current = false;
+      return;
+    }
     const monto = Number(montoInput) || 0;
     const pph = precioPorHora(formData.lugarDeJuego);
     if (!pph || !monto) {
@@ -597,6 +637,8 @@ const PlaysManagement = () => {
   };
 
   const cambiarModo = (modo) => {
+    // Cambio pedido por el usuario: acá sí se deriva.
+    saltarDerivacionRef.current = false;
     setModoRegistro(modo);
     setMontoInput("");
     if (modo === "monto") {
@@ -690,6 +732,7 @@ const PlaysManagement = () => {
     setTiempoPagadoInput({ horas: "", minutos: "" });
     setTiempoPendienteInput({ horas: "", minutos: "" });
     setDesgloseCostos({ subtotal: 0, costoControles: 0, total: 0 });
+    saltarDerivacionRef.current = false;   // formulario limpio, sin nada que preservar
     setModoRegistro("tiempo");
     setMontoInput("");
     setEditando(null);
@@ -789,6 +832,7 @@ const PlaysManagement = () => {
         totalControles: totalControlesAEnviar, // total de controles usados (1-4)
         controlAdicional: controlesPagados,       // controles pagados (compat. costo/reportes)
         montoPagado,                              // monto real cobrado (fuente de verdad del ingreso)
+        modoRegistro,                             // para poder reabrir la edición en el mismo modo
         estadoPago: formData.estadoPago,
       };
       if (editando) {
@@ -859,9 +903,26 @@ const PlaysManagement = () => {
       estadoPago: ESTADOS_PAGO.includes(play.estadoPago) ? play.estadoPago : "",
     });
     setErrores({});
-    // Al editar siempre mostramos el modo por tiempo (el registro ya tiene tiempo)
-    setModoRegistro("tiempo");
-    setMontoInput("");
+    // El play se reabre EN EL MODO EN QUE SE REGISTRÓ.
+    //
+    // Antes se forzaba siempre "tiempo" y se borraba el monto. Para un play
+    // cobrado por monto eso era destructivo: al guardar, el monto se recalculaba
+    // desde el tiempo y cambiaba solo, sin que nadie tocara nada. Y no cuadraba,
+    // porque el tiempo derivado se había redondeado a múltiplos de 5 min
+    // (₡700 en Play 5 → 40 min → al guardar quedaba ₡667). Hasta ₡33 por edición,
+    // en el 80% de los montos de Play 5, y se lo comía el reporte de ingresos.
+    if (fueRegistradoPorMonto(play)) {
+      // El campo de monto cobra sólo el TIEMPO; los controles se suman aparte
+      // al guardar, así que hay que descontarlos para no cobrarlos dos veces.
+      saltarDerivacionRef.current = true;   // no pisar el tiempo ya guardado
+      setModoRegistro("monto");
+      setMontoInput(
+        String(Math.max(0, Math.round(play.montoPagado || 0) - costoDeControles(play))),
+      );
+    } else {
+      setModoRegistro("tiempo");
+      setMontoInput("");
+    }
     setEditando(play._id);
     setMostrarFormulario(true);
   };
