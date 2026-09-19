@@ -526,13 +526,14 @@ const CompraFormModal = ({ juegoId, ficha, compra, esComplemento, getAuthHeaders
 const TarjetaJuego = ({ juego, onAbrir }) => (
   <button className={`jg-card ${juego.noSeOfrece ? "jg-card--retirado" : ""}`} onClick={() => onAbrir(juego)}>
     <div className="jg-card__portada">
-      {/* La foto va entera sobre fondo oscuro, sin rellenar los costados: así
-          se ve de una la FORMA real de cada portada —Rocket League acostada,
-          una carátula vertical angosta— que es como se va a mostrar en la
-          página. El marco se mantiene cuadrado para que la cuadrícula quede
-          pareja y se pueda barrer con la vista. */}
       {juego.imagenUrl ? (
-        <img src={juego.imagenUrl} alt={juego.nombre} loading="lazy" className="jg-portada__img" />
+        <>
+          {/* La misma foto, borrosa y de fondo: así la portada se ve completa
+              sin recortes y sin barras vacías, no importa si la imagen es
+              apaisada (una captura) o vertical (una carátula). */}
+          <img src={juego.imagenUrl} alt="" aria-hidden="true" className="jg-portada__fondo" />
+          <img src={juego.imagenUrl} alt={juego.nombre} loading="lazy" className="jg-portada__img" />
+        </>
       ) : (
         <span className="jg-card__sinfoto">🎮</span>
       )}
@@ -684,7 +685,10 @@ const DetalleJuego = ({ juego, getAuthHeaders, mostrarNotif, manejarError, onVol
       <div className="jg-detalle">
         <div className="jg-detalle__portada">
           {juego.imagenUrl ? (
-            <img src={juego.imagenUrl} alt={juego.nombre} className="jg-portada__img" />
+            <>
+              <img src={juego.imagenUrl} alt="" aria-hidden="true" className="jg-portada__fondo" />
+              <img src={juego.imagenUrl} alt={juego.nombre} className="jg-portada__img" />
+            </>
           ) : (
             <span className="jg-card__sinfoto">🎮</span>
           )}
