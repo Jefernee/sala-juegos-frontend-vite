@@ -1,8 +1,9 @@
 // src/pages/PlaysManagement.jsx
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import "../styles/PlaysManagement.css";
 import Navbar from "../components/NavBar2";
+import { JUEGOS_BASE, fusionarJuegos } from "../constants/juegos";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -22,57 +23,6 @@ const LUGARES_JUEGO = [
   "Ping Pong",
 ];
 
-const JUEGOS_DISPONIBLES = [
-  "Dragon Ball Sparking Zero",
-  "FIFA 26",
-  "Call of Duty 3",
-  "Call of Duty 4",
-  "Call of Duty 6",
-  "Mortal Kombat 1",
-  "Mortal Kombat 11",
-  "Mortal Kombat XL",
-  "Gran turismo Sport",
-  "Gran turismo 7",
-  "Kimetsu no Yaiba",
-  "Naruto Shippuden",
-  "NBA 2K24",
-  "GTA V",
-  "Minecraft",
-  "Fortnite",
-  "Rocket League",
-  "EA Sports FC",
-  "Resident Evil",
-  "Spider-Man 2",
-  "God of War Ragnarök",
-  "Days Gone",
-  "Dead Cells",
-  "Crash",
-  "Stick Fight",
-  "Oddballers",
-  "Call of Duty Modern Warfare 3",
-  "Spider-Man Miles Morales",
-  "Naruto to Boruto",
-  "FIFA 25",
-  "Jurassic World 2",
-  "Roblox",
-  "World War Z Aftermath",
-  "Assetto Corsa",
-  "Call of Duty Warzone",
-  "Overcooked",
-  "Efootball",
-  "Minecraft Dungeons",
-  "Rayman Legends",
-  "Assassin's Creed Valhalla",
-  "The Last of Us",
-  "God of War",
-  "Fall Guys",
-  "Sackboy",
-  "Need for Speed Heat",
-  "Star Wars Jedi",
-  "Minecraft Legends",
-  "Uncharted 4",
-  "Call of Duty 2",
-];
 
 // Estados de pago. Se quitó "En Proceso": ahora es obligatorio elegir
 // Completado o Pendiente (arranca vacío para que se seleccione a propósito).
@@ -284,6 +234,9 @@ const PlaysManagement = () => {
   const [primeraCarga, setPrimeraCarga] = useState(true);
   // Los campos de "pendiente mínimo" viven plegados: se abren solo si se piden.
   const [mostrarMinimo, setMostrarMinimo] = useState(false);
+  // Los juegos que la sala tiene anotados como activo (categorías de juego).
+  // Llegan del backend y se suman a JUEGOS_BASE en el selector.
+  const [juegosDeActivos, setJuegosDeActivos] = useState([]);
 
   const [formData, setFormData] = useState({
     fecha: new Date().toISOString().split("T")[0],
@@ -476,6 +429,37 @@ const PlaysManagement = () => {
     fetchPlays(1, FILTROS_VACIOS);
     document.title = "Gestión de Plays - Sala de Juegos Ruiz";
   }, [fetchPlays]);
+
+  // ✅ Los juegos que la sala tiene como activo se suman solos al selector:
+  //    anotar un juego comprado en Activos basta para poder elegirlo acá.
+  //    Si la consulta falla, el formulario se queda con JUEGOS_BASE y nadie
+  //    se queda sin registrar un play por esto.
+  useEffect(() => {
+    let vigente = true;
+    (async () => {
+      try {
+        const axios = await getAxios();
+        const respuesta = await axios.get(
+          `${API_URL}/api/plays/juegos`,
+          getAuthHeaders(),
+        );
+        if (vigente) setJuegosDeActivos(respuesta.data?.data || []);
+      } catch (error) {
+        console.error("No se pudieron cargar los juegos de Activos:", error);
+      }
+    })();
+    return () => {
+      vigente = false;
+    };
+  }, [getAuthHeaders]);
+
+  // Lista final del selector: primero los de siempre, después los que son
+  // activos y al final los del play que se esté editando — un juego que se
+  // borró de Activos no puede desaparecer de su propio registro viejo.
+  const juegosDisponibles = useMemo(
+    () => fusionarJuegos(JUEGOS_BASE, juegosDeActivos, formData.juegosJugados),
+    [juegosDeActivos, formData.juegosJugados],
+  );
 
   // Debounce de la búsqueda: espera 300 ms sin teclas antes de consultar, para
   // no pegarle al servidor en cada letra. Siempre vuelve a la página 1: la
@@ -1203,7 +1187,7 @@ const PlaysManagement = () => {
                         onChange={handleJuegoChange}
                         size="3"
                       >
-                        {JUEGOS_DISPONIBLES.map((j) => (
+                        {juegosDisponibles.map((j) => (
                           <option key={j} value={j}>
                             {j}
                           </option>
