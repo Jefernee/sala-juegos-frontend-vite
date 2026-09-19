@@ -1,15 +1,19 @@
 /* Carrusel de juegos de la página principal.
-   Sin librerías: es una fila que se desplaza, con scroll-snap para que las
-   tarjetas queden alineadas y flechas que avanzan de a una pantalla. En el
-   teléfono se arrastra con el dedo, que es como la gente espera moverlo. */
+   Sin librerías: es una fila que se desplaza. En el teléfono se arrastra con
+   el dedo, que es como la gente espera moverlo.
+
+   LAS PORTADAS VAN COMO UNA TIRA DE CINE: todas del mismo ALTO y el ancho lo
+   pone cada foto. Las 50 portadas vienen de todas las formas —14 verticales
+   tipo carátula, 17 casi cuadradas y 19 apaisadas—, así que obligarlas a un
+   marco común dejaba a unas con franjas de relleno y a otras diminutas.
+   Así se ven enteras, a su forma, sin recortes y sin relleno. */
 
 .cj-wrap {
-  /* El ancho de la tarjeta crece con la pantalla en vez de saltar por
-     escalones: 140px en un teléfono chico, 220px en un monitor grande, y
-     todos los tamaños del medio sin que nada quede apretado ni gigante.
-     La foto es cuadrada, así que este mismo valor es su altura: por eso
-     sirve también para centrar las flechas. */
-  --cj-ancho: clamp(140px, 15vw, 220px);
+  /* El alto crece con la pantalla en vez de saltar por escalones.
+     El mínimo de 180px no es al azar: la portada más ancha que hay (1.85 de
+     proporción) mide 333px a ese alto, y eso todavía entra entero en un
+     teléfono de 360px. Más alto y esa foto se saldría de la pantalla. */
+  --cj-alto: clamp(180px, 30vw, 240px);
   --cj-aire: 1rem;
   position: relative;
   margin: 0 auto;
@@ -17,6 +21,7 @@
 
 .cj-pista {
   display: flex;
+  align-items: flex-start;
   gap: var(--cj-aire);
   overflow-x: auto;
   scroll-snap-type: x proximity;
@@ -33,10 +38,7 @@
 
 .cj-item {
   flex: 0 0 auto;
-  width: var(--cj-ancho);
   scroll-snap-align: start;
-  text-decoration: none;
-  color: inherit;
   display: block;
   transition: transform 0.15s ease;
 }
@@ -46,35 +48,23 @@
 .cj-item:active { transform: scale(0.97); }
 
 .cj-foto {
-  position: relative;
-  aspect-ratio: 1 / 1;
-  border-radius: 14px;
-  overflow: hidden;
-  background: #0f172a;
+  height: var(--cj-alto);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.35);
 }
-/* La portada se ve ENTERA, y detrás va ella misma borrosa para rellenar: las
-   fotos llegan del teléfono, unas verticales y otras acostadas. */
-.cj-fondo {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: blur(14px) brightness(0.5);
-  transform: scale(1.15);
-}
+
+/* El alto manda y el ancho sale de la foto: así ninguna se recorta ni necesita
+   relleno. Una carátula vertical queda angosta y una captura apaisada, ancha;
+   eso es justamente lo que hace que la fila se vea natural. */
 .cj-img {
-  position: relative;
-  max-width: 100%;
-  max-height: 100%;
+  height: 100%;
   width: auto;
-  height: auto;
-  object-fit: contain;
+  max-width: none;
   display: block;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.35);
+  background: #0f172a;
 }
 
 .cj-nombre {
@@ -83,7 +73,12 @@
   font-weight: 600;
   text-align: center;
   line-height: 1.25;
-  /* Dos líneas como máximo: si no, un nombre largo desalinea toda la fila. */
+  /* width:0 + min-width:100% es lo que impide que un nombre largo ensanche la
+     tarjeta más que su foto: el texto no cuenta para medir la tarjeta, pero
+     después ocupa todo el ancho que la foto definió. */
+  width: 0;
+  min-width: 100%;
+  /* Dos líneas como máximo, con altura pareja: si no, la fila se desalinea. */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -93,11 +88,11 @@
 
 /* ── Flechas ──
    Solo con mouse: en el teléfono estorban y el dedo ya arrastra.
-   Se centran contra la FOTO (no contra la tarjeta entera, que incluye el
+   Se centran contra la FOTO, no contra la tarjeta entera (que incluye el
    nombre debajo), por eso la cuenta usa el alto de la foto. */
 .cj-flecha {
   position: absolute;
-  top: calc(0.5rem + var(--cj-ancho) / 2);
+  top: calc(0.5rem + var(--cj-alto) / 2);
   transform: translateY(-50%);
   z-index: 3;
   width: 44px;

@@ -5,6 +5,11 @@
 // teclado. Las flechas se apagan solas al llegar a las puntas, así nadie toca
 // un botón que no hace nada.
 //
+// Las portadas van como una TIRA DE CINE: todas del mismo alto y el ancho lo
+// pone cada foto. Las 50 vienen de todas las formas (carátulas verticales,
+// capturas apaisadas, cuadradas), y obligarlas a un marco común dejaba a unas
+// con franjas de relleno y a otras diminutas.
+//
 // Las tarjetas NO son enlaces: los 50 juegos apuntaban al mismo catálogo
 // genérico de PS Plus, que ya está en el botón de abajo. Con el dedo, la gente
 // toca lo que ve, y abrir una pestaña con una página que no habla de ese juego
@@ -81,9 +86,8 @@ const CarruselJuegos = ({ juegos }) => {
         {juegos.map((juego) => (
           <article className="cj-item" key={juego.id}>
             <div className="cj-foto">
-              {/* La misma foto detrás, borrosa: así la portada se ve completa
-                  sin recortes, venga vertical del teléfono o acostada. */}
-              <img src={juego.imagen} alt="" aria-hidden="true" className="cj-fondo" />
+              {/* Una sola imagen, entera y a su forma: el alto lo pone la fila
+                  y el ancho lo pone la foto. Ni recorte ni relleno. */}
               <img src={juego.imagen} alt={juego.nombre} className="cj-img" loading="lazy" />
             </div>
             <p className="cj-nombre">{juego.nombre}</p>
