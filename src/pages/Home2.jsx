@@ -13,6 +13,7 @@ import "../styles/Home.css";
 
 // Importar componentes personalizados
 import OptimizedImage from '../components/OptimizedImage';
+import CarruselJuegos from '../components/CarruselJuegos';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 // Importar datos centralizados
@@ -33,6 +34,9 @@ function Home2() {
   // respaldo: si el servidor está dormido o falla, la página nunca se ve
   // vacía delante de un cliente.
   const [juegos, setJuegos] = useState(juegosData);
+  // Solo se muestra el número cuando llegó del servidor: con la lista de
+  // respaldo diría "5 juegos", que vende menos de lo que la sala tiene.
+  const [juegosReales, setJuegosReales] = useState(false);
 
   useEffect(() => {
     let vigente = true;
@@ -41,11 +45,11 @@ function Home2() {
       .then(({ data }) => {
         const vitrina = data?.data || [];
         if (vigente && vitrina.length) {
+          setJuegosReales(true);
           setJuegos(vitrina.map((j) => ({
             id: j._id,
             nombre: j.nombre,
             imagen: j.imagenUrl,
-            link: j.link || "https://www.playstation.com/es-es/ps-plus/",
           })));
         }
       })
@@ -291,23 +295,14 @@ function Home2() {
       {/* Juegos disponibles */}
       <section id="games" className="bg-custom py-5">
         <div className="container">
-          <h2 className="text-center mb-4">Los Mejores Juegos Disponibles</h2>
-          <div className="row text-center mb-4">
-            {juegos.map((juego) => (
-              <div key={juego.id} className="col-md-3 mb-3">
-                <a href={juego.link} target="_blank" rel="noopener noreferrer">
-                  <OptimizedImage
-                    src={juego.imagen}
-                    alt={juego.nombre}
-                    className="img-fluid rounded mb-3"
-                    style={{ width: "200px", height: "200px", objectFit: "cover" }}
-                    loadingHeight="200px"
-                  />
-                  <p>{juego.nombre}</p>
-                </a>
-              </div>
-            ))}
-          </div>
+          <h2 className="text-center mb-4">
+            {juegosReales ? `${juegos.length} juegos para elegir` : "Todos nuestros juegos"}
+          </h2>
+
+          {/* Antes era una grilla que mostraba 4 y escondía el resto. Con el
+              carrusel se pueden ver todos los que la sala tiene, sin que la
+              sección crezca a lo largo. */}
+          <CarruselJuegos juegos={juegos} />
 
           <div className="text-center">
             <a

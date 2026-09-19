@@ -1,0 +1,178 @@
+/* Carrusel de juegos de la página principal.
+   Sin librerías: es una fila que se desplaza, con scroll-snap para que las
+   tarjetas queden alineadas y flechas que avanzan de a una pantalla. En el
+   teléfono se arrastra con el dedo, que es como la gente espera moverlo. */
+
+.cj-wrap {
+  /* El ancho de la tarjeta crece con la pantalla en vez de saltar por
+     escalones: 140px en un teléfono chico, 220px en un monitor grande, y
+     todos los tamaños del medio sin que nada quede apretado ni gigante.
+     La foto es cuadrada, así que este mismo valor es su altura: por eso
+     sirve también para centrar las flechas. */
+  --cj-ancho: clamp(140px, 15vw, 220px);
+  --cj-aire: 1rem;
+  position: relative;
+  margin: 0 auto;
+}
+
+.cj-pista {
+  display: flex;
+  gap: var(--cj-aire);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  padding: 0.5rem 0.25rem 1rem;
+  /* Al saltar con las flechas, la tarjeta no queda pegada al borde. */
+  scroll-padding-left: 0.25rem;
+  /* La barra se esconde: las flechas y el arrastre ya dicen que hay más. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+.cj-pista::-webkit-scrollbar { display: none; }
+
+.cj-item {
+  flex: 0 0 auto;
+  width: var(--cj-ancho);
+  scroll-snap-align: start;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition: transform 0.15s ease;
+}
+.cj-item:hover { transform: translateY(-4px); }
+/* Con el dedo no hay hover: el toque tiene que devolver algo o se siente que
+   la pantalla no responde. */
+.cj-item:active { transform: scale(0.97); }
+
+.cj-foto {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.35);
+}
+/* La portada se ve ENTERA, y detrás va ella misma borrosa para rellenar: las
+   fotos llegan del teléfono, unas verticales y otras acostadas. */
+.cj-fondo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(14px) brightness(0.5);
+  transform: scale(1.15);
+}
+.cj-img {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.cj-nombre {
+  margin: 0.6rem 0 0;
+  font-size: clamp(0.82rem, 1.1vw, 0.95rem);
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.25;
+  /* Dos líneas como máximo: si no, un nombre largo desalinea toda la fila. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.5em;
+}
+
+/* ── Flechas ──
+   Solo con mouse: en el teléfono estorban y el dedo ya arrastra.
+   Se centran contra la FOTO (no contra la tarjeta entera, que incluye el
+   nombre debajo), por eso la cuenta usa el alto de la foto. */
+.cj-flecha {
+  position: absolute;
+  top: calc(0.5rem + var(--cj-ancho) / 2);
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(15, 23, 42, 0.85);
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.cj-flecha:hover { background: #0f172a; border-color: rgba(255, 255, 255, 0.5); }
+.cj-flecha:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+.cj-flecha:disabled { opacity: 0; pointer-events: none; }
+/* Pegadas al borde de adentro: así nunca empujan la página a lo ancho, por
+   angosta que sea la ventana. */
+.cj-flecha--izq { left: 2px; }
+.cj-flecha--der { right: 2px; }
+
+@media (hover: hover) and (min-width: 768px) {
+  .cj-flecha { display: flex; }
+}
+
+/* Difuminado en los bordes: se ve que la fila sigue. */
+.cj-wrap::before,
+.cj-wrap::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 3.2rem;
+  width: clamp(18px, 3vw, 44px);
+  pointer-events: none;
+  z-index: 2;
+}
+.cj-wrap::before { left: 0; background: linear-gradient(to right, var(--cj-fondo, #e5e7eb), transparent); }
+.cj-wrap::after { right: 0; background: linear-gradient(to left, var(--cj-fondo, #e5e7eb), transparent); }
+
+/* Barrita de posición: con 50 juegos, las flechas no dicen si vas por el
+   principio o por el final. Es informativa y no se toca — un riel de 4 px
+   sería un blanco imposible para un dedo, y quien lo intente se frustra. */
+.cj-barra {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.12);
+  margin: 0.2rem auto 0;
+  max-width: 220px;
+  overflow: hidden;
+}
+.cj-barra__pulgar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.5);
+  transition: left 0.12s linear;
+}
+
+.cj-contador {
+  text-align: center;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin: 0.25rem 0 0;
+}
+
+/* Quien pidió menos movimiento en su sistema no lo recibe. */
+@media (prefers-reduced-motion: reduce) {
+  .cj-pista { scroll-behavior: auto; }
+  .cj-item { transition: none; }
+  .cj-item:hover { transform: none; }
+  .cj-barra__pulgar { transition: none; }
+}
