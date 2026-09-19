@@ -254,14 +254,15 @@ const JuegoFormModal = ({ juego, nombreSugerido, getAuthHeaders, mostrarNotif, m
                     />
                   </div>
                   <div className="col-12">
-                    <label className="form-label">Nombre en el inventario</label>
+                    <label className="form-label">Nombre para el inventario (opcional)</label>
                     <input
                       className="form-control admin-input"
                       value={form.nombreInventario} onChange={set("nombreInventario")}
-                      placeholder="si lo dejás vacío se usa el mismo nombre" disabled={bloqueado}
+                      placeholder="si lo dejás vacío se usa el nombre del juego" disabled={bloqueado}
                     />
                     <small className="text-muted">
-                      Así el inventario puede decir "Juego: COD BO2" y el cliente ver el nombre lindo.
+                      Ej: "Juego: COD BO2 usuario Antoyef" — sirve para anotar en qué cuenta
+                      quedó. El cliente ve el nombre de arriba.
                     </small>
                   </div>
                 </div>
@@ -379,12 +380,16 @@ const ComplementoFormModal = ({ juego, getAuthHeaders, mostrarNotif, manejarErro
                 />
               </div>
               <div className="col-12">
-                <label className="form-label">Nombre en el inventario</label>
+                <label className="form-label">Nombre para el inventario (opcional)</label>
                 <input
                   className="form-control admin-input"
                   value={form.nombreInventario} onChange={set("nombreInventario")}
-                  placeholder="opcional" disabled={guardando}
+                  placeholder="si lo dejás vacío se usa el nombre de arriba" disabled={guardando}
                 />
+                <small className="text-muted">
+                  Ej: "DLC COD temporada 1 usuario Antoyef" — sirve para anotar en qué cuenta
+                  quedó.
+                </small>
               </div>
             </div>
           </div>
@@ -490,12 +495,16 @@ const CompraFormModal = ({ juegoId, ficha, compra, esComplemento, getAuthHeaders
             />
           </div>
           <div className="col-12">
-            <label className="form-label">Nombre en el inventario</label>
+            <label className="form-label">Nombre para el inventario (opcional)</label>
             <input
               className="form-control admin-input"
               value={form.nombreInventario} onChange={set("nombreInventario")}
               placeholder="si lo dejás vacío se usa el nombre del juego" disabled={guardando}
             />
+            <small className="text-muted">
+              Ej: "Juego: COD BO2 usuario Antoyef" — sirve para anotar en qué cuenta quedó.
+              El cliente ve el nombre del juego, no este.
+            </small>
           </div>
         </div>
       </div>
