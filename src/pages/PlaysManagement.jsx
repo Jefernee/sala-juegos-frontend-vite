@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Link } from "react-router-dom";
 import "../styles/PlaysManagement.css";
 import Navbar from "../components/NavBar2";
-import { JUEGOS_BASE, fusionarJuegos, ordenarPorPopularidad } from "../constants/juegos";
+import { JUEGOS_BASE, fusionarJuegos, ordenarPorPopularidad, filtrarJuegos } from "../constants/juegos";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -238,6 +238,11 @@ const PlaysManagement = () => {
   const [juegosDelCatalogo, setJuegosDelCatalogo] = useState([]);
   // Cuántas veces se jugó cada juego últimamente, para ordenar el selector.
   const [rankingJuegos, setRankingJuegos] = useState([]);
+  // Buscador del selector: escondido hasta que se pide, para no sumarle otro
+  // campo a un formulario que ya es largo, sobre todo en el teléfono.
+  const [buscarJuego, setBuscarJuego] = useState("");
+  const [verBuscador, setVerBuscador] = useState(false);
+  const buscadorRef = useRef(null);
 
   const [formData, setFormData] = useState({
     fecha: new Date().toISOString().split("T")[0],
@@ -474,6 +479,22 @@ const PlaysManagement = () => {
       rankingJuegos,
     );
   }, [juegosDelCatalogo, rankingJuegos, formData.juegosJugados]);
+
+  // Lo que se ve en el selector: la lista de arriba, filtrada por el buscador.
+  const juegosAlaVista = useMemo(
+    () => filtrarJuegos(juegosDisponibles, buscarJuego, formData.juegosJugados),
+    [juegosDisponibles, buscarJuego, formData.juegosJugados],
+  );
+
+  // Abrir o cerrar el buscador. Al cerrarlo se limpia, para no dejar la lista
+  // recortada sin que se vea por qué.
+  const alternarBuscador = () => {
+    setVerBuscador((antes) => {
+      if (antes) setBuscarJuego("");
+      else setTimeout(() => buscadorRef.current?.focus(), 0);
+      return !antes;
+    });
+  };
 
   // Debounce de la búsqueda: espera 300 ms sin teclas antes de consultar, para
   // no pegarle al servidor en cada letra. Siempre vuelve a la página 1: la
@@ -1191,9 +1212,42 @@ const PlaysManagement = () => {
                       </div>
                     ) : (
                     <div className="col-12" id="campo-juegosJugados">
-                      <label className="form-label fw-bold">
-                        Juegos Jugados agregar almenos 1 (máx. 2) *
-                      </label>
+                      {/* La lupa vive en la línea de la etiqueta: no le suma
+                          altura al formulario y el buscador solo aparece
+                          cuando alguien lo pide. */}
+                      <div className="juegos-etiqueta">
+                        <label className="form-label fw-bold mb-0">
+                          Juegos Jugados agregar almenos 1 (máx. 2) *
+                        </label>
+                        <button
+                          type="button"
+                          className={`juegos-lupa${verBuscador ? " juegos-lupa--activa" : ""}`}
+                          onClick={alternarBuscador}
+                          aria-label={verBuscador ? "Cerrar el buscador" : "Buscar un juego"}
+                          aria-expanded={verBuscador}
+                        >
+                          {verBuscador ? "✕" : "🔍"}
+                        </button>
+                      </div>
+
+                      {verBuscador && (
+                        <input
+                          ref={buscadorRef}
+                          type="search"
+                          className="form-control admin-input juegos-buscador"
+                          placeholder="Escribí parte del nombre..."
+                          value={buscarJuego}
+                          onChange={(e) => setBuscarJuego(e.target.value)}
+                          onKeyDown={(e) => {
+                            // Enter dentro de un form lo ENVÍA: acá eso
+                            // registraría el play a medio llenar. Buscar no
+                            // necesita Enter, la lista se filtra al escribir.
+                            if (e.key === "Enter") e.preventDefault();
+                            if (e.key === "Escape") alternarBuscador();
+                          }}
+                        />
+                      )}
+
                       <select
                         className={`form-select select-juegos-mejorado custom-select-mobile ${errores.juegosJugados ? "is-invalid" : ""}`}
                         multiple
@@ -1201,7 +1255,7 @@ const PlaysManagement = () => {
                         onChange={handleJuegoChange}
                         size="3"
                       >
-                        {juegosDisponibles.map((j) => (
+                        {juegosAlaVista.map((j) => (
                           <option key={j} value={j}>
                             {j}
                           </option>
@@ -1209,6 +1263,12 @@ const PlaysManagement = () => {
                       </select>
                       {errores.juegosJugados ? (
                         <div className="invalid-feedback d-block">{errores.juegosJugados}</div>
+                      ) : buscarJuego.trim() ? (
+                        <small className="text-muted d-block mt-1">
+                          {juegosAlaVista.length === 0
+                            ? `Ningún juego se llama «${buscarJuego.trim()}»`
+                            : `${juegosAlaVista.length} de ${juegosDisponibles.length} juegos`}
+                        </small>
                       ) : (
                         <small className="text-muted d-block mt-1">
                           💡 Mantén presionado para seleccionar múltiples

@@ -122,3 +122,16 @@ export const ordenarPorPopularidad = (juegos, ranking = []) => {
     (a, b) => (veces.get(normalizarJuego(b)) || 0) - (veces.get(normalizarJuego(a)) || 0),
   );
 };
+
+// Filtra la lista del selector por lo que se escribe en el buscador.
+//
+// Los juegos YA ELEGIDOS siempre quedan a la vista, aunque no coincidan con la
+// búsqueda: si desaparecieran, se vería un selector sin nada marcado y no
+// habría forma de desmarcarlos sin borrar lo escrito.
+export const filtrarJuegos = (juegos = [], texto = "", elegidos = []) => {
+  const buscado = normalizarJuego(texto);
+  if (!buscado) return [...juegos];
+  return juegos.filter(
+    (j) => normalizarJuego(j).includes(buscado) || elegidos.includes(j),
+  );
+};

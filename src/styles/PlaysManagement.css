@@ -927,3 +927,44 @@ textarea { font-size: 16px !important; }
   margin-top: 1.1rem;
 }
 .turno-modal__botones > * { flex: 1; }
+
+/* ─── Buscador del selector de juegos ───────────────────────────────────────
+   La lupa va en la misma línea de la etiqueta: con 50 juegos hace falta
+   buscar, pero el formulario ya es largo y no aguanta otro campo fijo. El
+   campo aparece solo cuando alguien toca la lupa, y se limpia al cerrarlo. */
+.juegos-etiqueta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.juegos-lupa {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.juegos-lupa:hover { background: rgba(255, 255, 255, 0.14); }
+.juegos-lupa--activa { background: rgba(245, 158, 11, 0.9); border-color: transparent; color: #fff; }
+
+.juegos-buscador {
+  margin-bottom: 0.45rem;
+}
+
+/* En el teléfono, el blanco del dedo no baja de 44px y el campo va a 16px
+   para que el navegador no haga zoom solo al tocarlo. */
+@media (max-width: 600px) {
+  .juegos-lupa { width: 44px; height: 44px; font-size: 1.05rem; }
+  .juegos-buscador { font-size: 16px; }
+}
