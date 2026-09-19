@@ -37,6 +37,15 @@ const CATEGORIAS = [
   "Otros",
 ];
 
+// Las categorías de juego siguen existiendo —los activos ya registrados las
+// tienen y los reportes las leen—, pero el formulario ya no las OFRECE: un
+// juego o un complemento se registra desde el módulo 🎮 Juegos, que además le
+// pone su portada y su nombre para el cliente. Si se ofrecieran acá, habría
+// dos formas de crear la misma compra y una quedaría sin ficha.
+const CATEGORIAS_FORMULARIO = CATEGORIAS.filter(
+  (c) => !["Juegos digitales", "Juegos físicos", "Complementos"].includes(c),
+);
+
 const CATEGORIA_ICONO = {
   "Control PS4": "🎮",
   "Control PS5": "🎮",
@@ -405,7 +414,7 @@ const ProductoFormModal = ({ activo, getAuthHeaders, mostrarNotif, manejarError,
               disabled={guardando}
               onChange={setField("categoria")}
             >
-              {CATEGORIAS.map((c) => (
+              {CATEGORIAS_FORMULARIO.map((c) => (
                 <option key={c} value={c}>{`${iconoCategoria(c)} ${c}`}</option>
               ))}
             </select>

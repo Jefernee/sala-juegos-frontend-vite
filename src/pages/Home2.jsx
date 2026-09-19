@@ -28,6 +28,31 @@ const MapComponent = lazy(() => import('../components/MapComponent'));
 function Home2() {
   const navigate = useNavigate();
 
+  // Los juegos que se muestran acá salen del módulo 🎮 Juegos: se marcan con
+  // ⭐ y aparecen solos, sin tocar código. La lista escrita a mano queda como
+  // respaldo: si el servidor está dormido o falla, la página nunca se ve
+  // vacía delante de un cliente.
+  const [juegos, setJuegos] = useState(juegosData);
+
+  useEffect(() => {
+    let vigente = true;
+    axios
+      .get(`${API_URL}/api/juegos/vitrina`)
+      .then(({ data }) => {
+        const vitrina = data?.data || [];
+        if (vigente && vitrina.length) {
+          setJuegos(vitrina.map((j) => ({
+            id: j._id,
+            nombre: j.nombre,
+            imagen: j.imagenUrl,
+            link: j.link || "https://www.playstation.com/es-es/ps-plus/",
+          })));
+        }
+      })
+      .catch(() => { /* se queda la lista de respaldo */ });
+    return () => { vigente = false; };
+  }, []);
+
   // Se mira una sola vez al montar: si el token cambia, es porque el usuario
   // entró o salió, y en los dos casos esta pantalla se vuelve a montar.
   const haySesion = !!getToken();
@@ -268,7 +293,7 @@ function Home2() {
         <div className="container">
           <h2 className="text-center mb-4">Los Mejores Juegos Disponibles</h2>
           <div className="row text-center mb-4">
-            {juegosData.map((juego) => (
+            {juegos.map((juego) => (
               <div key={juego.id} className="col-md-3 mb-3">
                 <a href={juego.link} target="_blank" rel="noopener noreferrer">
                   <OptimizedImage

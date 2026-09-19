@@ -1,4 +1,4 @@
-// Módulo de Administración: Resumen | Ahorro | Ganancias | Pagos | Activos
+// Módulo de Administración: Resumen | Ahorro | Ganancias | Pagos | Activos | Juegos
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/NavBar2";
@@ -6,6 +6,7 @@ import DashboardPanel from "../components/admin/DashboardPanel";
 import AhorroPanel from "../components/admin/AhorroPanel";
 import MovimientosPanel from "../components/admin/MovimientosPanel";
 import ActivosPanel from "../components/admin/ActivosPanel";
+import JuegosPanel from "../components/admin/JuegosPanel";
 import UsuariosPanel from "../components/admin/UsuariosPanel";
 import TorneosPanel from "../components/admin/TorneosPanel";
 import FinanzasPersonalesPanel from "../components/admin/FinanzasPersonalesPanel";
@@ -21,6 +22,7 @@ const TABS_BASE = [
   { id: "ganancias", icono: "💰", label: "Ganancias" },
   { id: "pagos", icono: "🧾", label: "Pagos" },
   { id: "activos", icono: "🕹️", label: "Activos" },
+  { id: "juegos", icono: "🎮", label: "Juegos" },
   { id: "torneos", icono: "🏆", label: "Torneos" },
 ];
 
@@ -120,6 +122,7 @@ const Administracion = () => {
         {vista === "ganancias" && <MovimientosPanel key="ganancias" tipo="ganancias" {...propsComunes} />}
         {vista === "pagos" && <MovimientosPanel key="pagos" tipo="pagos" {...propsComunes} />}
         {vista === "activos" && <ActivosPanel {...propsComunes} />}
+        {vista === "juegos" && <JuegosPanel {...propsComunes} />}
         {vista === "torneos" && <TorneosPanel {...propsComunes} />}
         {vista === "usuarios" && gestionaUsuarios && <UsuariosPanel {...propsComunes} />}
         {vista === "finanzas" && esAdmin && <FinanzasPersonalesPanel {...propsComunes} />}
