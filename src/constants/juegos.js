@@ -1,16 +1,14 @@
 // src/constants/juegos.js
 // Catálogo de juegos del selector "Juegos Jugados" del formulario de plays.
 //
-// Son DOS fuentes que se suman:
-//   1. JUEGOS_BASE, la lista de siempre, escrita a mano acá.
-//   2. Los activos de la sala con categoría "Juegos digitales" o
-//      "Juegos físicos", que el formulario pide a GET /api/plays/juegos.
+// La fuente de verdad es el CATÁLOGO del módulo 🎮 Juegos, que el formulario
+// pide a GET /api/plays/juegos. Agregar o renombrar un juego allá se ve acá al
+// recargar, sin tocar este archivo.
 //
-// La 2 es la que evita el trabajo doble: al anotar un juego comprado en
-// Activos queda disponible solo en el selector, sin tocar este archivo. La 1
-// se queda porque tiene juegos viejos que nadie cargó nunca como activo, y
-// porque es el respaldo si la consulta falla: nadie se queda sin registrar un
-// play por eso.
+// JUEGOS_BASE es solo el RESPALDO de cuando el servidor no contesta: así nadie
+// se queda sin registrar un play. No se mezcla con el catálogo — cuando se
+// mezclaba, un juego renombrado seguía ofreciéndose con el nombre viejo,
+// porque esta lista iba primero y ganaba.
 //
 // El ORDEN del selector no es el de este archivo: se reordena con los plays
 // de los últimos meses para que arriba quede lo que más se está jugando

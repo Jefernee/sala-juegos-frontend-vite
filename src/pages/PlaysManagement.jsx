@@ -234,9 +234,8 @@ const PlaysManagement = () => {
   const [primeraCarga, setPrimeraCarga] = useState(true);
   // Los campos de "pendiente mínimo" viven plegados: se abren solo si se piden.
   const [mostrarMinimo, setMostrarMinimo] = useState(false);
-  // Los juegos que la sala tiene anotados como activo (categorías de juego).
-  // Llegan del backend y se suman a JUEGOS_BASE en el selector.
-  const [juegosDeActivos, setJuegosDeActivos] = useState([]);
+  // El catálogo de juegos (módulo 🎮 Juegos). Es LA fuente del selector.
+  const [juegosDelCatalogo, setJuegosDelCatalogo] = useState([]);
   // Cuántas veces se jugó cada juego últimamente, para ordenar el selector.
   const [rankingJuegos, setRankingJuegos] = useState([]);
 
@@ -432,11 +431,11 @@ const PlaysManagement = () => {
     document.title = "Gestión de Plays - Sala de Juegos Ruiz";
   }, [fetchPlays]);
 
-  // ✅ Los juegos que la sala tiene como activo se suman solos al selector:
-  //    anotar un juego comprado en Activos basta para poder elegirlo acá.
+  // ✅ El selector se arma con el catálogo del módulo de Juegos: agregar o
+  //    renombrar uno allá se ve acá al recargar, sin tocar código.
   //    De paso llega el ranking con el que se ordena la lista.
-  //    Si la consulta falla, el formulario se queda con JUEGOS_BASE en su
-  //    orden de siempre y nadie se queda sin registrar un play por esto.
+  //    Si la consulta falla, el formulario cae en JUEGOS_BASE y nadie se
+  //    queda sin registrar un play por esto.
   useEffect(() => {
     let vigente = true;
     (async () => {
@@ -447,7 +446,7 @@ const PlaysManagement = () => {
           getAuthHeaders(),
         );
         if (!vigente) return;
-        setJuegosDeActivos(respuesta.data?.data || []);
+        setJuegosDelCatalogo(respuesta.data?.data || []);
         setRankingJuegos(respuesta.data?.ranking || []);
       } catch (error) {
         console.error("No se pudieron cargar los juegos de Activos:", error);
@@ -458,19 +457,23 @@ const PlaysManagement = () => {
     };
   }, [getAuthHeaders]);
 
-  // Lista final del selector. Primero se arma QUIÉNES están: los de siempre,
-  // los que son activos y los del play que se esté editando — un juego que se
-  // borró de Activos no puede desaparecer de su propio registro viejo.
-  // Después se decide el ORDEN: adelante lo que más se está jugando, para no
-  // tener que buscar el de siempre entre medio centenar de opciones.
-  const juegosDisponibles = useMemo(
-    () =>
-      ordenarPorPopularidad(
-        fusionarJuegos(JUEGOS_BASE, juegosDeActivos, formData.juegosJugados),
-        rankingJuegos,
-      ),
-    [juegosDeActivos, rankingJuegos, formData.juegosJugados],
-  );
+  // Lista final del selector.
+  //
+  // El catálogo MANDA, no se mezcla con JUEGOS_BASE. Cuando se mezclaban, un
+  // juego renombrado en el módulo seguía ofreciéndose con el nombre viejo —el
+  // del código iba primero y ganaba— y quedaban los dos en la lista.
+  // JUEGOS_BASE queda solo para cuando el servidor no contesta.
+  //
+  // Se suman los juegos del play que se esté editando: uno que se renombró o
+  // se borró del catálogo no puede desaparecer de su propio registro viejo.
+  // Y por último se ordena: adelante lo que más se está jugando.
+  const juegosDisponibles = useMemo(() => {
+    const catalogo = juegosDelCatalogo.length ? juegosDelCatalogo : JUEGOS_BASE;
+    return ordenarPorPopularidad(
+      fusionarJuegos(catalogo, formData.juegosJugados),
+      rankingJuegos,
+    );
+  }, [juegosDelCatalogo, rankingJuegos, formData.juegosJugados]);
 
   // Debounce de la búsqueda: espera 300 ms sin teclas antes de consultar, para
   // no pegarle al servidor en cada letra. Siempre vuelve a la página 1: la
