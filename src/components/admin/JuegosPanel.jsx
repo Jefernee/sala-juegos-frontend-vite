@@ -94,6 +94,8 @@ const CampoPortada = ({ urlActual, imagenData, onChange, onProcesando, onQuitar,
       )}
       <small className="text-muted d-block mt-1">
         Solo hace falta para los que quieras mostrar en la página principal.
+        Podés sacarle la foto con el teléfono: se acomoda sola y se ve completa,
+        esté vertical o acostada.
       </small>
     </div>
   );

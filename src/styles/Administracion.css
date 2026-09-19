@@ -3605,7 +3605,11 @@
 
 .jg-card__portada {
   position: relative;
-  aspect-ratio: 4 / 3;
+  /* Cuadrado a propósito: la mayoría de las portadas se van a subir con el
+     teléfono, y esas fotos son VERTICALES. En un recuadro apaisado quedaban
+     diminutas en el medio; en uno cuadrado se ven grandes, y una captura
+     apaisada también entra bien. */
+  aspect-ratio: 1 / 1;
   background: #0f172a;
   display: flex;
   align-items: center;
@@ -3672,7 +3676,7 @@
 }
 .jg-detalle__portada {
   position: relative;
-  width: 168px; height: 126px; flex: none;
+  width: 150px; height: 150px; flex: none;
   border-radius: 12px; overflow: hidden;
   background: #0f172a;
   display: flex; align-items: center; justify-content: center;
@@ -3787,7 +3791,7 @@
 @media (max-width: 600px) {
   .jg-grid { grid-template-columns: 1fr 1fr; gap: 0.6rem; }
   .jg-detalle { padding: 0.9rem; }
-  .jg-detalle__portada { width: 132px; height: 99px; }
+  .jg-detalle__portada { width: 116px; height: 116px; }
   .jg-opcion { padding: 0.85rem; }
   .jg-baja { width: 44px; height: 44px; }
   .jg-mas { min-height: 44px; padding: 0 0.4rem; }
