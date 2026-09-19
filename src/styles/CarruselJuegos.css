@@ -24,7 +24,8 @@
   align-items: flex-start;
   gap: var(--cj-aire);
   overflow-x: auto;
-  scroll-snap-type: x proximity;
+  /* Sin scroll-snap: el carrusel gira sin fin y se reubica sola entre copias;
+     el imán del snap pelea con esa reubicación y se nota como un tirón. */
   scroll-behavior: smooth;
   padding: 0.5rem 0.25rem 1rem;
   /* Al saltar con las flechas, la tarjeta no queda pegada al borde. */
@@ -38,7 +39,6 @@
 
 .cj-item {
   flex: 0 0 auto;
-  scroll-snap-align: start;
   display: block;
   transition: transform 0.15s ease;
 }
