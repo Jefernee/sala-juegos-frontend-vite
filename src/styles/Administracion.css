@@ -3618,19 +3618,10 @@
 }
 .jg-card__sinfoto { font-size: 1.9rem; opacity: 0.45; }
 
-/* La portada se ve ENTERA: object-fit cover llenaba el espacio recortando, y
-   las capturas anchas perdían los bordes. Ahora la imagen va contenida y
-   detrás va ella misma, borrosa y ampliada, para que no queden franjas
-   vacías cuando la proporción no coincide. */
-.jg-portada__fondo {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: blur(14px) brightness(0.5);
-  transform: scale(1.15);
-}
+/* La portada se ve ENTERA y con su forma real. Antes iba sobre una copia
+   borrosa de sí misma que rellenaba los costados: no recortaba nada, pero
+   disimulaba la forma, y una foto acostada parecía encajada en un cuadrado.
+   Sin ese relleno se ve de una cómo va a quedar en la página. */
 .jg-portada__img {
   position: relative;
   max-width: 100%;
