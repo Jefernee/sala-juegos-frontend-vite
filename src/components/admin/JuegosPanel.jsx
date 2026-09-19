@@ -603,7 +603,7 @@ const DetalleJuego = ({ juego, getAuthHeaders, mostrarNotif, manejarError, onVol
     if (!window.confirm(`Borrar "${juego.nombre}" del catálogo.${extras}\n\nLos plays ya registrados NO se tocan.`)) return;
     llamar(async (axios) => {
       await axios.delete(`${API_URL}/api/juegos/${juego._id}`, getAuthHeaders());
-      onVolver();
+      onVolver();   // suelta la entrada del historial, igual que el botón
     }, `"${juego.nombre}" borrado`);
   };
 
@@ -821,6 +821,42 @@ const JuegosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
   const [abierto, setAbierto] = useState(null);      // id del juego abierto
   const [modalNuevo, setModalNuevo] = useState(null); // null | {nombre}
 
+  // Dónde estaba la lista cuando se abrió un juego, para devolverla ahí mismo.
+  const scrollLista = useRef(0);
+
+  // Abrir un juego empuja una entrada al historial. Con eso, el gesto de
+  // "atrás" del teléfono cierra el juego y vuelve a la lista, en vez de sacar
+  // a la persona de Administración entera.
+  const abrirJuego = useCallback((id) => {
+    scrollLista.current = window.scrollY;
+    window.history.pushState({ juegoAbierto: id }, "");
+    setAbierto(id);
+  }, []);
+
+  const volverALista = useCallback(() => {
+    // Si la entrada del historial es nuestra, se retrocede: así el botón de la
+    // pantalla y el del teléfono hacen exactamente lo mismo y el historial no
+    // queda con pasos fantasma.
+    if (window.history.state?.juegoAbierto) window.history.back();
+    else setAbierto(null);
+  }, []);
+
+  useEffect(() => {
+    const alAtras = () => setAbierto(null);
+    window.addEventListener("popstate", alAtras);
+    return () => {
+      window.removeEventListener("popstate", alAtras);
+      // Si se cambia de pestaña con un juego abierto, se suelta la entrada
+      // que habíamos empujado: si no, el primer "atrás" no haría nada.
+      if (window.history.state?.juegoAbierto) window.history.back();
+    };
+  }, []);
+
+  // Al abrir, el juego empieza arriba; al volver, la lista queda donde estaba.
+  useEffect(() => {
+    window.scrollTo(0, abierto ? 0 : scrollLista.current);
+  }, [abierto]);
+
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
@@ -869,7 +905,7 @@ const JuegosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
         getAuthHeaders={getAuthHeaders}
         mostrarNotif={mostrarNotif}
         manejarError={manejarError}
-        onVolver={() => setAbierto(null)}
+        onVolver={volverALista}
         onCambio={cargar}
       />
     );
@@ -938,7 +974,7 @@ const JuegosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
                   <tr key={c._id}>
                     <td>🧩 {c.nombre}</td>
                     <td>
-                      <button className="jg-link" onClick={() => setAbierto(c.juego._id)}>{c.juego.nombre} →</button>
+                      <button className="jg-link" onClick={() => abrirJuego(c.juego._id)}>{c.juego.nombre} →</button>
                     </td>
                     <td className="jg-num">
                       {c.gastado > 0
@@ -966,7 +1002,7 @@ const JuegosPanel = ({ getAuthHeaders, mostrarNotif, manejarError }) => {
         )
       ) : (
         <div className="jg-grid">
-          {lista.map((j) => <TarjetaJuego key={j._id} juego={j} onAbrir={(x) => setAbierto(x._id)} />)}
+          {lista.map((j) => <TarjetaJuego key={j._id} juego={j} onAbrir={(x) => abrirJuego(x._id)} />)}
         </div>
       )}
 
