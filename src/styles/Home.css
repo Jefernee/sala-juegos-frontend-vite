@@ -87,32 +87,12 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Asegurar que las imágenes de juegos mantengan proporciones */
-#games .col-md-3 {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-#games img {
-  width: 200px;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 8px;
-  transition: transform 0.3s ease;
-  display: block;
-  margin: 0 auto;
-}
-
-#games img:hover {
-  transform: scale(1.1);
-}
-
-#games p {
-  text-align: center;
-  margin-top: 0.5rem;
-}
+/* La sección de juegos la arma el carrusel (CarruselJuegos.css).
+   Acá había reglas de la grilla vieja de 4 juegos —#games img forzaba
+   200x200 con object-fit: cover— y como llevaban un ID le GANABAN en
+   especificidad a las del carrusel: recortaban todas las portadas a un
+   cuadrado. Por eso Rocket League, que es acostada, se veía encajada.
+   Se quitaron: esa grilla ya no existe. */
 
 /* Secciones con fondos específicos */
 .p-3.shadow.rounded {
@@ -154,19 +134,6 @@
     height: 150px !important;
   }
 
-  /* Centrar imágenes de juegos en móvil */
-  #games .col-md-3 {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
-
-  #games img {
-    width: 180px;
-    height: 180px;
-    margin: 0 auto;
-  }
-
-  #games p {
-    margin-top: 0.75rem;
-  }
+  /* (Las reglas de la grilla vieja de juegos se quitaron: el carrusel maneja
+     su propio tamaño, y estas le ganaban por llevar un ID.) */
 }
