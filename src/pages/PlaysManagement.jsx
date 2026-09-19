@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Link } from "react-router-dom";
 import "../styles/PlaysManagement.css";
 import Navbar from "../components/NavBar2";
-import { JUEGOS_BASE, fusionarJuegos } from "../constants/juegos";
+import { JUEGOS_BASE, fusionarJuegos, ordenarPorPopularidad } from "../constants/juegos";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -237,6 +237,8 @@ const PlaysManagement = () => {
   // Los juegos que la sala tiene anotados como activo (categorías de juego).
   // Llegan del backend y se suman a JUEGOS_BASE en el selector.
   const [juegosDeActivos, setJuegosDeActivos] = useState([]);
+  // Cuántas veces se jugó cada juego últimamente, para ordenar el selector.
+  const [rankingJuegos, setRankingJuegos] = useState([]);
 
   const [formData, setFormData] = useState({
     fecha: new Date().toISOString().split("T")[0],
@@ -432,8 +434,9 @@ const PlaysManagement = () => {
 
   // ✅ Los juegos que la sala tiene como activo se suman solos al selector:
   //    anotar un juego comprado en Activos basta para poder elegirlo acá.
-  //    Si la consulta falla, el formulario se queda con JUEGOS_BASE y nadie
-  //    se queda sin registrar un play por esto.
+  //    De paso llega el ranking con el que se ordena la lista.
+  //    Si la consulta falla, el formulario se queda con JUEGOS_BASE en su
+  //    orden de siempre y nadie se queda sin registrar un play por esto.
   useEffect(() => {
     let vigente = true;
     (async () => {
@@ -443,7 +446,9 @@ const PlaysManagement = () => {
           `${API_URL}/api/plays/juegos`,
           getAuthHeaders(),
         );
-        if (vigente) setJuegosDeActivos(respuesta.data?.data || []);
+        if (!vigente) return;
+        setJuegosDeActivos(respuesta.data?.data || []);
+        setRankingJuegos(respuesta.data?.ranking || []);
       } catch (error) {
         console.error("No se pudieron cargar los juegos de Activos:", error);
       }
@@ -453,12 +458,18 @@ const PlaysManagement = () => {
     };
   }, [getAuthHeaders]);
 
-  // Lista final del selector: primero los de siempre, después los que son
-  // activos y al final los del play que se esté editando — un juego que se
+  // Lista final del selector. Primero se arma QUIÉNES están: los de siempre,
+  // los que son activos y los del play que se esté editando — un juego que se
   // borró de Activos no puede desaparecer de su propio registro viejo.
+  // Después se decide el ORDEN: adelante lo que más se está jugando, para no
+  // tener que buscar el de siempre entre medio centenar de opciones.
   const juegosDisponibles = useMemo(
-    () => fusionarJuegos(JUEGOS_BASE, juegosDeActivos, formData.juegosJugados),
-    [juegosDeActivos, formData.juegosJugados],
+    () =>
+      ordenarPorPopularidad(
+        fusionarJuegos(JUEGOS_BASE, juegosDeActivos, formData.juegosJugados),
+        rankingJuegos,
+      ),
+    [juegosDeActivos, rankingJuegos, formData.juegosJugados],
   );
 
   // Debounce de la búsqueda: espera 300 ms sin teclas antes de consultar, para

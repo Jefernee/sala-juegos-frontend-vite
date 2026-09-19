@@ -11,6 +11,10 @@
 // se queda porque tiene juegos viejos que nadie cargó nunca como activo, y
 // porque es el respaldo si la consulta falla: nadie se queda sin registrar un
 // play por eso.
+//
+// El ORDEN del selector no es el de este archivo: se reordena con los plays
+// de los últimos meses para que arriba quede lo que más se está jugando
+// (ver ordenarPorPopularidad, al final).
 
 export const JUEGOS_BASE = [
   "Dragon Ball Sparking Zero",
@@ -94,4 +98,29 @@ export const fusionarJuegos = (...listas) => {
     }
   }
   return juegos;
+};
+
+// Ordena el selector poniendo adelante lo que más se está jugando.
+//
+// `ranking` viene de GET /api/plays/juegos: [{ juego, veces }] con los plays de
+// los últimos meses. Se compara normalizado, así que si el mismo juego quedó
+// guardado de dos formas ("GTA V" y "gta v") las veces se suman en vez de
+// repartirse y dejarlo abajo.
+//
+// Los que nadie jugó conservan el orden en que venían: el que no tiene datos no
+// se mueve de lugar, y así la lista no cambia sola de un día para otro.
+export const ordenarPorPopularidad = (juegos, ranking = []) => {
+  const veces = new Map();
+  for (const fila of ranking) {
+    const clave = normalizarJuego(fila?.juego);
+    if (!clave) continue;
+    veces.set(clave, (veces.get(clave) || 0) + (Number(fila.veces) || 0));
+  }
+  if (veces.size === 0) return [...juegos];
+
+  // sort() de JS es estable: con la misma cantidad de plays, el que venía
+  // primero sigue primero.
+  return [...juegos].sort(
+    (a, b) => (veces.get(normalizarJuego(b)) || 0) - (veces.get(normalizarJuego(a)) || 0),
+  );
 };
