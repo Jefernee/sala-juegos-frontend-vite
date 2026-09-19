@@ -18,8 +18,13 @@ const FILTROS_REPARACION = [
   { valor: "con", label: "🔧 Con reparación" },
 ];
 
-// Categorías de los activos. "Otros" cubre lo que no es control/consola/pantalla
+// Categorías de los activos. "Complementos" es lo que se compra APARTE para un
+// juego que ya se tiene (mapas y DLC de Call of Duty, pases, monedas), distinto
+// de comprar el juego. "Otros" cubre lo que no es control/consola/pantalla
 // (refri, futbolín, cables, etc.). El valor viaja como ?categoria= al backend.
+// OJO: esta lista tiene que decir lo mismo que CATEGORIAS_ACTIVO del backend
+// (models/ActivoSala.js) o el guardado se cae con un 400; lo revisa
+// sala-de-juegos-backend/scripts/probarCategoriasActivos.js.
 const CATEGORIAS = [
   "Control PS4",
   "Control PS5",
@@ -28,6 +33,7 @@ const CATEGORIAS = [
   "Pantalla",
   "Juegos digitales",
   "Juegos físicos",
+  "Complementos",
   "Otros",
 ];
 
@@ -39,6 +45,7 @@ const CATEGORIA_ICONO = {
   Pantalla: "📺",
   "Juegos digitales": "💾",
   "Juegos físicos": "💿",
+  Complementos: "🧩",
   Otros: "📦",
 };
 
