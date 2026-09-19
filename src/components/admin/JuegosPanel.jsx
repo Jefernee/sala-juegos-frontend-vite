@@ -516,7 +516,13 @@ const TarjetaJuego = ({ juego, onAbrir }) => (
   <button className={`jg-card ${juego.noSeOfrece ? "jg-card--retirado" : ""}`} onClick={() => onAbrir(juego)}>
     <div className="jg-card__portada">
       {juego.imagenUrl ? (
-        <img src={juego.imagenUrl} alt={juego.nombre} loading="lazy" />
+        <>
+          {/* La misma foto, borrosa y de fondo: así la portada se ve completa
+              sin recortes y sin barras vacías, no importa si la imagen es
+              apaisada (una captura) o vertical (una carátula). */}
+          <img src={juego.imagenUrl} alt="" aria-hidden="true" className="jg-portada__fondo" />
+          <img src={juego.imagenUrl} alt={juego.nombre} loading="lazy" className="jg-portada__img" />
+        </>
       ) : (
         <span className="jg-card__sinfoto">🎮</span>
       )}
@@ -667,9 +673,14 @@ const DetalleJuego = ({ juego, getAuthHeaders, mostrarNotif, manejarError, onVol
 
       <div className="jg-detalle">
         <div className="jg-detalle__portada">
-          {juego.imagenUrl
-            ? <img src={juego.imagenUrl} alt={juego.nombre} />
-            : <span className="jg-card__sinfoto">🎮</span>}
+          {juego.imagenUrl ? (
+            <>
+              <img src={juego.imagenUrl} alt="" aria-hidden="true" className="jg-portada__fondo" />
+              <img src={juego.imagenUrl} alt={juego.nombre} className="jg-portada__img" />
+            </>
+          ) : (
+            <span className="jg-card__sinfoto">🎮</span>
+          )}
         </div>
 
         <div className="jg-detalle__datos">
