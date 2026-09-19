@@ -3711,6 +3711,10 @@
   border-radius: 8px; width: 30px; height: 30px; flex: none; cursor: pointer; font-size: 0.8rem;
 }
 .jg-baja:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Corregir es gris (no destruye) y registrar la compra es verde (suma plata):
+   el color dice qué hace cada uno antes de leer el tooltip. */
+.jg-baja--gris   { border-color: var(--borde); background: var(--sup-2); color: var(--txt-2); }
+.jg-baja--compra { border-color: var(--verde-bd); background: var(--verde-bg); color: var(--verde); }
 .jg-total {
   display: flex; justify-content: space-between;
   padding-top: 0.7rem; margin-top: 0.3rem;

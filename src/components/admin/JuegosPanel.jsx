@@ -399,6 +399,115 @@ const ComplementoFormModal = ({ juego, getAuthHeaders, mostrarNotif, manejarErro
   );
 };
 
+// ─── MODAL: REGISTRAR O CORREGIR UNA COMPRA ──────────────────────────────────
+// El camino de "estaba como gratis y resulta que se compró", y el de corregir
+// el monto cuando aparece la factura. Los dos tocan los reportes del mes.
+const CompraFormModal = ({ juegoId, ficha, compra, esComplemento, getAuthHeaders, mostrarNotif, manejarError, onCerrar, onExito }) => {
+  const esEdicion = !!compra;
+  const [form, setForm] = useState(() => ({
+    tipo: esComplemento ? "complemento" : "digital",
+    costo: compra ? String(compra.costo) : "",
+    fechaCompra: compra?.fechaCompra ? compra.fechaCompra.slice(0, 10) : getLocalDateString(),
+    numeroFactura: "",
+    nombreInventario: compra?.nombre || "",
+  }));
+  const [guardando, setGuardando] = useState(false);
+  const set = (campo) => (e) => setForm((p) => ({ ...p, [campo]: e.target.value }));
+
+  const guardar = async () => {
+    if (!(Number(form.costo) > 0)) return mostrarNotif("El costo tiene que ser mayor a 0", "warning");
+    if (!form.fechaCompra) return mostrarNotif("Poné la fecha de compra", "warning");
+
+    setGuardando(true);
+    try {
+      const axios = await getAxios();
+      const cuerpo = {
+        tipo: form.tipo,
+        costo: Number(form.costo),
+        fechaCompra: form.fechaCompra,
+        numeroFactura: form.numeroFactura.trim() || undefined,
+        nombreInventario: form.nombreInventario.trim() || undefined,
+      };
+      const { data } = esEdicion
+        ? await axios.put(`${API_URL}/api/juegos/${juegoId}/compra/${compra.numeroPlaca}`, cuerpo, getAuthHeaders())
+        : await axios.post(`${API_URL}/api/juegos/${ficha._id}/compra`, cuerpo, getAuthHeaders());
+      mostrarNotif(data?.message || "Guardado");
+      onExito();
+    } catch (error) {
+      manejarError(error);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <ModalOverlay onCerrar={onCerrar} bloqueado={guardando}>
+      <div className="admin-modal__header">
+        <h5 className="mb-0">
+          {esEdicion ? `✏️ Corregir la compra ${formatPlaca({ numeroPlaca: compra.numeroPlaca })}` : `🛒 Registrar la compra de "${ficha.nombre}"`}
+        </h5>
+        <button className="admin-modal__cerrar" onClick={onCerrar} disabled={guardando} aria-label="Cerrar">✕</button>
+      </div>
+
+      <div className="admin-modal__body">
+        <div className="jg-nota mb-3">
+          {esEdicion
+            ? "Al guardar se rehacen los reportes del mes de esta compra. Si le cambiás la fecha de mes, uno baja y el otro sube."
+            : "Se va a registrar como un activo, con su placa, y va a contar en el reporte del mes que pongas."}
+        </div>
+
+        <div className="row g-2">
+          {!esComplemento && !esEdicion && (
+            <div className="col-12 col-sm-6">
+              <label className="form-label">Tipo</label>
+              <select className="form-select admin-select" value={form.tipo} onChange={set("tipo")} disabled={guardando}>
+                {TIPOS_COMPRA.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+            </div>
+          )}
+          <div className="col-12 col-sm-6">
+            <label className="form-label">Costo *</label>
+            <input
+              type="number" min="1" className="form-control admin-input"
+              value={form.costo} onChange={set("costo")} placeholder="25000" autoFocus disabled={guardando}
+            />
+          </div>
+          <div className="col-12 col-sm-6">
+            <label className="form-label">Fecha de compra *</label>
+            <input
+              type="date" className="form-control admin-input"
+              value={form.fechaCompra} onChange={set("fechaCompra")} disabled={guardando}
+            />
+            <small className="text-muted">Define en qué mes cuenta el gasto.</small>
+          </div>
+          <div className="col-12 col-sm-6">
+            <label className="form-label">N° de factura</label>
+            <input
+              className="form-control admin-input"
+              value={form.numeroFactura} onChange={set("numeroFactura")} placeholder="opcional" disabled={guardando}
+            />
+          </div>
+          <div className="col-12">
+            <label className="form-label">Nombre en el inventario</label>
+            <input
+              className="form-control admin-input"
+              value={form.nombreInventario} onChange={set("nombreInventario")}
+              placeholder="si lo dejás vacío se usa el nombre del juego" disabled={guardando}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="admin-modal__footer">
+        <button className="admin-btn-ghost" onClick={onCerrar} disabled={guardando}>Cancelar</button>
+        <button className="btn admin-btn admin-btn--orange fw-bold" onClick={guardar} disabled={guardando}>
+          {guardando ? "Guardando..." : esEdicion ? "Guardar cambios" : "Registrar compra"}
+        </button>
+      </div>
+    </ModalOverlay>
+  );
+};
+
 // ─── TARJETA ─────────────────────────────────────────────────────────────────
 // Solo información: la portada, el nombre y los números que se leen de un
 // vistazo. Las acciones viven adentro del juego, que es donde se ven las
@@ -428,9 +537,8 @@ const TarjetaJuego = ({ juego, onAbrir }) => (
 // ─── DETALLE DEL JUEGO ───────────────────────────────────────────────────────
 const DetalleJuego = ({ juego, getAuthHeaders, mostrarNotif, manejarError, onVolver, onCambio }) => {
   const [trabajando, setTrabajando] = useState(false);
-  const [modal, setModal] = useState(null);   // "editar" | "complemento"
-
-  const compraPropia = juego.compras?.[0] || null;
+  // modal: "editar" | "complemento" | {compra:{...}} para registrar o corregir
+  const [modal, setModal] = useState(null);
   const tieneCompras = juego.gastado > 0;
 
   const llamar = async (fn, mensaje) => {
@@ -511,9 +619,38 @@ const DetalleJuego = ({ juego, getAuthHeaders, mostrarNotif, manejarError, onVol
         <span className="jg-placa">{formatPlaca({ numeroPlaca: compra.numeroPlaca })}</span>
       </span>
       <span className="jg-linea__monto">{formatCRC(compra.costo)}</span>
+      <button
+        className="jg-baja jg-baja--gris"
+        onClick={() => setModal({ compra })}
+        disabled={trabajando}
+        title="Corregir el monto o la fecha"
+      >
+        ✏️
+      </button>
       <button className="jg-baja" onClick={() => darDeBaja(compra)} disabled={trabajando} title="Dar de baja esta compra">
         🗑️
       </button>
+    </div>
+  );
+
+  // La línea de algo que todavía no se compró: el botón la convierte en compra.
+  const filaGratis = (ficha, etiqueta, { esComplemento }) => (
+    <div className="jg-linea" key={ficha._id}>
+      <span className="jg-linea__izq">{etiqueta} <span className="jg-tag">🎁 gratis</span></span>
+      <span className="jg-linea__monto">—</span>
+      <button
+        className="jg-baja jg-baja--compra"
+        onClick={() => setModal({ compra: null, ficha, esComplemento })}
+        disabled={trabajando}
+        title="Se compró: registrar el monto"
+      >
+        🛒
+      </button>
+      {esComplemento && (
+        <button className="jg-baja jg-baja--gris" onClick={() => borrarComplemento(ficha)} disabled={trabajando} title="Borrar">
+          ✕
+        </button>
+      )}
     </div>
   );
 
@@ -583,25 +720,28 @@ const DetalleJuego = ({ juego, getAuthHeaders, mostrarNotif, manejarError, onVol
         </div>
 
         {!tieneCompras && !juego.complementos?.length ? (
-          <p className="text-muted mb-0" style={{ fontSize: ".9rem" }}>
-            No costó nada: es de PS Plus, gratuito o demo. Por eso no aparece en ningún reporte.
-          </p>
+          <>
+            <p className="text-muted" style={{ fontSize: ".9rem" }}>
+              No costó nada: es de PS Plus, gratuito o demo. Por eso no aparece en ningún reporte.
+            </p>
+            <button
+              className="admin-btn-ghost"
+              onClick={() => setModal({ compra: null, ficha: juego, esComplemento: false })}
+              disabled={trabajando}
+            >
+              🛒 Se compró: registrar el monto
+            </button>
+          </>
         ) : (
           <>
-            {compraPropia
-              ? filaCompra(compraPropia, "Juego")
-              : <div className="jg-linea"><span className="jg-linea__izq">Juego <span className="jg-tag">🎁 gratis</span></span><span className="jg-linea__monto">—</span></div>}
+            {juego.compras?.length
+              ? juego.compras.map((c) => filaCompra(c, "Juego"))
+              : filaGratis(juego, "Juego", { esComplemento: false })}
 
             {juego.complementos?.map((extra) => (
               extra.compras?.length
-                ? filaCompra(extra.compras[0], extra.nombre)
-                : (
-                  <div className="jg-linea" key={extra._id}>
-                    <span className="jg-linea__izq">{extra.nombre} <span className="jg-tag">🎁 gratis</span></span>
-                    <span className="jg-linea__monto">—</span>
-                    <button className="jg-baja" onClick={() => borrarComplemento(extra)} disabled={trabajando} title="Borrar">✕</button>
-                  </div>
-                )
+                ? extra.compras.map((c) => filaCompra(c, extra.nombre))
+                : filaGratis(extra, extra.nombre, { esComplemento: true })
             ))}
 
             <div className="jg-total">
@@ -615,6 +755,19 @@ const DetalleJuego = ({ juego, getAuthHeaders, mostrarNotif, manejarError, onVol
       {modal === "editar" && (
         <JuegoFormModal
           juego={juego}
+          getAuthHeaders={getAuthHeaders}
+          mostrarNotif={mostrarNotif}
+          manejarError={manejarError}
+          onCerrar={() => setModal(null)}
+          onExito={() => { setModal(null); onCambio(); }}
+        />
+      )}
+      {modal && typeof modal === "object" && (
+        <CompraFormModal
+          juegoId={juego._id}
+          ficha={modal.ficha}
+          compra={modal.compra}
+          esComplemento={modal.esComplemento}
           getAuthHeaders={getAuthHeaders}
           mostrarNotif={mostrarNotif}
           manejarError={manejarError}
