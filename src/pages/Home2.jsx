@@ -50,6 +50,10 @@ function Home2() {
             id: j._id,
             nombre: j.nombre,
             imagen: j.imagenUrl,
+            // Las medidas viajan para que el navegador le reserve a cada foto
+            // su espacio exacto antes de bajarla (ver CarruselJuegos).
+            ancho: j.imagenAncho,
+            alto: j.imagenAlto,
           })));
         }
       })

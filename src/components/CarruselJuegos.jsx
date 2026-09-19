@@ -9,6 +9,10 @@
 // Sin librerías: el desplazamiento es el del navegador, así que en el teléfono
 // conserva su inercia de siempre. En escritorio hay flechas y teclado.
 //
+// Cada foto lleva sus medidas puestas: el navegador le reserva su ancho exacto
+// antes de bajarla, así la fila mide bien desde el primer dibujo aunque las
+// imágenes de más allá todavía no hayan llegado.
+//
 // Las portadas van como una TIRA DE CINE: todas del mismo alto y el ancho lo
 // pone cada foto. Las 50 vienen de todas las formas (carátulas verticales,
 // capturas apaisadas, cuadradas), y obligarlas a un marco común dejaba a unas
@@ -35,6 +39,9 @@ const ubicarSinAnimar = (pista, left) => {
 const CarruselJuegos = ({ juegos }) => {
   const pistaRef = useRef(null);
   const [barra, setBarra] = useState({ visible: 1, avance: 0 });
+  // Si la persona ya tocó el carrusel, no se le vuelve a mover la fila por
+  // debajo aunque sigan llegando fotos.
+  const tocado = useRef(false);
 
   const alDesplazar = useCallback(() => {
     const pista = pistaRef.current;
@@ -51,21 +58,33 @@ const CarruselJuegos = ({ juegos }) => {
     }));
   }, []);
 
+  // Vuelve a medir y, si nadie tocó todavía, recentra en la copia del medio.
+  //
+  // Hace falta llamarla CADA VEZ QUE CARGA UNA FOTO: el ancho de cada tarjeta
+  // lo pone su imagen, así que antes de que bajen, la fila mide casi nada. Con
+  // esas medidas el carrusel creía que todo cabía en pantalla —la barrita
+  // salía llena, como si no hubiera nada más— y el centrado inicial caía en
+  // cualquier lado, que rompía el giro desde el arranque.
+  const remedir = useCallback(() => {
+    const pista = pistaRef.current;
+    if (!pista) return;
+    if (!tocado.current) ubicarSinAnimar(pista, pista.scrollWidth / COPIAS);
+    alDesplazar();
+  }, [alDesplazar]);
+
   // Al entrar, la fila arranca en la copia del medio: el primer juego queda a
   // la izquierda como siempre, pero ya hay una vuelta entera de margen hacia
   // atrás para poder deslizar en ese sentido desde el primer momento.
   useEffect(() => {
-    const pista = pistaRef.current;
-    if (!pista || !juegos?.length) return;
-    ubicarSinAnimar(pista, pista.scrollWidth / COPIAS);
-    alDesplazar();
-  }, [juegos, alDesplazar]);
+    if (!juegos?.length) return;
+    remedir();
+  }, [juegos, remedir]);
 
   useEffect(() => {
-    const alCambiarTamano = () => alDesplazar();
+    const alCambiarTamano = () => remedir();
     window.addEventListener("resize", alCambiarTamano);
     return () => window.removeEventListener("resize", alCambiarTamano);
-  }, [alDesplazar]);
+  }, [remedir]);
 
   const mover = useCallback((hacia) => {
     const pista = pistaRef.current;
@@ -111,6 +130,8 @@ const CarruselJuegos = ({ juegos }) => {
         ref={pistaRef}
         onScroll={alDesplazar}
         onKeyDown={alTeclado}
+        onPointerDown={() => { tocado.current = true; }}
+        onWheel={() => { tocado.current = true; }}
         tabIndex={0}
         role="group"
         aria-label={`${juegos.length} juegos disponibles en la sala`}
@@ -125,7 +146,20 @@ const CarruselJuegos = ({ juegos }) => {
               <div className="cj-foto">
                 {/* Una sola imagen, entera y a su forma: el alto lo pone la
                     fila y el ancho lo pone la foto. Ni recorte ni relleno. */}
-                <img src={juego.imagen} alt={juego.nombre} className="cj-img" loading="lazy" />
+                <img
+                  src={juego.imagen}
+                  alt={juego.nombre}
+                  className="cj-img"
+                  loading="lazy"
+                  // Con las medidas, el navegador le reserva a la foto su
+                  // ancho exacto ANTES de bajarla. Sin esto, las que están
+                  // más allá —que se bajan recién cuando hacen falta— miden
+                  // cero, la fila entera mide mal y el carrusel cree que todo
+                  // cabe en pantalla: la barrita salía llena.
+                  width={juego.ancho || undefined}
+                  height={juego.alto || undefined}
+                  onLoad={remedir}
+                />
               </div>
               <p className="cj-nombre">{juego.nombre}</p>
             </article>
