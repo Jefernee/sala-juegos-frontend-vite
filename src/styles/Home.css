@@ -100,7 +100,7 @@ html { scroll-behavior: smooth; }
 .sjr .collage{position:relative;display:block;width:100%;max-width:420px;margin:8px auto 0}.sjr .collage img{position:absolute;border-radius:16px;box-shadow:0 22px 50px -18px rgba(0,0,0,.85);
   border:1px solid var(--borde-vivo);height:auto;animation:levitar 7s ease-in-out infinite}@keyframes levitar{0%,100%{transform:translateY(0) rotate(var(--g))}50%{transform:translateY(-14px) rotate(var(--g))}}
 
-.sjr .datos{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:46px}.sjr .dato{background:var(--vidrio);border:1px solid var(--borde);border-radius:var(--radio);
+.sjr .datos{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:46px}/* Son cinco y en telefono van de dos en dos: el ultimo se queda solo, asi que ocupa el renglon entero y se ve a proposito. */.sjr .dato:last-child{grid-column:span 2}.sjr .dato{background:var(--vidrio);border:1px solid var(--borde);border-radius:var(--radio);
   padding:20px 15px;backdrop-filter:blur(10px);position:relative;overflow:hidden}.sjr .dato::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;
   background:linear-gradient(90deg,transparent,var(--cian),transparent);opacity:.45}/* Techo mas bajo y menos espaciado: "+4.800" es el mas largo de los cuatro y
    con el tamano anterior quedaba pegado al borde de su tarjeta. */
@@ -202,7 +202,7 @@ html { scroll-behavior: smooth; }
 }
 @media(min-width:600px){.sjr .galeria{columns:2}.sjr .tarifas{grid-template-columns:repeat(3,1fr)}
 }
-@media(min-width:768px){.sjr .novedad{grid-template-columns:1fr 1fr;gap:52px}.sjr .datos{grid-template-columns:repeat(4,1fr)}.sjr .prod-grid{grid-template-columns:repeat(5,1fr);gap:18px}.sjr .bento{grid-template-columns:repeat(3,1fr)}.sjr .caja--ancha{grid-column:span 3}.sjr .campeones{grid-template-columns:repeat(4,1fr)}.sjr .visita{grid-template-columns:1fr 1.25fr}.sjr .productos{grid-template-columns:1fr 1fr;gap:40px}.sjr .pie{flex-direction:row;justify-content:space-between;text-align:left}.sjr .pie__marca{flex-direction:row;align-items:center;text-align:left}.sjr .torneo{grid-template-columns:.85fr 1.15fr;align-items:stretch}
+@media(min-width:768px){.sjr .novedad{grid-template-columns:1fr 1fr;gap:52px}.sjr .datos{grid-template-columns:repeat(5,1fr)}.sjr .dato:last-child{grid-column:auto}.sjr .prod-grid{grid-template-columns:repeat(5,1fr);gap:18px}.sjr .bento{grid-template-columns:repeat(3,1fr)}.sjr .caja--ancha{grid-column:span 3}.sjr .campeones{grid-template-columns:repeat(4,1fr)}.sjr .visita{grid-template-columns:1fr 1.25fr}.sjr .productos{grid-template-columns:1fr 1fr;gap:40px}.sjr .pie{flex-direction:row;justify-content:space-between;text-align:left}.sjr .pie__marca{flex-direction:row;align-items:center;text-align:left}.sjr .torneo{grid-template-columns:.85fr 1.15fr;align-items:stretch}
 }
 @media(min-width:992px){.sjr .barra__links{display:flex}.sjr .galeria{columns:3}.sjr .hero__grid{grid-template-columns:1.05fr .95fr}.sjr .collage{margin:0}
 }

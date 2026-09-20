@@ -473,6 +473,13 @@ function Home2() {
                   <div className="dato__n" data-contar="400" data-antes="+">0</div>
                   <div className="dato__t">Clientes atendidos</div>
                 </div>
+                {/* Abrio en 2021. Va con "+" porque el dueno recuerda que el
+                    ano pasado ya llevaban cinco, y en ese caso serian seis:
+                    "+5" es cierto en los dos casos y nunca queda de mas. */}
+                <div className="dato revelar">
+                  <div className="dato__n" data-contar="5" data-antes="+">0</div>
+                  <div className="dato__t">Años dando diversión</div>
+                </div>
               </div>
             </div>
 

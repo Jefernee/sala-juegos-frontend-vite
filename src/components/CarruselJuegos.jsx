@@ -42,6 +42,9 @@ const CarruselJuegos = ({ juegos }) => {
   // Si la persona ya tocó el carrusel, no se le vuelve a mover la fila por
   // debajo aunque sigan llegando fotos.
   const tocado = useRef(false);
+  // Se detiene mientras el mouse esta encima, para poder leer un nombre sin
+  // que la fila se escape. Es distinto de `tocado`: aquello es definitivo.
+  const pausado = useRef(false);
 
   const alDesplazar = useCallback(() => {
     const pista = pistaRef.current;
@@ -85,6 +88,43 @@ const CarruselJuegos = ({ juegos }) => {
     window.addEventListener("resize", alCambiarTamano);
     return () => window.removeEventListener("resize", alCambiarTamano);
   }, [remedir]);
+
+  // ── SE MUEVE SOLO HASTA QUE ALGUIEN LO TOCA ──
+  //
+  // En el telefono no hay flechas ni "pasar el mouse por encima": si la fila
+  // se queda quieta, mucha gente no se entera de que hay 50 juegos para
+  // deslizar y se pierde el catalogo entero. Avanza despacio, y se detiene
+  // PARA SIEMPRE en cuanto la persona la toca: pelearle el desplazamiento al
+  // dedo es lo peor que puede hacer un carrusel.
+  //
+  // Avanza 2 px cada 40 ms —unos 50 px por segundo— en numeros enteros: con
+  // fracciones, algunos navegadores redondean a cero y no se mueve nada.
+  //
+  // Solo corre mientras se ve en pantalla. Si no, estaria gastando bateria y
+  // repintando por una fila que nadie esta mirando.
+  useEffect(() => {
+    const pista = pistaRef.current;
+    if (!juegos?.length || !pista) return undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+
+    let aLaVista = true;
+    const ojo = new IntersectionObserver(([e]) => { aLaVista = e.isIntersecting; });
+    ojo.observe(pista);
+
+    const reloj = window.setInterval(() => {
+      if (tocado.current || pausado.current || !aLaVista) return;
+      // SIN animar. La fila tiene desplazamiento suave, asi que un
+      // `scrollLeft += 2` arranca una animacion que el paso siguiente cancela
+      // 40 ms despues: el neto es CERO y la fila se queda quieta. Con el
+      // mismo ayudante del salto entre copias, el paso se aplica de una.
+      ubicarSinAnimar(pista, pista.scrollLeft + 2);
+    }, 40);
+
+    return () => {
+      window.clearInterval(reloj);
+      ojo.disconnect();
+    };
+  }, [juegos]);
 
   const mover = useCallback((hacia) => {
     const pista = pistaRef.current;
@@ -132,6 +172,8 @@ const CarruselJuegos = ({ juegos }) => {
         onKeyDown={alTeclado}
         onPointerDown={() => { tocado.current = true; }}
         onWheel={() => { tocado.current = true; }}
+        onMouseEnter={() => { pausado.current = true; }}
+        onMouseLeave={() => { pausado.current = false; }}
         tabIndex={0}
         role="group"
         aria-label={`${juegos.length} juegos disponibles en la sala`}
