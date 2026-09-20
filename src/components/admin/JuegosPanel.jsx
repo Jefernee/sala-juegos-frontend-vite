@@ -11,6 +11,7 @@
 // "dejar de ofrecerlo".
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import ImageUploadWithCompression from "../ImageUploadWithCompression";
+import CampoImagen from "./CampoImagen";
 import { API_URL, getAxios, formatCRC, formatPlaca, getLocalDateString } from "./adminUtils";
 import { ModalOverlay, ErrorRecarga, EstadoVacio, Cargando } from "./Comunes";
 
@@ -37,7 +38,7 @@ const formVacio = () => ({
   costo: "",
   fechaCompra: getLocalDateString(),
   numeroFactura: "",
-  nombreInventario: "",
+  usuario: "",
 });
 
 // ─── CAMPO DE PORTADA ────────────────────────────────────────────────────────
@@ -146,7 +147,7 @@ const JuegoFormModal = ({ juego, nombreSugerido, getAuthHeaders, mostrarNotif, m
             costo: Number(form.costo),
             fechaCompra: form.fechaCompra,
             numeroFactura: form.numeroFactura.trim() || undefined,
-            nombreInventario: form.nombreInventario.trim() || undefined,
+            usuario: form.usuario.trim() || undefined,
           };
         }
         const { data } = await axios.post(`${API_URL}/api/juegos`, payload, getAuthHeaders());
@@ -254,15 +255,15 @@ const JuegoFormModal = ({ juego, nombreSugerido, getAuthHeaders, mostrarNotif, m
                     />
                   </div>
                   <div className="col-12">
-                    <label className="form-label">Nombre para el inventario (opcional)</label>
+                    <label className="form-label">Usuario (opcional)</label>
                     <input
                       className="form-control admin-input"
-                      value={form.nombreInventario} onChange={set("nombreInventario")}
-                      placeholder="si lo dejás vacío se usa el nombre del juego" disabled={bloqueado}
+                      value={form.usuario} onChange={set("usuario")}
+                      placeholder="de quién es la copia" disabled={bloqueado}
                     />
                     <small className="text-muted">
-                      Ej: "Juego: COD BO2 usuario Antoyef" — sirve para anotar en qué cuenta
-                      quedó. El cliente ve el nombre de arriba.
+                      En qué cuenta quedó la copia. Ej: "jefernee" o "Jared". En Activos
+                      sale debajo del nombre del juego, que es el que ve el cliente.
                     </small>
                   </div>
                 </div>
@@ -311,7 +312,7 @@ const ComplementoFormModal = ({ juego, getAuthHeaders, mostrarNotif, manejarErro
           costo: Number(form.costo),
           fechaCompra: form.fechaCompra,
           numeroFactura: form.numeroFactura.trim() || undefined,
-          nombreInventario: form.nombreInventario.trim() || undefined,
+          usuario: form.usuario.trim() || undefined,
         };
       }
       const { data } = await axios.post(`${API_URL}/api/juegos`, payload, getAuthHeaders());
@@ -380,15 +381,15 @@ const ComplementoFormModal = ({ juego, getAuthHeaders, mostrarNotif, manejarErro
                 />
               </div>
               <div className="col-12">
-                <label className="form-label">Nombre para el inventario (opcional)</label>
+                <label className="form-label">Usuario (opcional)</label>
                 <input
                   className="form-control admin-input"
-                  value={form.nombreInventario} onChange={set("nombreInventario")}
-                  placeholder="si lo dejás vacío se usa el nombre de arriba" disabled={guardando}
+                  value={form.usuario} onChange={set("usuario")}
+                  placeholder="de quién es la copia" disabled={guardando}
                 />
                 <small className="text-muted">
-                  Ej: "DLC COD temporada 1 usuario Antoyef" — sirve para anotar en qué cuenta
-                  quedó.
+                  En qué cuenta quedó la copia. Ej: "jefernee" o "Jared".
+                  En Activos sale debajo del nombre del juego.
                 </small>
               </div>
             </div>
@@ -416,13 +417,20 @@ const CompraFormModal = ({ juegoId, ficha, compra, esComplemento, getAuthHeaders
     costo: compra ? String(compra.costo) : "",
     fechaCompra: compra?.fechaCompra ? compra.fechaCompra.slice(0, 10) : getLocalDateString(),
     numeroFactura: "",
-    nombreInventario: compra?.nombre || "",
+    usuario: compra?.descripcion || "",
   }));
   const [guardando, setGuardando] = useState(false);
+  // La factura de la compra. Antes no había dónde adjuntarla desde acá, así
+  // que de 19 compras de juegos ninguna tenía una.
+  const [facturaData, setFacturaData] = useState(null);
+  const [quitarFactura, setQuitarFactura] = useState(false);
+  const [procesandoFactura, setProcesandoFactura] = useState(false);
+  const facturaRef = useRef(null);
   const set = (campo) => (e) => setForm((p) => ({ ...p, [campo]: e.target.value }));
 
   const guardar = async () => {
     if (!(Number(form.costo) > 0)) return mostrarNotif("El costo tiene que ser mayor a 0", "warning");
+    if (procesandoFactura) return mostrarNotif("Esperá a que termine de procesarse la foto", "warning");
     if (!form.fechaCompra) return mostrarNotif("Poné la fecha de compra", "warning");
 
     setGuardando(true);
@@ -433,7 +441,13 @@ const CompraFormModal = ({ juegoId, ficha, compra, esComplemento, getAuthHeaders
         costo: Number(form.costo),
         fechaCompra: form.fechaCompra,
         numeroFactura: form.numeroFactura.trim() || undefined,
-        nombreInventario: form.nombreInventario.trim() || undefined,
+        usuario: form.usuario.trim() || undefined,
+        ...(facturaData?.base64 && {
+          imagenFacturaBase64: facturaData.base64,
+          imagenFacturaNombre: facturaData.file.name,
+          imagenFacturaMimeType: facturaData.file.type,
+        }),
+        ...(quitarFactura && !facturaData && { quitarFactura: true }),
       };
       const { data } = esEdicion
         ? await axios.put(`${API_URL}/api/juegos/${juegoId}/compra/${compra.numeroPlaca}`, cuerpo, getAuthHeaders())
@@ -495,16 +509,29 @@ const CompraFormModal = ({ juegoId, ficha, compra, esComplemento, getAuthHeaders
             />
           </div>
           <div className="col-12">
-            <label className="form-label">Nombre para el inventario (opcional)</label>
+            <label className="form-label">Usuario (opcional)</label>
             <input
               className="form-control admin-input"
-              value={form.nombreInventario} onChange={set("nombreInventario")}
-              placeholder="si lo dejás vacío se usa el nombre del juego" disabled={guardando}
+              value={form.usuario} onChange={set("usuario")}
+              placeholder="de quién es la copia" disabled={guardando}
             />
             <small className="text-muted">
-              Ej: "Juego: COD BO2 usuario Antoyef" — sirve para anotar en qué cuenta quedó.
-              El cliente ve el nombre del juego, no este.
+              En qué cuenta quedó la copia. Ej: "jefernee" o "Jared". En Activos sale
+              debajo del nombre del juego, que es el que ve el cliente.
             </small>
+          </div>
+          <div className="col-12">
+            <CampoImagen
+              etiqueta="🧾 Factura de compra (opcional)"
+              urlActual={esEdicion ? compra?.imagenFacturaUrl : null}
+              imagenData={facturaData}
+              quitar={quitarFactura}
+              onChange={(d) => { setFacturaData(d); if (d) setQuitarFactura(false); }}
+              onQuitar={(v) => { setQuitarFactura(v); if (v) { facturaRef.current?.reset(); setFacturaData(null); } }}
+              onProcesando={setProcesandoFactura}
+              uploadRef={facturaRef}
+              disabled={guardando}
+            />
           </div>
         </div>
       </div>
@@ -634,6 +661,9 @@ const DetalleJuego = ({ juego, getAuthHeaders, mostrarNotif, manejarError, onVol
       <span className="jg-linea__izq">
         {etiqueta}
         <span className="jg-placa">{formatPlaca({ numeroPlaca: compra.numeroPlaca })}</span>
+        {/* De quién es la copia. Es lo primero que uno viene a preguntarse
+            cuando abre un juego, y antes había que ir hasta Activos. */}
+        {compra.descripcion && <span className="jg-usuario">{compra.descripcion}</span>}
       </span>
       <span className="jg-linea__monto">{formatCRC(compra.costo)}</span>
       <button
