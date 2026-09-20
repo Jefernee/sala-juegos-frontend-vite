@@ -564,9 +564,12 @@ function Home2() {
               Vení y elegí el tuyo.
             </p>
           </div>
-          <div className="env">
-            <CarruselJuegos juegos={juegos} />
-          </div>
+          {/* A PROPOSITO fuera del contenedor de 1200 px: la fila de juegos
+              corre de borde a borde de la pantalla. Encerrada, se veia como
+              una caja en medio del escritorio y se cortaba antes de llegar a
+              los lados. Los desvanecidos de los costados los pone el propio
+              carrusel. */}
+          <CarruselJuegos juegos={juegos} />
           <div className="env" style={{ textAlign: "center", marginTop: 32 }}>
             <a
               className="boton boton--vidrio revelar"

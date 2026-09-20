@@ -1,523 +1,471 @@
-import { useState, useEffect } from "react";
+// Catálogo público de productos.
+//
+// Va envuelto en .sjr-cat y sus estilos (Productos.css) están encapsulados
+// bajo esa clase: Bootstrap se carga de forma global en main.jsx y sus reglas
+// alcanzan a esta página.
+//
+// SE TRAE TODO DE UNA VEZ Y SE FILTRA EN EL NAVEGADOR.
+// Antes pedía de 12 en 12 y cada búsqueda era un viaje al servidor con su
+// espera. Son 81 productos en total: caben de sobra en una sola petición, y a
+// cambio el buscador y las categorías responden al instante, sin parpadeos ni
+// perder el foco del teclado. El endpoint no tiene tope de página, así que se
+// le pide un límite alto y ya.
+//
+// Acá solo se muestra lo que se puede pedir hoy: si algo se agotó, no
+// aparece. Ojo, esto vale SOLO en esta pantalla, que es la vitrina del
+// cliente; en el panel se siguen viendo todos.
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import "../styles/PublicProductList.css";
-import NavBar from "../components/NavBar";
+import { Link } from "react-router-dom";
 import { resolverDisponibilidad } from "../utils/stock";
-import { formatearMonto, formatearNumero } from "../constants/inventario";
-import { fotoProducto, SIN_FOTO } from "../utils/imagenes";
-import FotoProducto from "../components/FotoProducto";
+import { formatearNumero } from "../constants/inventario";
+import { fotoProducto } from "../utils/imagenes";
+import "../styles/Productos.css";
+
+const LOGO =
+  "https://res.cloudinary.com/drjsg8j92/image/upload/c_scale,w_500,q_auto,f_auto/" +
+  "v1737318752/Imagen_de_WhatsApp_2025-01-11_a_las_21.53.16_f15972d6_h3rx20.jpg";
+
+const WHATSAPP = "https://wa.me/50671603115";
+
+// Los miles con punto. toLocaleString("es-CR") los separa con un ESPACIO y
+// sale "1 500", que se lee como un texto partido a la mitad.
+const miles = (n) => {
+  const t = String(Math.round(Number(n) || 0));
+  let salida = "";
+  for (let i = 0; i < t.length; i += 1) {
+    if (i > 0 && (t.length - i) % 3 === 0) salida += ".";
+    salida += t[i];
+  }
+  return salida;
+};
+const colones = (n) => `₡${miles(n)}`;
+
+// Sin tildes y en minúsculas: buscar "platanitos" tiene que encontrar
+// "Plátanitos", que es como está escrito en el inventario.
+const plano = (t) =>
+  String(t || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+
+const FORMULARIO_VACIO = {
+  nombreCliente: "",
+  telefono: "",
+  email: "",
+  cantidad: 1,
+  notas: "",
+};
 
 const PublicProductsList = () => {
   const [productos, setProductos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  // Solo la PRIMERA carga muestra la pantalla completa de "Cargando...".
-  // Las búsquedas/paginación siguientes usan un indicador chico y NO desmontan
-  // el buscador (si no, el input pierde el foco y la letra recién escrita).
-  const [firstLoad, setFirstLoad] = useState(true);
-  const [pagination, setPagination] = useState({
-    totalProducts: 0,
-    totalPages: 0,
-    currentPage: 1,
-    hasNextPage: false,
-    hasPrevPage: false,
-  });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
 
-  // Estado para el modal de pedido
-  const [showModal, setShowModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [pedidoForm, setPedidoForm] = useState({
-    nombreCliente: "",
-    telefono: "",
-    email: "",
-    cantidad: 1,
-    notas: "",
-  });
-  const [enviandoPedido, setEnviandoPedido] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
+  const [categoria, setCategoria] = useState("todo");
 
-  const fetchProductos = async (page = 1, searchTerm = "") => {
-    setLoading(true);
-    try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/products/public`,
-        {
-          params: { page, limit: 12, search: searchTerm },
-        },
-      );
+  const [elegido, setElegido] = useState(null);
+  const [formulario, setFormulario] = useState(FORMULARIO_VACIO);
+  const [enviando, setEnviando] = useState(false);
 
-      setProductos(response.data.productos);
-      setPagination(response.data.pagination);
-      setCurrentPage(page);
-    } catch (error) {
-      console.error("Error al cargar productos:", error);
-      alert("Error al cargar productos. Por favor, intenta de nuevo.");
-    } finally {
-      setLoading(false);
-      setFirstLoad(false);
-    }
-  };
+  const buscadorRef = useRef(null);
 
-  // Búsqueda en vivo: se dispara sola mientras el cliente escribe (con un
-  // pequeño retardo para no pegarle al backend en cada tecla). Con el campo
-  // vacío (carga inicial o "Limpiar") busca de inmediato, sin esperar.
   useEffect(() => {
-    const termino = search.trim();
-    const t = setTimeout(() => fetchProductos(1, termino), termino ? 400 : 0);
-    return () => clearTimeout(t);
-  }, [search]);
+    let cancelado = false;
+    axios
+      .get(`${import.meta.env.VITE_API_URL}/api/products/public`, {
+        params: { page: 1, limit: 300 },
+      })
+      .then(({ data }) => {
+        if (cancelado) return;
+        const lista = (data?.productos || []).filter(
+          (p) => !resolverDisponibilidad(p).agotado,
+        );
+        setProductos(lista);
+      })
+      .catch(() => {
+        if (!cancelado) setError(true);
+      })
+      .finally(() => {
+        if (!cancelado) setCargando(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
-  // El submit del form (Enter o botón) solo evita recargar la página; la
-  // búsqueda ya la maneja el efecto de arriba.
-  const handleSearch = (e) => {
-    e.preventDefault();
-  };
-
-  const handlePageChange = (newPage) => {
-    fetchProductos(newPage, search);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  // Abrir modal de pedido
-  const handleAbrirPedido = (producto) => {
-    setSelectedProduct(producto);
-    setPedidoForm({
-      nombreCliente: "",
-      telefono: "",
-      email: "",
-      cantidad: 1,
-      notas: "",
+  // Las categorías salen contadas de lo que hay, no escritas a mano: si
+  // mañana aparece una nueva, se muestra sola.
+  const categorias = useMemo(() => {
+    const cuenta = {};
+    productos.forEach((p) => {
+      const c = p.categoria || "otros";
+      cuenta[c] = (cuenta[c] || 0) + 1;
     });
-    setShowModal(true);
+    return Object.entries(cuenta).sort((a, b) => b[1] - a[1]);
+  }, [productos]);
+
+  const visibles = useMemo(() => {
+    const texto = plano(busqueda.trim());
+    return productos.filter(
+      (p) =>
+        (categoria === "todo" || (p.categoria || "otros") === categoria) &&
+        (!texto || plano(p.nombre).includes(texto)),
+    );
+  }, [productos, busqueda, categoria]);
+
+  // Los que entran se destapan en cascada.
+  useEffect(() => {
+    const ojo = new IntersectionObserver(
+      (filas) => {
+        filas.forEach((f) => {
+          if (!f.isIntersecting) return;
+          const el = f.target;
+          const hermanos = el.parentElement ? Array.from(el.parentElement.children) : [el];
+          window.setTimeout(() => el.classList.add("a-la-vista"), Math.min(hermanos.indexOf(el), 9) * 45);
+          ojo.unobserve(el);
+        });
+      },
+      { threshold: 0.05, rootMargin: "0px 0px -30px" },
+    );
+    document.querySelectorAll(".sjr-cat .revelar:not(.a-la-vista)").forEach((el) => ojo.observe(el));
+    return () => ojo.disconnect();
+  }, [visibles]);
+
+  // ── Pedido ────────────────────────────────────────────────────────────────
+  const abrirPedido = (producto) => {
+    setElegido(producto);
+    setFormulario(FORMULARIO_VACIO);
   };
 
-  // Cerrar modal
-  const handleCerrarModal = () => {
-    setShowModal(false);
-    setSelectedProduct(null);
+  const cerrarPedido = () => {
+    setElegido(null);
+    setEnviando(false);
   };
 
-  // Cambios en el formulario
-  const handleFormChange = (e) => {
+  // Se cierra con Escape, como cualquier ventana.
+  useEffect(() => {
+    if (!elegido) return undefined;
+    const alTeclado = (e) => {
+      if (e.key === "Escape") cerrarPedido();
+    };
+    window.addEventListener("keydown", alTeclado);
+    return () => window.removeEventListener("keydown", alTeclado);
+  }, [elegido]);
+
+  const cambiarCampo = (e) => {
     const { name, value } = e.target;
-    setPedidoForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormulario((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Enviar pedido
-  const handleEnviarPedido = async (e) => {
+  const cantidadPedida = Math.max(1, parseInt(formulario.cantidad, 10) || 1);
+  const totalPedido = elegido ? elegido.precioVenta * cantidadPedida : 0;
+
+  const enviarPedido = async (e) => {
     e.preventDefault();
 
-    // Validaciones básicas
-    if (!pedidoForm.nombreCliente.trim()) {
+    if (!formulario.nombreCliente.trim()) {
       alert("Indique su nombre para continuar.");
       return;
     }
-
-    if (!pedidoForm.telefono.trim()) {
+    if (!formulario.telefono.trim()) {
       alert("Indique un número de teléfono para poder contactarle.");
       return;
     }
 
-    if (pedidoForm.cantidad < 1) {
-      alert("La cantidad debe ser de al menos 1 unidad.");
-      return;
-    }
-
-    const { stock } = resolverDisponibilidad(selectedProduct);
-    if (pedidoForm.cantidad > stock) {
+    const { stock } = resolverDisponibilidad(elegido);
+    if (cantidadPedida > stock) {
       alert(
         `La cantidad solicitada supera la disponibilidad actual (${formatearNumero(stock)} unidades).`,
       );
       return;
     }
 
-    setEnviandoPedido(true);
-
+    setEnviando(true);
     try {
-      const pedidoData = {
-        productoId: selectedProduct._id,
-        productoNombre: selectedProduct.nombre,
-        precioVenta: selectedProduct.precioVenta,
-        nombreCliente: pedidoForm.nombreCliente,
-        telefono: pedidoForm.telefono,
-        email: pedidoForm.email,
-        cantidad: parseInt(pedidoForm.cantidad),
-        notas: pedidoForm.notas,
-        total: selectedProduct.precioVenta * parseInt(pedidoForm.cantidad),
-      };
-
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/pedidos`,
-        pedidoData,
-      );
-
-      alert(
-        "Su solicitud fue registrada. Le contactaremos para confirmar el pedido.",
-      );
-      handleCerrarModal();
-    } catch (error) {
-      console.error("Error al enviar pedido:", error);
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/pedidos`, {
+        productoId: elegido._id,
+        productoNombre: elegido.nombre,
+        precioVenta: elegido.precioVenta,
+        nombreCliente: formulario.nombreCliente,
+        telefono: formulario.telefono,
+        email: formulario.email,
+        cantidad: cantidadPedida,
+        notas: formulario.notas,
+        total: totalPedido,
+      });
+      alert("Su solicitud fue registrada. Le contactaremos para confirmar el pedido.");
+      cerrarPedido();
+    } catch (err) {
+      console.error("Error al enviar pedido:", err);
       alert("No fue posible registrar la solicitud. Intente de nuevo.");
-    } finally {
-      setEnviandoPedido(false);
+      setEnviando(false);
     }
   };
 
-  // El catálogo público solo muestra lo que se puede pedir hoy: si algo se
-  // agotó, no aparece. Ojo: esto vale SOLO acá, que es la vitrina del cliente.
-  // En Ventas y en Inventario los agotados se siguen viendo, con el motivo a la
-  // vista — ahí esconderlos es justo lo que hizo desaparecer un producto sin
-  // dejar rastro.
-  const disponibles = (productos || [])
-    .map((producto) => ({ producto, ...resolverDisponibilidad(producto) }))
-    .filter((p) => !p.agotado);
-
-  const hayOcultos = (productos || []).length > disponibles.length;
-
-  if (firstLoad) {
-    return (
-      <div className="public-products-container">
-        <NavBar /> {/* 🎯 USA EL COMPONENTE en lugar de todo el <nav> */}
-        <div className="loading-container">
-          <div className="loading-content">
-            <h2 className="loading-title">Cargando el catálogo</h2>
-            <p className="loading-subtitle">Un momento, por favor.</p>
-            <div className="loading-spinner-custom"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const conteo =
+    visibles.length === 1
+      ? "1 producto"
+      : `Mostrando ${visibles.length} productos${categoria !== "todo" ? ` en ${categoria}` : ""}`;
 
   return (
-    <div className="public-products-container">
-      <NavBar /> {/* 🎯 USA EL COMPONENTE en lugar de todo el <nav> */}
-      {/* Contenido principal */}
-      <div className="public-products-content">
-        <div className="container py-4">
-          <h2 className="public-products-title mb-4">Catálogo de productos</h2>
+    <div className="sjr-cat">
+      <div className="aurora" aria-hidden="true">
+        <span />
+        <span />
+      </div>
 
-          {/* Buscador */}
-          <form onSubmit={handleSearch} className="mb-4">
-            <div className="input-group search-bar">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Buscar producto..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              <button className="btn btn-primary" type="submit">
-                Buscar
-              </button>
-              {search && (
-                <button
-                  className="btn btn-secondary"
-                  type="button"
-                  onClick={() => setSearch("")}
-                >
-                  Limpiar
-                </button>
-              )}
-            </div>
-          </form>
-
-          {/* Contador de resultados + indicador chico de búsqueda */}
-          <p className="text-muted mb-3 d-flex align-items-center gap-2">
-            {loading && (
-              <span
-                className="spinner-border spinner-border-sm text-secondary"
-                role="status"
-                aria-hidden="true"
-              ></span>
-            )}
-            <span>
-              {loading
-                ? "Buscando…"
-                : disponibles.length > 0
-                  ? hayOcultos
-                    ? `Mostrando ${disponibles.length} ${disponibles.length === 1 ? "producto disponible" : "productos disponibles"}${search ? ` para "${search}"` : ""}`
-                    : `Mostrando ${disponibles.length} de ${pagination?.totalProducts ?? disponibles.length} productos${search ? ` para "${search}"` : ""}`
-                  : ""}
+      <header className="barra">
+        <div className="env barra__int">
+          <Link className="marca" to="/">
+            <img className="marca__logo" src={LOGO} alt="Sala de Juegos Ruiz" width="46" height="46" />
+            <span className="marca__txt">
+              Sala de Juegos Ruiz
+              <small>Entretenimiento</small>
             </span>
-          </p>
+          </Link>
+          <Link className="boton boton--vidrio boton--chico" to="/">
+            ← Volver al inicio
+          </Link>
+        </div>
+      </header>
 
-          {/* Grid de productos */}
-          {disponibles.length === 0 ? (
-            <div className="alert alert-info">
-              {hayOcultos
-                ? "Por el momento no hay productos disponibles."
-                : `No se encontraron productos${search ? ` para "${search}"` : ""}.`}
+      <main>
+        <div className="env cabecera">
+          <h1>
+            Catálogo de <span className="deg">productos</span>
+          </h1>
+          <p>Acá sale solo lo que hay en este momento: si aparece, está disponible.</p>
+        </div>
+
+        {/* Buscador y categorías quedan pegados arriba al desplazar: con
+            decenas de productos, tener que volver al principio para cambiar de
+            categoría es un castigo con el dedo. */}
+        <div className="herramientas">
+          <div className="env">
+            <div className="barra-filtros">
+              <div className="buscador">
+                <span className="buscador__lupa" aria-hidden="true">🔍</span>
+                <input
+                  ref={buscadorRef}
+                  type="search"
+                  placeholder="Buscar producto…"
+                  aria-label="Buscar producto"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                />
+                {busqueda && (
+                  <button
+                    type="button"
+                    className="buscador__borrar"
+                    style={{ display: "block" }}
+                    aria-label="Borrar búsqueda"
+                    onClick={() => {
+                      setBusqueda("");
+                      buscadorRef.current?.focus();
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <div className="filtros" role="group" aria-label="Filtrar por categoría">
+                <button
+                  type="button"
+                  className="filtro"
+                  aria-pressed={categoria === "todo"}
+                  onClick={() => setCategoria("todo")}
+                >
+                  Todo <b>{productos.length}</b>
+                </button>
+                {categorias.map(([cat, n]) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    className="filtro"
+                    aria-pressed={categoria === cat}
+                    onClick={() => setCategoria(cat)}
+                  >
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)} <b>{n}</b>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {!cargando && !error && <p className="conteo">{conteo}</p>}
+          </div>
+        </div>
+
+        <div className="env">
+          {cargando ? (
+            <p className="aviso">Cargando el catálogo…</p>
+          ) : error ? (
+            <div className="aviso">
+              <b>No pudimos cargar el catálogo</b>
+              Probá de nuevo en un momento, o escribinos y te decimos qué hay.
+            </div>
+          ) : visibles.length === 0 ? (
+            <div className="aviso">
+              <b>No encontramos nada con eso</b>
+              Probá con otra palabra, o mirá todas las categorías.
             </div>
           ) : (
-            <div className="row g-4">
-              {disponibles.map(({ producto, stock }) => (
-                <div
-                  key={producto._id}
-                  className="col-12 col-sm-6 col-md-4 col-lg-3"
-                >
-                  <div className="card public-product-card h-100 shadow-sm">
-                    {/* Imagen */}
-                    <div className="public-product-image-container">
-                      {/* La caja mide 320 px: pedir el original (hasta 215 KB
-                          por foto) para pintarlo acá era el mayor peso de la
-                          pantalla que ven los clientes. Al tocar sí se abre la
-                          original, que para eso es "ver la imagen completa". */}
-                      {producto.imagen ? (
-                        <FotoProducto
-                          src={producto.imagen}
-                          ancho={400}
-                          anchos={[400, 800]}
-                          sizes="(max-width: 600px) 90vw, 300px"
-                          alt={producto.nombre}
-                          className="card-img-top public-product-image"
-                          onClick={() => window.open(producto.imagen, "_blank")}
-                          title="Ver la imagen completa"
-                        />
-                      ) : (
-                        <img
-                          src={SIN_FOTO}
-                          alt=""
-                          className="card-img-top public-product-image"
-                        />
-                      )}
-                    </div>
-
-                    <div className="card-body">
-                      <h5
-                        className="card-title text-truncate"
-                        title={producto.nombre}
-                      >
-                        {producto.nombre}
-                      </h5>
-
-                      <div className="public-product-info">
-                        <div className="info-row">
-                          <span className="info-label">Disponibilidad</span>
-                          <span className="badge bg-secondary">
-                            {formatearNumero(stock)}{" "}
-                            {stock === 1 ? "unidad" : "unidades"}
-                          </span>
-                        </div>
-
-                        <div className="info-row price-row">
-                          <span className="info-label">Precio</span>
-                          <span className="info-value text-success fw-bold">
-                            {formatearMonto(producto.precioVenta)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Botón de pedido */}
+            <div className="rejilla">
+              {visibles.map((p) => (
+                <article className="prod revelar" key={p._id}>
+                  {/* Caja cuadrada y a sangre. Se midieron las fotos del
+                      inventario: la mediana es exactamente 1.00 y el recorte
+                      promedio de una caja cuadrada es del 9%, así que casi no
+                      se pierde nada y a cambio la foto llena el cuadro de
+                      borde a borde, como las portadas de los juegos. */}
+                  <div className="prod__foto">
+                    <img
+                      src={fotoProducto(p.imagen, { ancho: 500 })}
+                      alt={p.nombre}
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="prod__cuerpo">
+                    <span className="prod__cat">{p.categoria || "otros"}</span>
+                    <h3 className="prod__n">{p.nombre}</h3>
+                    <div className="prod__fila">
+                      <span className="prod__p">{colones(p.precioVenta)}</span>
                       <button
-                        className="btn btn-primary w-100 mt-3"
-                        onClick={() => handleAbrirPedido(producto)}
+                        type="button"
+                        className="boton boton--vidrio boton--chico"
+                        onClick={() => abrirPedido(p)}
                       >
-                        Solicitar pedido
+                        Apartar
                       </button>
                     </div>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           )}
-
-          {/* Paginación */}
-          {pagination?.totalPages > 1 && (
-            <nav className="mt-5">
-              <ul className="pagination justify-content-center">
-                <li
-                  className={`page-item ${!pagination?.hasPrevPage ? "disabled" : ""}`}
-                >
-                  <button
-                    className="page-link"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={!pagination?.hasPrevPage}
-                  >
-                    ‹ Anterior
-                  </button>
-                </li>
-
-                {pagination?.totalPages &&
-                  [...Array(pagination.totalPages)].map((_, index) => {
-                    const pageNum = index + 1;
-                    if (
-                      pageNum === 1 ||
-                      pageNum === pagination.totalPages ||
-                      (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-                    ) {
-                      return (
-                        <li
-                          key={pageNum}
-                          className={`page-item ${currentPage === pageNum ? "active" : ""}`}
-                        >
-                          <button
-                            className="page-link"
-                            onClick={() => handlePageChange(pageNum)}
-                          >
-                            {pageNum}
-                          </button>
-                        </li>
-                      );
-                    } else if (
-                      pageNum === currentPage - 2 ||
-                      pageNum === currentPage + 2
-                    ) {
-                      return (
-                        <li key={pageNum} className="page-item disabled">
-                          <span className="page-link">...</span>
-                        </li>
-                      );
-                    }
-                    return null;
-                  })}
-
-                <li
-                  className={`page-item ${!pagination?.hasNextPage ? "disabled" : ""}`}
-                >
-                  <button
-                    className="page-link"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={!pagination?.hasNextPage}
-                  >
-                    Siguiente ›
-                  </button>
-                </li>
-              </ul>
-            </nav>
-          )}
         </div>
-      </div>
-      {/* Modal de pedido */}
-      {showModal && selectedProduct && (
-        <div className="modal-overlay" onClick={handleCerrarModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Solicitud de pedido</h3>
-              <button className="btn-close" onClick={handleCerrarModal}>
-                ×
+      </main>
+
+      <footer>
+        <div className="env">
+          <img className="pie__logo" src={LOGO} alt="Sala de Juegos Ruiz" loading="lazy" />
+          <small style={{ color: "var(--cian)", fontWeight: 600 }}>
+            Un lugar seguro y confiable para divertirse sanamente
+          </small>
+          <small style={{ marginTop: 6 }}>© {new Date().getFullYear()} Sala de Juegos Ruiz</small>
+        </div>
+      </footer>
+
+      {/* Ventana de pedido: centrada y con margen. No ocupa toda la pantalla
+          ni sube desde abajo. */}
+      {elegido && (
+        <div
+          className="telon"
+          open
+          onClick={(e) => {
+            if (e.target === e.currentTarget) cerrarPedido();
+          }}
+        >
+          <div className="ventana" role="dialog" aria-modal="true" aria-labelledby="pedido-nombre">
+            <div className="ventana__cab">
+              <div className="ventana__foto">
+                <img src={fotoProducto(elegido.imagen, { ancho: 200 })} alt="" />
+              </div>
+              <div>
+                <h3 id="pedido-nombre">{elegido.nombre}</h3>
+                <span className="ventana__precio">{colones(elegido.precioVenta)} c/u</span>
+              </div>
+              <button type="button" className="cerrar" onClick={cerrarPedido} aria-label="Cerrar">
+                ✕
               </button>
             </div>
 
-            <div className="modal-body">
-              <div className="producto-info-modal">
-                <img
-                  src={fotoProducto(selectedProduct.imagen, { ancho: 800 })}
-                  alt={selectedProduct.nombre}
-                  className="producto-imagen-modal"
+            <form onSubmit={enviarPedido}>
+              <div className="campo">
+                <label htmlFor="p-nombre">Nombre completo *</label>
+                <input
+                  id="p-nombre"
+                  name="nombreCliente"
+                  required
+                  placeholder="Su nombre"
+                  value={formulario.nombreCliente}
+                  onChange={cambiarCampo}
                 />
-                <div>
-                  <h5>{selectedProduct.nombre}</h5>
-                  <p className="precio-modal">
-                    {formatearMonto(selectedProduct.precioVenta)}
-                  </p>
-                  <p className="stock-modal">
-                    Disponibles:{" "}
-                    {formatearNumero(resolverDisponibilidad(selectedProduct).stock)}{" "}
-                    unidades
-                  </p>
-                </div>
+              </div>
+              <div className="campo">
+                <label htmlFor="p-tel">Teléfono *</label>
+                <input
+                  id="p-tel"
+                  name="telefono"
+                  type="tel"
+                  required
+                  placeholder="8888 8888"
+                  value={formulario.telefono}
+                  onChange={cambiarCampo}
+                />
+              </div>
+              <div className="campo">
+                <label htmlFor="p-mail">Correo (opcional)</label>
+                <input
+                  id="p-mail"
+                  name="email"
+                  type="email"
+                  placeholder="correo@ejemplo.com"
+                  value={formulario.email}
+                  onChange={cambiarCampo}
+                />
+              </div>
+              <div className="campo">
+                <label htmlFor="p-cant">Cantidad *</label>
+                <input
+                  id="p-cant"
+                  name="cantidad"
+                  type="number"
+                  min="1"
+                  max={resolverDisponibilidad(elegido).stock || 1}
+                  required
+                  value={formulario.cantidad}
+                  onChange={cambiarCampo}
+                />
+              </div>
+              <div className="campo">
+                <label htmlFor="p-notas">Comentarios (opcional)</label>
+                <textarea
+                  id="p-notas"
+                  name="notas"
+                  placeholder="Información adicional sobre el pedido"
+                  value={formulario.notas}
+                  onChange={cambiarCampo}
+                />
               </div>
 
-              <form onSubmit={handleEnviarPedido}>
-                <div className="mb-3">
-                  <label className="form-label">Nombre completo *</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="nombreCliente"
-                    value={pedidoForm.nombreCliente}
-                    onChange={handleFormChange}
-                    required
-                  />
-                </div>
+              <div className="total">
+                <span>Total</span>
+                <b>{colones(totalPedido)}</b>
+              </div>
 
-                <div className="mb-3">
-                  <label className="form-label">Teléfono *</label>
-                  <input
-                    type="tel"
-                    className="form-control"
-                    name="telefono"
-                    value={pedidoForm.telefono}
-                    onChange={handleFormChange}
-                    required
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">
-                    Correo electrónico (opcional)
-                  </label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    name="email"
-                    value={pedidoForm.email}
-                    onChange={handleFormChange}
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">Cantidad *</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    name="cantidad"
-                    min="1"
-                    max={resolverDisponibilidad(selectedProduct).stock}
-                    value={pedidoForm.cantidad}
-                    onChange={handleFormChange}
-                    required
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">Comentarios (opcional)</label>
-                  <textarea
-                    className="form-control"
-                    name="notas"
-                    rows="3"
-                    value={pedidoForm.notas}
-                    onChange={handleFormChange}
-                    placeholder="Información adicional sobre el pedido"
-                  ></textarea>
-                </div>
-
-                <div className="total-pedido">
-                  <strong>
-                    Total:{" "}
-                    {formatearMonto(
-                      selectedProduct.precioVenta * pedidoForm.cantidad,
-                    )}
-                  </strong>
-                </div>
-
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleCerrarModal}
-                    disabled={enviandoPedido}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={enviandoPedido}
-                  >
-                    {enviandoPedido ? "Enviando…" : "Confirmar pedido"}
-                  </button>
-                </div>
-              </form>
-            </div>
+              <button className="boton boton--vivo boton--bloque" type="submit" disabled={enviando}>
+                {enviando ? "Enviando…" : "Enviar solicitud"}
+              </button>
+              <p className="ventana__nota">
+                Le contactamos para confirmar. No se paga nada por acá.
+              </p>
+            </form>
           </div>
         </div>
       )}
+
+      <a
+        className="flotante"
+        href={WHATSAPP}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Escribinos por WhatsApp"
+      >
+        💬 <span>Escribinos</span>
+      </a>
     </div>
   );
 };
+
 export default PublicProductsList;

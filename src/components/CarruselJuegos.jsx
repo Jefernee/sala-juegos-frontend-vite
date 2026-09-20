@@ -6,8 +6,13 @@
 // fila se reubica una copia entera de golpe. Como las tres dibujan lo mismo,
 // el salto no se ve.
 //
+// ANDA SOLA. La fila avanza despacio por su cuenta: es lo que le dice a la
+// gente que ahí hay más de lo que se ve. Se aparta mientras alguien la toca y
+// retoma sola un rato después; con el mouse encima se queda quieta para poder
+// leer un nombre. No lleva flechas ni barrita: la que anda ya se explica.
+//
 // Sin librerías: el desplazamiento es el del navegador, así que en el teléfono
-// conserva su inercia de siempre. En escritorio hay flechas y teclado.
+// conserva su inercia de siempre. Con el teclado, las flechas también mueven.
 //
 // Cada foto lleva sus medidas puestas: el navegador le reserva su ancho exacto
 // antes de bajarla, así la fila mide bien desde el primer dibujo aunque las
@@ -22,8 +27,8 @@
 // genérico de PS Plus, que ya está en el botón de abajo. Con el dedo, la gente
 // toca lo que ve, y abrir una pestaña con una página que no habla de ese juego
 // se siente roto. Acá el carrusel muestra; el botón lleva.
-import { useCallback, useEffect, useRef, useState } from "react";
-import { COPIAS, acomodarCiclo, pasoDeScroll, progresoCiclico } from "../constants/carrusel";
+import { useCallback, useEffect, useRef } from "react";
+import { COPIAS, acomodarCiclo, pasoDeScroll } from "../constants/carrusel";
 import "../styles/CarruselJuegos.css";
 
 // Mueve la fila SIN animación. Hace falta para el salto entre copias: con el
@@ -38,13 +43,21 @@ const ubicarSinAnimar = (pista, left) => {
 
 const CarruselJuegos = ({ juegos }) => {
   const pistaRef = useRef(null);
-  const [barra, setBarra] = useState({ visible: 1, avance: 0 });
   // Si la persona ya tocó el carrusel, no se le vuelve a mover la fila por
   // debajo aunque sigan llegando fotos.
   const tocado = useRef(false);
   // Se detiene mientras el mouse esta encima, para poder leer un nombre sin
-  // que la fila se escape. Es distinto de `tocado`: aquello es definitivo.
+  // que la fila se escape.
   const pausado = useRef(false);
+  // Hasta cuando esperar antes de volver a andar sola. La fila NO se detiene
+  // para siempre al tocarla: se aparta un momento y retoma. Quedarse quieta
+  // despues del primer roce deja el resto del catalogo escondido, y la
+  // persona no tiene como saber que ahi habia mas.
+  const pausaHasta = useRef(0);
+  const apartarse = useCallback(() => {
+    tocado.current = true;
+    pausaHasta.current = Date.now() + 2500;
+  }, []);
 
   const alDesplazar = useCallback(() => {
     const pista = pistaRef.current;
@@ -54,20 +67,14 @@ const CarruselJuegos = ({ juegos }) => {
     const destino = acomodarCiclo({ scrollLeft: pista.scrollLeft, anchoCopia });
     if (destino !== null) ubicarSinAnimar(pista, destino);
 
-    setBarra(progresoCiclico({
-      scrollLeft: pista.scrollLeft,
-      clientWidth: pista.clientWidth,
-      anchoCopia,
-    }));
   }, []);
 
   // Vuelve a medir y, si nadie tocó todavía, recentra en la copia del medio.
   //
   // Hace falta llamarla CADA VEZ QUE CARGA UNA FOTO: el ancho de cada tarjeta
   // lo pone su imagen, así que antes de que bajen, la fila mide casi nada. Con
-  // esas medidas el carrusel creía que todo cabía en pantalla —la barrita
-  // salía llena, como si no hubiera nada más— y el centrado inicial caía en
-  // cualquier lado, que rompía el giro desde el arranque.
+  // esas medidas el carrusel creía que todo cabía en pantalla y el centrado
+  // inicial caía en cualquier lado, que rompía el giro desde el arranque.
   const remedir = useCallback(() => {
     const pista = pistaRef.current;
     if (!pista) return;
@@ -89,16 +96,18 @@ const CarruselJuegos = ({ juegos }) => {
     return () => window.removeEventListener("resize", alCambiarTamano);
   }, [remedir]);
 
-  // ── SE MUEVE SOLO HASTA QUE ALGUIEN LO TOCA ──
+  // ── SE MUEVE SOLA ──
   //
-  // En el telefono no hay flechas ni "pasar el mouse por encima": si la fila
-  // se queda quieta, mucha gente no se entera de que hay 50 juegos para
-  // deslizar y se pierde el catalogo entero. Avanza despacio, y se detiene
-  // PARA SIEMPRE en cuanto la persona la toca: pelearle el desplazamiento al
-  // dedo es lo peor que puede hacer un carrusel.
+  // Si la fila se queda quieta, mucha gente no se entera de que hay 50 juegos
+  // para deslizar y se pierde el catalogo entero. Avanza despacio y se aparta
+  // en cuanto la persona la toca —pelearle el desplazamiento al dedo es lo
+  // peor que puede hacer un carrusel—, pero RETOMA sola 2,5 s despues: si se
+  // quedara quieta para siempre, el primer roce escondería el resto.
   //
-  // Avanza 2 px cada 40 ms —unos 50 px por segundo— en numeros enteros: con
+  // Avanza 3 px cada 33 ms —unos 90 px por segundo— en numeros enteros: con
   // fracciones, algunos navegadores redondean a cero y no se mueve nada.
+  // A 50 px/s se sentia lento; a este paso una caratula entra cada dos
+  // segundos, que alcanza para leer el nombre sin que parezca detenido.
   //
   // Solo corre mientras se ve en pantalla. Si no, estaria gastando bateria y
   // repintando por una fila que nadie esta mirando.
@@ -112,13 +121,13 @@ const CarruselJuegos = ({ juegos }) => {
     ojo.observe(pista);
 
     const reloj = window.setInterval(() => {
-      if (tocado.current || pausado.current || !aLaVista) return;
+      if (pausado.current || !aLaVista || Date.now() < pausaHasta.current) return;
       // SIN animar. La fila tiene desplazamiento suave, asi que un
-      // `scrollLeft += 2` arranca una animacion que el paso siguiente cancela
-      // 40 ms despues: el neto es CERO y la fila se queda quieta. Con el
+      // `scrollLeft += 3` arranca una animacion que el paso siguiente cancela
+      // 33 ms despues: el neto es CERO y la fila se queda quieta. Con el
       // mismo ayudante del salto entre copias, el paso se aplica de una.
-      ubicarSinAnimar(pista, pista.scrollLeft + 2);
-    }, 40);
+      ubicarSinAnimar(pista, pista.scrollLeft + 3);
+    }, 33);
 
     return () => {
       window.clearInterval(reloj);
@@ -126,52 +135,43 @@ const CarruselJuegos = ({ juegos }) => {
     };
   }, [juegos]);
 
+
   const mover = useCallback((hacia) => {
     const pista = pistaRef.current;
     if (!pista) return;
-    // Sin topes: el salto entre copias se encarga de que siempre haya más.
+    // Sin topes: el salto entre copias se encarga de que siempre haya mas.
     pista.scrollBy({ left: pasoDeScroll(pista.clientWidth, hacia), behavior: "smooth" });
   }, []);
 
   // Con el teclado, las flechas mueven una pantalla entera y no tres píxeles,
   // que es lo que hace el navegador por su cuenta.
   const alTeclado = (e) => {
-    if (e.key === "ArrowRight") { e.preventDefault(); mover(1); }
-    if (e.key === "ArrowLeft") { e.preventDefault(); mover(-1); }
+    if (e.key === "ArrowRight") { e.preventDefault(); apartarse(); mover(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); apartarse(); mover(-1); }
   };
 
   if (!juegos?.length) return null;
 
-  // La barrita: por dónde va la vuelta. Es informativa y no se toca: un riel de
-  // 4 px sería un blanco imposible para un dedo.
-  const anchoBarra = Math.max(barra.visible * 100, 8);
-  const izqBarra = (100 - anchoBarra) * barra.avance;
-  const hayMas = barra.visible < 1;
-
   // Las tres copias. Solo la del medio se le lee a un lector de pantalla: las
-  // otras dos son el truco del giro, y repetir 150 nombres sería puro ruido.
+  // otras dos son el truco del giro, y repetir 150 nombres seria puro ruido.
   const copias = Array.from({ length: COPIAS }, (_, i) => i);
 
   return (
     <div className="cj-wrap">
-      {hayMas && (
-        <button
-          type="button"
-          className="cj-flecha cj-flecha--izq"
-          onClick={() => mover(-1)}
-          aria-label="Ver juegos anteriores"
-        >
-          ‹
-        </button>
-      )}
-
+      {/* NI FLECHAS NI BARRITA NI CONTADOR.
+          La fila anda sola, asi que ya se ve que hay mas: no hace falta un
+          cartel que lo diga ni botones para empujarla. Los dos recuadros
+          negros de los costados tapaban caratulas y, en el telefono, competian
+          con el dedo. Se mueve deslizando, que es lo natural, y en escritorio
+          tambien con las flechas del teclado. */}
       <div
         className="cj-pista"
         ref={pistaRef}
         onScroll={alDesplazar}
         onKeyDown={alTeclado}
-        onPointerDown={() => { tocado.current = true; }}
-        onWheel={() => { tocado.current = true; }}
+        onPointerDown={apartarse}
+        onWheel={apartarse}
+        onTouchStart={apartarse}
         onMouseEnter={() => { pausado.current = true; }}
         onMouseLeave={() => { pausado.current = false; }}
         tabIndex={0}
@@ -194,10 +194,10 @@ const CarruselJuegos = ({ juegos }) => {
                   className="cj-img"
                   loading="lazy"
                   // Con las medidas, el navegador le reserva a la foto su
-                  // ancho exacto ANTES de bajarla. Sin esto, las que están
-                  // más allá —que se bajan recién cuando hacen falta— miden
+                  // ancho exacto ANTES de bajarla. Sin esto, las que estan
+                  // mas alla —que se bajan recien cuando hacen falta— miden
                   // cero, la fila entera mide mal y el carrusel cree que todo
-                  // cabe en pantalla: la barrita salía llena.
+                  // cabe en pantalla.
                   width={juego.ancho || undefined}
                   height={juego.alto || undefined}
                   onLoad={remedir}
@@ -208,27 +208,6 @@ const CarruselJuegos = ({ juegos }) => {
           )),
         )}
       </div>
-
-      {hayMas && (
-        <button
-          type="button"
-          className="cj-flecha cj-flecha--der"
-          onClick={() => mover(1)}
-          aria-label="Ver más juegos"
-        >
-          ›
-        </button>
-      )}
-
-      {hayMas && (
-        <div className="cj-barra" aria-hidden="true">
-          <span className="cj-barra__pulgar" style={{ width: `${anchoBarra}%`, left: `${izqBarra}%` }} />
-        </div>
-      )}
-
-      <p className="cj-contador">
-        {juegos.length} juegos{hayMas ? " · deslizá para verlos todos" : ""}
-      </p>
     </div>
   );
 };

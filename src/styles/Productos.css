@@ -1,0 +1,121 @@
+/* Estilos del catalogo publico de productos.
+ *
+ * Todo va encapsulado bajo .sjr-cat, con su propio envoltorio y no el
+ * de la portada, para que las dos hojas puedan convivir sin pisarse.
+ *
+ * Las clases .boton y .a-la-vista se llaman asi y no .btn y .visible
+ * porque Bootstrap ya define esos nombres de forma global: se carga en
+ * main.jsx y sus reglas alcanzan a esta pagina. Encapsular no salva de
+ * eso, el nombre choca igual.
+ *
+ * Generado desde la maqueta aprobada, para que lo que se publique sea
+ * exactamente lo que se reviso.
+ */
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+.sjr-cat { min-height: 100vh; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CATÁLOGO DE PRODUCTOS — mismo lenguaje que la portada.
+   Los 81 productos salen del inventario real, con su foto, su precio y si
+   hay existencias. Buscador y filtros por categoría funcionan de verdad.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.sjr-cat{
+  --fondo:#06080f; --vidrio:rgba(255,255,255,.045); --vidrio-fuerte:rgba(255,255,255,.075);
+  --borde:rgba(255,255,255,.09); --borde-vivo:rgba(255,255,255,.2);
+  --txt:#eef2fb; --txt-2:#9fb0cf; --txt-3:#6b7d9e;
+  --cian:#22d3ee; --indigo:#6366f1; --verde:#34d399;
+  --radio:20px; --ancho:1200px;
+}.sjr-cat *{box-sizing:border-box}.sjr-cat{margin:0;background:var(--fondo);color:var(--txt);
+  font-family:'Outfit',system-ui,-apple-system,'Segoe UI',sans-serif;
+  line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}.sjr-cat img{max-width:100%}.sjr-cat :focus-visible{outline:2px solid var(--cian);outline-offset:3px;border-radius:6px}.sjr-cat .aurora{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}.sjr-cat .aurora span{position:absolute;border-radius:50%;filter:blur(95px);opacity:.45;animation:flotar 22s ease-in-out infinite}.sjr-cat .aurora span:nth-child(1){width:520px;height:520px;background:#0e7490;top:-190px;left:-130px}.sjr-cat .aurora span:nth-child(2){width:460px;height:460px;background:#4338ca;top:44%;right:-170px;animation-delay:-7s}@keyframes flotar{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-36px) scale(1.12)}}
+.sjr-cat::after{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}.sjr-cat main, .sjr-cat header, .sjr-cat footer{position:relative;z-index:2}.sjr-cat .env{max-width:var(--ancho);margin:0 auto;padding:0 20px}/* ── Barra ── */
+.sjr-cat .barra{position:sticky;top:0;z-index:50;border-bottom:1px solid transparent;
+  transition:background .3s ease,border-color .3s ease}.sjr-cat .barra{background:rgba(6,8,15,.76);backdrop-filter:blur(18px) saturate(140%);border-bottom-color:var(--borde)}.sjr-cat .barra__int{display:flex;align-items:center;justify-content:space-between;gap:14px;height:76px}.sjr-cat .marca{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--txt);font-weight:700;letter-spacing:-.02em}.sjr-cat .marca__logo{width:46px;height:46px;border-radius:14px;object-fit:cover;
+  box-shadow:0 0 0 1px var(--borde-vivo),0 0 22px -4px rgba(34,211,238,.55)}.sjr-cat .marca__txt{display:none;font-size:1.02rem;line-height:1.15}.sjr-cat .marca__txt small{display:block;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--cian);font-weight:600}.sjr-cat .boton{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:13px 24px;
+  border-radius:999px;font-weight:600;font-size:.94rem;text-decoration:none;cursor:pointer;
+  border:1px solid transparent;font-family:inherit;
+  transition:transform .18s ease,box-shadow .25s ease,background .25s ease;white-space:nowrap}.sjr-cat .boton--vivo{background:linear-gradient(120deg,var(--cian),var(--indigo));color:#03111a;
+  box-shadow:0 10px 34px -12px rgba(34,211,238,.75)}.sjr-cat .boton--vivo:hover{transform:translateY(-2px)}.sjr-cat .boton--vidrio{background:var(--vidrio);color:var(--txt);border-color:var(--borde-vivo)}.sjr-cat .boton--vidrio:hover{background:var(--vidrio-fuerte)}.sjr-cat .boton--chico{padding:10px 17px;font-size:.87rem}.sjr-cat .boton--bloque{width:100%}/* ── Encabezado ── */
+/* ENCABEZADO COMPACTO. Antes el titulo, la bajada, el buscador, los filtros
+   y el conteo se comian una pantalla entera antes del primer producto. Ahora
+   el titulo es mas chico y el buscador y los filtros comparten renglon. */
+.sjr-cat .cabecera{padding:26px 0 14px;text-align:center}.sjr-cat .cabecera h1{font-size:clamp(1.55rem,4vw,2.2rem);font-weight:800;letter-spacing:-.035em;margin:0 0 6px}/* El texto con degradado se pinta SOLO dentro de su caja. Con la altura de
+   linea apretada, la panza de la "g" y la "j" quedaba fuera y se cortaba.
+   El relleno agranda la caja; el margen negativo lo compensa para que no
+   mueva el maquetado. */
+.sjr-cat .deg{background:linear-gradient(115deg,#67e8f9,#818cf8 55%,#c084fc);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  display:inline-block;padding-bottom:.16em;margin-bottom:-.16em}.sjr-cat .cabecera p{color:var(--txt-3);margin:0 auto;max-width:56ch;font-size:.9rem;text-wrap:balance}/* ── Herramientas: buscar y filtrar ──
+   Quedan pegadas arriba al desplazar: con 81 productos, tener que subir
+   hasta el principio para cambiar de categoria es un castigo con el dedo. */
+.sjr-cat .herramientas{position:sticky;top:76px;z-index:40;padding:10px 0 8px;
+  background:linear-gradient(var(--fondo) 78%,transparent)}/* En pantalla ancha, buscador y categorias van en el MISMO renglon. */
+.sjr-cat .barra-filtros{display:flex;flex-direction:column;gap:10px}.sjr-cat .buscador{position:relative;flex:0 0 auto;margin:0}.sjr-cat .buscador input{width:100%;padding:15px 46px 15px 46px;border-radius:999px;font-size:1rem;
+  background:var(--vidrio);border:1px solid var(--borde);color:var(--txt);font-family:inherit;
+  backdrop-filter:blur(10px);transition:border-color .25s ease,background .25s ease}.sjr-cat .buscador input::placeholder{color:var(--txt-3)}.sjr-cat .buscador input:focus{outline:none;border-color:var(--cian);background:var(--vidrio-fuerte)}.sjr-cat .buscador__lupa{position:absolute;left:17px;top:50%;transform:translateY(-50%);color:var(--txt-3);font-size:1.05rem}.sjr-cat .buscador__borrar{position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  width:32px;height:32px;border-radius:50%;border:0;background:transparent;color:var(--txt-3);
+  cursor:pointer;font-size:1.2rem;display:none;font-family:inherit}.sjr-cat .buscador__borrar:hover{color:var(--txt);background:var(--vidrio)}/* Las categorias se deslizan de lado en telefono en vez de apilarse. */
+.sjr-cat .filtros{display:flex;gap:8px;overflow-x:auto;padding:2px 20px 4px;margin:0 -20px;flex:1;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}.sjr-cat .filtros::-webkit-scrollbar{display:block}.sjr-cat .filtro{flex:0 0 auto;padding:10px 18px;border-radius:999px;background:var(--vidrio);
+  border:1px solid var(--borde);color:var(--txt-2);font-size:.88rem;font-weight:500;
+  cursor:pointer;font-family:inherit;transition:all .22s ease}.sjr-cat .filtro:hover{background:var(--vidrio-fuerte);color:var(--txt)}.sjr-cat .filtro[aria-pressed="true"]{background:linear-gradient(120deg,var(--cian),var(--indigo));
+  color:#03111a;border-color:transparent;font-weight:600}.sjr-cat .filtro b{opacity:.65;font-weight:600}.sjr-cat .filtro[aria-pressed="true"] b{opacity:.75}.sjr-cat .conteo{text-align:center;color:var(--txt-3);font-size:.82rem;padding:6px 0 2px;margin:0}/* ── Rejilla ── */
+.sjr-cat .rejilla{display:grid;gap:14px;grid-template-columns:repeat(2,1fr);padding-bottom:40px}.sjr-cat .prod{background:var(--vidrio);border:1px solid var(--borde);border-radius:18px;overflow:hidden;
+  display:flex;flex-direction:column;
+  transition:transform .3s ease,border-color .3s ease,background .3s ease,opacity .3s ease}.sjr-cat .prod:hover{transform:translateY(-5px);border-color:var(--borde-vivo);background:var(--vidrio-fuerte)}.sjr-cat .prod[hidden]{display:none}/* FLEX, no grid: en una caja grid el max-height:100% de la foto no tiene
+   contra que medirse y las fotos verticales se desbordan sobre el nombre. */
+/* CAJA CUADRADA Y A SANGRE, como las portadas de los juegos.
+   Se midieron las 43 fotos del inventario: la mediana es exactamente 1.00 y
+   con caja cuadrada el recorte promedio es del 9% (el peor, 32%). Es decir:
+   practicamente no se pierde nada y a cambio la foto llena el cuadro de
+   borde a borde. Antes iba entera sobre una copia desenfocada y el
+   desenfoque se veia como un marco de colores alrededor de cada producto. */
+.sjr-cat .prod__foto{position:relative;aspect-ratio:1;flex:0 0 auto;background:#0a0f1d;overflow:hidden}.sjr-cat .prod__foto img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;
+  transition:transform .5s cubic-bezier(.2,.7,.3,1)}.sjr-cat .prod:hover .prod__foto img{transform:scale(1.06)}.sjr-cat .prod__cuerpo{padding:13px 14px 15px;display:flex;flex-direction:column;gap:9px;flex:1}.sjr-cat .prod__n{font-size:1.02rem;font-weight:600;line-height:1.3;margin:0}.sjr-cat .prod__cat{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-3)}.sjr-cat .prod__fila{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto}.sjr-cat .prod__p{font-size:1.3rem;font-weight:800;color:var(--cian);letter-spacing:-.03em}.sjr-cat .marbete{position:absolute;z-index:2;top:10px;left:10px;padding:5px 11px;border-radius:999px;
+  font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  background:rgba(52,211,153,.16);color:#065f46;border:1px solid rgba(52,211,153,.5);
+  backdrop-filter:blur(6px)}.sjr-cat .marbete--no{background:rgba(15,23,42,.72);color:#cbd5e1;border-color:rgba(203,213,225,.3)}.sjr-cat .prod--agotado .prod__foto img{filter:grayscale(.85) opacity(.55)}.sjr-cat .aviso{text-align:center;padding:70px 20px;color:var(--txt-2);display:none}.sjr-cat .aviso b{display:block;font-size:1.2rem;color:var(--txt);margin-bottom:8px}/* ── Ventana de pedido ──
+   Centrada y con margen: NO ocupa toda la pantalla ni sube desde abajo. */
+.sjr-cat .telon{position:fixed;inset:0;z-index:70;background:rgba(3,6,14,.78);backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;padding:20px}.sjr-cat .telon[open]{display:flex}.sjr-cat .ventana{width:100%;max-width:440px;max-height:88vh;overflow-y:auto;border-radius:24px;
+  background:#0b1220;border:1px solid var(--borde-vivo);padding:26px;
+  box-shadow:0 40px 90px -30px rgba(0,0,0,.95);animation:asomar .28s cubic-bezier(.2,.8,.3,1)}@keyframes asomar{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+.sjr-cat .ventana__cab{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px}.sjr-cat .ventana__foto{width:66px;height:66px;border-radius:14px;background:#0a0f1d;flex:0 0 auto;overflow:hidden}.sjr-cat .ventana__foto img{width:100%;height:100%;object-fit:cover;display:block}.sjr-cat .ventana h3{margin:0 0 4px;font-size:1.15rem;font-weight:700;letter-spacing:-.02em}.sjr-cat .ventana__precio{color:var(--cian);font-weight:700}.sjr-cat .cerrar{margin-left:auto;width:34px;height:34px;border-radius:50%;border:1px solid var(--borde);
+  background:var(--vidrio);color:var(--txt-2);cursor:pointer;font-size:1.1rem;flex:0 0 auto;font-family:inherit}.sjr-cat .cerrar:hover{background:var(--vidrio-fuerte);color:var(--txt)}.sjr-cat .campo{margin-bottom:14px}.sjr-cat .campo label{display:block;font-size:.84rem;color:var(--txt-2);margin-bottom:6px;font-weight:500}.sjr-cat .campo input, .sjr-cat .campo textarea{width:100%;padding:13px 15px;border-radius:13px;font-size:1rem;
+  background:rgba(255,255,255,.04);border:1px solid var(--borde);color:var(--txt);font-family:inherit}.sjr-cat .campo input:focus, .sjr-cat .campo textarea:focus{outline:none;border-color:var(--cian)}.sjr-cat .campo textarea{resize:vertical;min-height:72px}.sjr-cat .total{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;
+  border-radius:14px;background:linear-gradient(120deg,rgba(34,211,238,.12),rgba(99,102,241,.1));
+  border:1px solid var(--borde-vivo);margin:6px 0 18px;font-weight:600}.sjr-cat .total b{font-size:1.3rem;color:var(--cian);letter-spacing:-.02em}.sjr-cat footer{border-top:1px solid var(--borde);padding:40px 0 34px;margin-top:20px;text-align:center}.sjr-cat footer small{color:var(--txt-3);font-size:.83rem;display:block}.sjr-cat .pie__logo{width:60px;height:60px;border-radius:18px;object-fit:cover;margin-bottom:12px;
+  box-shadow:0 0 0 1px var(--borde-vivo),0 0 26px -6px rgba(34,211,238,.5)}.sjr-cat .revelar{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}.sjr-cat .revelar.a-la-vista{opacity:1;transform:none}
+
+@media(min-width:520px){.sjr-cat .marca__txt{display:block} }
+@media(min-width:760px){.sjr-cat .barra-filtros{flex-direction:row;align-items:center;gap:14px}.sjr-cat .buscador{width:300px}.sjr-cat .filtros{margin:0;padding:2px 0 4px}.sjr-cat .conteo{text-align:right}
+}
+@media(min-width:640px){.sjr-cat .rejilla{grid-template-columns:repeat(3,1fr);gap:18px} }
+@media(min-width:1000px){.sjr-cat .rejilla{grid-template-columns:repeat(4,1fr);gap:20px} }
+
+@media(prefers-reduced-motion:reduce){.sjr-cat *{animation:none!important;transition:none!important}.sjr-cat .revelar{opacity:1;transform:none}
+}
+
+
+/* ── Aviso (cargando, error o sin resultados) ── */
+.sjr-cat .aviso{text-align:center;padding:70px 20px;color:var(--txt-2)}
+.sjr-cat .aviso b{display:block;font-size:1.2rem;color:var(--txt);margin-bottom:8px}
+
+/* ── Nota al pie de la ventana de pedido ── */
+.sjr-cat .ventana__nota{text-align:center;color:var(--txt-3);font-size:.8rem;margin:12px 0 0}
+
+/* ── WhatsApp siempre a la vista ──
+   La misma de la portada: para un negocio del barrio es el boton que mas
+   convierte, y aca el cliente ya esta mirando precios. */
+.sjr-cat .flotante{position:fixed;right:18px;bottom:18px;z-index:55;display:flex;align-items:center;gap:10px;
+  padding:14px 20px;border-radius:999px;text-decoration:none;font-weight:600;font-size:.92rem;
+  background:linear-gradient(135deg,#25d366,#0f9d58);color:#04150b;
+  box-shadow:0 14px 38px -10px rgba(37,211,102,.7);transition:transform .2s ease}
+.sjr-cat .flotante:hover{transform:translateY(-3px) scale(1.03)}
+
+/* El pie, centrado. */
+.sjr-cat footer .env{text-align:center}
