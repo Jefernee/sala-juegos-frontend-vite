@@ -105,6 +105,25 @@ const CarruselJuegos = ({ juegos }) => {
     return () => window.removeEventListener("resize", alCambiarTamano);
   }, [remedir]);
 
+  // RED DE SEGURIDAD. Los avisos de "ya solté" se escuchan en la ventana
+  // entera y no solo en la fila: si el dedo se levanta afuera —o el navegador
+  // se queda el gesto para desplazar la página— el aviso no llega al
+  // elemento, y la cinta se quedaría parada para siempre sin que nadie
+  // entienda por qué.
+  useEffect(() => {
+    const soltar = () => setTocando(false);
+    window.addEventListener("pointerup", soltar);
+    window.addEventListener("pointercancel", soltar);
+    window.addEventListener("touchend", soltar);
+    window.addEventListener("blur", soltar);
+    return () => {
+      window.removeEventListener("pointerup", soltar);
+      window.removeEventListener("pointercancel", soltar);
+      window.removeEventListener("touchend", soltar);
+      window.removeEventListener("blur", soltar);
+    };
+  }, []);
+
   if (!juegos?.length) return null;
 
   // Las tres copias. Solo la del medio se le lee a un lector de pantalla: las

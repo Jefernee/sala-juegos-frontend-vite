@@ -58,11 +58,14 @@
   to { transform: translate3d(-33.3333%, 0, 0); }
 }
 
-/* Se para mientras el mouse está encima —para poder leer un nombre— y
-   mientras alguien la tiene tocada. Con `animation-play-state` se reanuda
-   DONDE IBA y al instante: se suelta y sigue de una, sin esperas. */
-.cj-pista:hover .cj-tira,
+/* Se para mientras alguien la tiene tocada. Con `animation-play-state` se
+   reanuda DONDE IBA y al instante: se suelta y sigue de una, sin esperas. */
 .cj-tira--quieta { animation-play-state: paused; }
+
+/* NO se para con el mouse encima. Se probó y confunde: quien dejaba el cursor
+   ahí —o en el teléfono, donde un toque deja el :hover pegado hasta tocar otra
+   cosa— veía la cinta detenida y creía que se había roto. La regla es simple:
+   si nadie la está presionando, se mueve. */
 
 .cj-item {
   flex: 0 0 auto;
