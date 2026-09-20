@@ -28,12 +28,23 @@
   /* Sin desplazamiento suave: ya no hay flechas que lo necesiten, y con
      el dedo solo agrega inercia encima de la del navegador. */
   padding: 0.5rem 0 1rem;
+  /* NADA DE MENÚ AL MANTENER PRESIONADO. En el teléfono, dejar el dedo sobre
+     una foto o un texto saca el menú de "Compartir / Copiar" del navegador,
+     que tapa la cinta y se come el gesto de frenarla. Acá no hay nada que
+     seleccionar ni que copiar: son portadas y sus nombres. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  /* La mano abierta invita a agarrar la fila; al agarrarla, se cierra. */
+  cursor: grab;
+
   /* La barra se esconde: la cinta andando ya dice que hay más. */
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
 }
 .cj-pista::-webkit-scrollbar { display: none; }
+.cj-pista:active { cursor: grabbing; }
 
 /* LA TIRA. Se corre justo UN TERCIO, que es una copia entera de la lista.
    Al llegar ahí vuelve al principio, y como las tres copias dibujan lo mismo,
@@ -88,6 +99,12 @@
    relleno. Una carátula vertical queda angosta y una captura apaisada, ancha;
    eso es justamente lo que hace que la fila se vea natural. */
 .cj-img {
+  /* El menú de la foto y el arrastre de la imagen, fuera: los dos aparecen al
+     mantener el dedo encima y rompen el gesto. */
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
   height: 100%;
   width: auto;
   max-width: none;

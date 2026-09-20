@@ -41,6 +41,14 @@ import "../styles/CarruselJuegos.css";
 // detenidas; más allá de unos 180 ya no da tiempo de leer un nombre al pasar.
 const PX_POR_SEGUNDO = 110;
 
+// Cuánto se queda quieta después de que alguien la ARRASTRA. Lo suficiente
+// para leer lo que fue a buscar, sin que parezca trabada.
+const SEGUNDOS_DE_CALMA = 3;
+
+// Cuántos píxeles hay que mover para que cuente como arrastre y no como
+// toque. Menos que esto es el temblor normal de un dedo apoyado.
+const MINIMO_ARRASTRE = 10;
+
 // Mueve la fila SIN animación. Hace falta para el salto entre copias: con el
 // desplazamiento suave del CSS, ese salto se vería como un viaje relámpago
 // por los 50 juegos.
@@ -58,9 +66,25 @@ const CarruselJuegos = ({ juegos }) => {
   // aunque sigan llegando fotos.
   const tocado = useRef(false);
   const [duracion, setDuracion] = useState(null);
-  // Mientras alguien la tiene tocada. Se suelta y sigue de una: la animación
-  // no se reinicia, se reanuda donde iba.
-  const [tocando, setTocando] = useState(false);
+  // La cinta se queda quieta mientras alguien la tiene presionada. Y además,
+  // SI LA ARRASTRÓ, un rato más después de soltar.
+  //
+  // La diferencia entre tocar y arrastrar es la que importa. Un toque suelto
+  // que la deje parada varios segundos se siente rota: se soltó y no arranca.
+  // Pero si alguien la arrastró fue para mirar algo, y si arranca en el acto,
+  // eso que quería ver se le escapa y tiene que volver a presionar. Así que
+  // el toque la suelta de una y el arrastre le da unos segundos de calma.
+  const [presionando, setPresionando] = useState(false);
+  const [enCalma, setEnCalma] = useState(false);
+  const arrastro = useRef(false);
+  const relojCalma = useRef(0);
+
+
+  // Desde donde se empezó a arrastrar con el mouse. Con el dedo no hace falta:
+  // el navegador ya desplaza solo. Con el mouse no, y agarrar la fila y
+  // moverla es lo primero que intenta cualquiera en un escritorio.
+  const arrastre = useRef(null);
+  const inicioToque = useRef(0);
 
   // La duración sale del ancho REAL de una copia, y hay que recalcularla cada
   // vez que carga una foto: el ancho de cada tarjeta lo pone su imagen, así
@@ -95,6 +119,33 @@ const CarruselJuegos = ({ juegos }) => {
     if (destino !== null) ubicarSinAnimar(pista, destino);
   }, []);
 
+  const alPresionar = useCallback((e) => {
+    tocado.current = true;
+    arrastro.current = false;
+    inicioToque.current = e.clientX;
+    setPresionando(true);
+    // Con el dedo el navegador ya desplaza solo; con el mouse no, y agarrar
+    // la fila y moverla es lo primero que intenta cualquiera en escritorio.
+    if (e.pointerType === "mouse" && pistaRef.current) {
+      arrastre.current = { x: e.clientX, left: pistaRef.current.scrollLeft };
+      pistaRef.current.setPointerCapture(e.pointerId);
+    }
+  }, []);
+
+  const alMoverPuntero = useCallback((e) => {
+    if (Math.abs(e.clientX - inicioToque.current) > MINIMO_ARRASTRE) arrastro.current = true;
+    if (!arrastre.current || !pistaRef.current) return;
+    ubicarSinAnimar(pistaRef.current, arrastre.current.left - (e.clientX - arrastre.current.x));
+  }, []);
+
+  // Con el dedo, el arrastre no llega por pointermove: lo hace el navegador
+  // desplazando. Por eso se mira acá si la fila se movió mientras estaba
+  // presionada.
+  const alDesplazarUsuario = useCallback(() => {
+    if (presionando) arrastro.current = true;
+    alDesplazar();
+  }, [presionando, alDesplazar]);
+
   useEffect(() => {
     remedir();
   }, [juegos, remedir]);
@@ -105,13 +156,25 @@ const CarruselJuegos = ({ juegos }) => {
     return () => window.removeEventListener("resize", alCambiarTamano);
   }, [remedir]);
 
-  // RED DE SEGURIDAD. Los avisos de "ya solté" se escuchan en la ventana
+  const darCalma = useCallback(() => {
+    window.clearTimeout(relojCalma.current);
+    setEnCalma(true);
+    relojCalma.current = window.setTimeout(() => setEnCalma(false), SEGUNDOS_DE_CALMA * 1000);
+  }, []);
+
+  const soltar = useCallback(() => {
+    arrastre.current = null;
+    setPresionando(false);
+    if (arrastro.current) darCalma();
+    arrastro.current = false;
+  }, [darCalma]);
+
+  // RED DE SEGURIDAD. Los avisos de "ya solte" se escuchan en la ventana
   // entera y no solo en la fila: si el dedo se levanta afuera —o el navegador
   // se queda el gesto para desplazar la página— el aviso no llega al
   // elemento, y la cinta se quedaría parada para siempre sin que nadie
   // entienda por qué.
   useEffect(() => {
-    const soltar = () => setTocando(false);
     window.addEventListener("pointerup", soltar);
     window.addEventListener("pointercancel", soltar);
     window.addEventListener("touchend", soltar);
@@ -121,8 +184,9 @@ const CarruselJuegos = ({ juegos }) => {
       window.removeEventListener("pointercancel", soltar);
       window.removeEventListener("touchend", soltar);
       window.removeEventListener("blur", soltar);
+      window.clearTimeout(relojCalma.current);
     };
-  }, []);
+  }, [soltar]);
 
   if (!juegos?.length) return null;
 
@@ -140,14 +204,14 @@ const CarruselJuegos = ({ juegos }) => {
         ref={pistaRef}
         role="group"
         aria-label={`${juegos.length} juegos disponibles en la sala`}
-        onScroll={alDesplazar}
-        onPointerDown={() => { tocado.current = true; setTocando(true); }}
-        onPointerUp={() => setTocando(false)}
-        onPointerCancel={() => setTocando(false)}
-        onPointerLeave={() => setTocando(false)}
+        onScroll={alDesplazarUsuario}
+        onPointerDown={alPresionar}
+        onPointerMove={alMoverPuntero}
+        onPointerUp={soltar}
+        onPointerCancel={soltar}
       >
         <div
-          className={`cj-tira${tocando ? " cj-tira--quieta" : ""}`}
+          className={`cj-tira${presionando || enCalma ? " cj-tira--quieta" : ""}`}
           ref={tiraRef}
           style={duracion ? { animationDuration: `${duracion}s` } : undefined}
         >
@@ -166,6 +230,9 @@ const CarruselJuegos = ({ juegos }) => {
                     alt={juego.nombre}
                     className="cj-img"
                     loading="lazy"
+                    // Sin esto, en escritorio el navegador arranca a arrastrar
+                    // la imagen en vez de dejar mover la fila.
+                    draggable={false}
                     // Con las medidas, el navegador le reserva a la foto su
                     // ancho exacto ANTES de bajarla. Sin esto, las que están
                     // más allá —que se bajan recién cuando hacen falta— miden
