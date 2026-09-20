@@ -1,0 +1,181 @@
+/* Estilos de la página pública de un torneo (/torneos/:id).
+ *
+ * Todo va encapsulado bajo .sjr-tor, con su propio envoltorio y no el de la
+ * portada ni el del catálogo, para que las tres hojas convivan sin pisarse.
+ *
+ * Las clases .barra, .boton y .a-la-vista se llaman así y no .nav, .btn y
+ * .visible porque Bootstrap ya define esos nombres de forma global: se carga
+ * en main.jsx y sus reglas alcanzan a esta página. Encapsular no salva de
+ * eso, el nombre choca igual.
+ */
+
+.sjr-tor {
+  --fondo: #06080f;
+  --vidrio: rgba(255, 255, 255, 0.045);
+  --vidrio-fuerte: rgba(255, 255, 255, 0.075);
+  --borde: rgba(255, 255, 255, 0.09);
+  --borde-vivo: rgba(255, 255, 255, 0.2);
+  --txt: #eef2fb;
+  --txt-2: #9fb0cf;
+  --txt-3: #6b7d9e;
+  --cian: #22d3ee;
+  --indigo: #6366f1;
+  --verde: #34d399;
+  --ambar: #fbbf24;
+  --radio: 20px;
+
+  min-height: 100vh;
+  background: var(--fondo);
+  color: var(--txt);
+  font-family: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+.sjr-tor * { box-sizing: border-box; }
+.sjr-tor img { max-width: 100%; }
+.sjr-tor :focus-visible { outline: 2px solid var(--cian); outline-offset: 3px; border-radius: 6px; }
+
+/* Luces de fondo: profundidad sin pesar nada. */
+.sjr-tor .aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.sjr-tor .aurora span {
+  position: absolute; border-radius: 50%; filter: blur(95px); opacity: 0.45;
+  animation: tor-flotar 22s ease-in-out infinite;
+}
+.sjr-tor .aurora span:nth-child(1) { width: 520px; height: 520px; background: #0e7490; top: -190px; left: -130px; }
+.sjr-tor .aurora span:nth-child(2) { width: 460px; height: 460px; background: #4338ca; top: 40%; right: -170px; animation-delay: -7s; }
+@keyframes tor-flotar {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -36px) scale(1.12); }
+}
+.sjr-tor main, .sjr-tor header, .sjr-tor footer { position: relative; z-index: 2; }
+.sjr-tor .env { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+/* ── Barra ── */
+.sjr-tor .barra {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(6, 8, 15, 0.76);
+  backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 1px solid var(--borde);
+}
+.sjr-tor .barra__int { display: flex; align-items: center; justify-content: space-between; gap: 14px; height: 76px; }
+.sjr-tor .marca { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--txt); font-weight: 700; letter-spacing: -0.02em; }
+.sjr-tor .marca__logo {
+  width: 46px; height: 46px; border-radius: 14px; object-fit: cover;
+  box-shadow: 0 0 0 1px var(--borde-vivo), 0 0 22px -4px rgba(34, 211, 238, 0.55);
+}
+.sjr-tor .marca__txt { display: none; font-size: 1.02rem; line-height: 1.15; }
+.sjr-tor .marca__txt small {
+  display: block; font-size: 0.66rem; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--cian); font-weight: 600;
+}
+
+/* ── Botones ── */
+.sjr-tor .boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  padding: 13px 24px; border-radius: 999px; font-weight: 600; font-size: 0.94rem;
+  text-decoration: none; cursor: pointer; border: 1px solid transparent; font-family: inherit;
+  transition: transform 0.18s ease, box-shadow 0.25s ease, background 0.25s ease; white-space: nowrap;
+}
+.sjr-tor .boton--vivo {
+  background: linear-gradient(120deg, var(--cian), var(--indigo)); color: #03111a;
+  box-shadow: 0 10px 34px -12px rgba(34, 211, 238, 0.75);
+}
+.sjr-tor .boton--vivo:hover:not(:disabled) { transform: translateY(-2px); }
+.sjr-tor .boton--vidrio { background: var(--vidrio); color: var(--txt); border-color: var(--borde-vivo); }
+.sjr-tor .boton--vidrio:hover { background: var(--vidrio-fuerte); }
+.sjr-tor .boton--chico { padding: 10px 17px; font-size: 0.87rem; }
+.sjr-tor .boton--bloque { width: 100%; }
+.sjr-tor .boton:disabled { opacity: 0.6; cursor: default; }
+
+/* ── Las dos tarjetas ── */
+.sjr-tor .columnas { display: grid; gap: 20px; grid-template-columns: 1fr; padding: 30px 0 50px; align-items: start; }
+.sjr-tor .caja {
+  background: var(--vidrio); border: 1px solid var(--borde); border-radius: var(--radio);
+  backdrop-filter: blur(10px); overflow: hidden;
+}
+.sjr-tor .caja__cuerpo { padding: clamp(20px, 4vw, 30px); }
+
+/* El afiche va ENTERO: es una pieza de publicidad terminada, con su marca.
+   Con recorte le cortaba el título. Va contenido sobre una copia de sí mismo
+   desenfocada, que rellena el sobrante con sus propios colores. */
+.sjr-tor .afiche { position: relative; aspect-ratio: 16 / 9; background: #080c16; overflow: hidden; }
+.sjr-tor .afiche__fondo {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  filter: blur(24px) saturate(1.4) brightness(0.5); transform: scale(1.25);
+}
+.sjr-tor .afiche__foto { position: relative; width: 100%; height: 100%; object-fit: contain; display: block; }
+.sjr-tor .afiche__vacio { display: grid; place-items: center; height: 100%; font-size: 4rem; opacity: 0.5; }
+
+.sjr-tor .estado {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  background: rgba(52, 211, 153, 0.14); color: var(--verde); border: 1px solid rgba(52, 211, 153, 0.3);
+}
+.sjr-tor .estado--cerrado { background: rgba(148, 163, 184, 0.12); color: var(--txt-3); border-color: var(--borde); }
+
+.sjr-tor h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 800; letter-spacing: -0.03em; margin: 14px 0 8px; }
+.sjr-tor h2 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 18px; }
+.sjr-tor .desc { color: var(--txt-2); margin: 0 0 18px; }
+
+.sjr-tor .pastillas { display: flex; gap: 9px; flex-wrap: wrap; }
+.sjr-tor .pastilla {
+  padding: 7px 14px; border-radius: 999px; background: var(--vidrio);
+  border: 1px solid var(--borde); font-size: 0.85rem; color: var(--txt-2);
+}
+.sjr-tor .pastilla b { color: var(--txt); }
+
+/* Cuenta regresiva: convierte "hay un torneo" en "faltan 84 días". */
+.sjr-tor .reloj { display: flex; gap: 10px; margin: 20px 0 0; }
+.sjr-tor .reloj div {
+  flex: 1; text-align: center; background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--borde); border-radius: 14px; padding: 12px 6px;
+}
+.sjr-tor .reloj b {
+  display: block; font-size: clamp(1.3rem, 4vw, 1.7rem); font-weight: 800;
+  letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1;
+}
+.sjr-tor .reloj small { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--txt-3); }
+
+/* ── Formulario ── */
+.sjr-tor .campo { margin-bottom: 14px; }
+.sjr-tor .campo label { display: block; font-size: 0.84rem; color: var(--txt-2); margin-bottom: 6px; font-weight: 500; }
+.sjr-tor .campo label span { color: var(--txt-3); font-weight: 400; }
+.sjr-tor .campo input {
+  width: 100%; padding: 14px 15px; border-radius: 13px; font-size: 1rem;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--borde);
+  color: var(--txt); font-family: inherit;
+}
+.sjr-tor .campo input:focus { outline: none; border-color: var(--cian); }
+.sjr-tor .campo input:disabled { opacity: 0.6; }
+
+/* ── Avisos ── */
+.sjr-tor .aviso {
+  padding: 16px 18px; border-radius: 14px; margin-bottom: 18px;
+  border: 1px solid var(--borde); background: var(--vidrio); color: var(--txt-2);
+}
+.sjr-tor .aviso--bien { background: rgba(52, 211, 153, 0.1); border-color: rgba(52, 211, 153, 0.35); color: #a7f3d0; }
+.sjr-tor .aviso--mal { background: rgba(248, 113, 113, 0.1); border-color: rgba(248, 113, 113, 0.35); color: #fecaca; }
+.sjr-tor .aviso--ojo { background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.35); color: #fde68a; }
+
+.sjr-tor .listo { text-align: center; padding: 16px 0; }
+.sjr-tor .listo__marca { font-size: 2.6rem; line-height: 1; }
+.sjr-tor .listo p { color: var(--txt-2); margin: 14px 0 18px; }
+
+.sjr-tor .centrado { text-align: center; padding: 70px 20px; color: var(--txt-2); }
+.sjr-tor .centrado b { display: block; font-size: 1.2rem; color: var(--txt); margin-bottom: 8px; }
+.sjr-tor .nota { text-align: center; color: var(--txt-3); font-size: 0.8rem; margin: 12px 0 0; }
+
+.sjr-tor footer { border-top: 1px solid var(--borde); padding: 34px 0 30px; text-align: center; }
+.sjr-tor footer small { display: block; color: var(--txt-3); font-size: 0.83rem; }
+
+@media (min-width: 520px) {
+  .sjr-tor .marca__txt { display: block; }
+}
+@media (min-width: 900px) {
+  .sjr-tor .columnas { grid-template-columns: 1.05fr 0.95fr; gap: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sjr-tor * { animation: none !important; transition: none !important; }
+}
