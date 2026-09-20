@@ -1,139 +1,223 @@
-/* src/styles/Home.css */
+/* Nota: las clases .barra, .boton y .a-la-vista se llaman asi y no
+ * .nav, .btn y .visible porque Bootstrap ya define esos nombres de
+ * forma global. Su .nav trae display:flex, que dejaba la barra de
+ * arriba encogida y centrada en vez de alineada con el titular.
+ */
+/* Estilos de la portada publica.
+ *
+ * TODO va encapsulado bajo .sjr. Bootstrap se carga de forma global en
+ * main.jsx y sus reglas alcanzan a esta pagina; encapsulando, ni Bootstrap
+ * nos pisa a nosotros ni nosotros nos filtramos a las demas pantallas.
+ *
+ * Generado desde la maqueta aprobada con scripts/encapsular.py, para que lo
+ * que se publique sea exactamente lo que se reviso.
+ */
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
-/* Gallery Items - Mantener consistencia */
-.gallery-item {
-  position: relative;
-  overflow: hidden;
-  border-radius: 8px;
+.sjr { min-height: 100vh; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PROPUESTA v2 — Sala de Juegos Ruiz
+
+   Cambios sobre la v1:
+   · EL LOGO MANDA. Se corre al centro de la portada y crece a 200 px, servido
+     a resolución completa (la página de hoy lo pide a 160 y por eso se ve
+     blando). Además aparece gigante y casi invisible de marca de agua.
+   · NINGUNA foto se recorta. Se midieron todas: la galería trae panorámicas
+     de 2.17 y las de campeones son verticales de celular de 0.46. Meterlas en
+     un marco común era lo que las cortaba.
+   · Vuelven las dos secciones que son para el cliente y se me habían quedado
+     afuera: el catálogo de productos y el acceso al panel.
+   · Los torneos son los de verdad, traídos del backend, con cuenta regresiva.
+   · El horario dice si está abierto AHORA, calculado, no escrito a mano.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.sjr{
+  --fondo:#06080f;
+  --fondo-2:#0a0f1d;
+  --vidrio:rgba(255,255,255,.045);
+  --vidrio-fuerte:rgba(255,255,255,.075);
+  --borde:rgba(255,255,255,.09);
+  --borde-vivo:rgba(255,255,255,.2);
+  --txt:#eef2fb;
+  --txt-2:#9fb0cf;
+  --txt-3:#6b7d9e;
+  --cian:#22d3ee;
+  --indigo:#6366f1;
+  --ambar:#fbbf24;
+  --verde:#34d399;
+  --radio:20px;
+  --ancho:1200px;
+}.sjr *{box-sizing:border-box}.sjr{
+  margin:0;background:var(--fondo);color:var(--txt);
+  font-family:'Outfit',system-ui,-apple-system,'Segoe UI',sans-serif;
+  line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}.sjr img{max-width:100%}.sjr :focus-visible{outline:2px solid var(--cian);outline-offset:3px;border-radius:6px}/* ── Luces de fondo ── */
+.sjr .aurora{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}.sjr .aurora span{position:absolute;border-radius:50%;filter:blur(95px);opacity:.5;animation:flotar 22s ease-in-out infinite}.sjr .aurora span:nth-child(1){width:540px;height:540px;background:#0e7490;top:-190px;left:-130px}.sjr .aurora span:nth-child(2){width:470px;height:470px;background:#4338ca;top:36%;right:-170px;animation-delay:-7s}.sjr .aurora span:nth-child(3){width:410px;height:410px;background:#0369a1;bottom:-150px;left:24%;animation-delay:-14s}@keyframes flotar{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-36px) scale(1.12)}}
+.sjr::after{
+  content:"";position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}.sjr main, .sjr header, .sjr footer, .sjr .flotante{position:relative;z-index:2}.sjr .env{max-width:var(--ancho);margin:0 auto;padding:0 20px}/* ── Barra de avance de lectura ── */
+.sjr .avance{position:fixed;top:0;left:0;height:2px;z-index:60;width:0;
+  background:linear-gradient(90deg,var(--cian),var(--indigo));box-shadow:0 0 12px rgba(34,211,238,.8)}/* ── Barra superior ── */
+.sjr .barra{position:sticky;top:0;z-index:50;border-bottom:1px solid transparent;
+  transition:background .3s ease,border-color .3s ease}.sjr .barra--solida{background:rgba(6,8,15,.74);backdrop-filter:blur(18px) saturate(140%);border-bottom-color:var(--borde)}.sjr .barra__int{display:flex;align-items:center;justify-content:space-between;gap:14px;height:76px}.sjr .marca{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--txt);font-weight:700;letter-spacing:-.02em}/* El logo es un JPG cuadrado y opaco: dentro de un aro con brillo deja de
+   parecer una foto pegada y pasa a parecer un emblema. */
+.sjr .marca__logo{width:46px;height:46px;border-radius:14px;object-fit:cover;
+  box-shadow:0 0 0 1px var(--borde-vivo),0 0 22px -4px rgba(34,211,238,.55)}.sjr .marca__txt{display:none;font-size:1.02rem;line-height:1.15}.sjr .marca__txt small{display:block;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--cian);font-weight:600}.sjr .barra__links{display:none;gap:28px}.sjr .barra__links a{color:var(--txt-2);text-decoration:none;font-size:.93rem;font-weight:500;position:relative;padding:4px 0}.sjr .barra__links a::after{content:"";position:absolute;left:0;right:100%;bottom:0;height:1.5px;
+  background:linear-gradient(90deg,var(--cian),var(--indigo));transition:right .28s ease}.sjr .barra__links a:hover{color:var(--txt)}.sjr .barra__links a:hover::after{right:0}.sjr .barra__acciones{display:flex;align-items:center;gap:8px}.sjr .boton{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:13px 24px;
+  border-radius:999px;font-weight:600;font-size:.94rem;text-decoration:none;cursor:pointer;
+  border:1px solid transparent;transition:transform .18s ease,box-shadow .25s ease,background .25s ease;white-space:nowrap}.sjr .boton--vivo{background:linear-gradient(120deg,var(--cian),var(--indigo));color:#03111a;
+  box-shadow:0 10px 34px -12px rgba(34,211,238,.75)}.sjr .boton--vivo:hover{transform:translateY(-2px);box-shadow:0 16px 44px -12px rgba(34,211,238,.95)}.sjr .boton--vidrio{background:var(--vidrio);color:var(--txt);border-color:var(--borde-vivo);backdrop-filter:blur(8px)}.sjr .boton--vidrio:hover{background:var(--vidrio-fuerte);transform:translateY(-2px)}.sjr .boton--chico{padding:10px 17px;font-size:.87rem}.sjr .boton--grande{padding:16px 30px;font-size:1rem}/* ── Portada ──
+   EL LOGO NO VA DE ESCUDO. El archivo no es un logo: es un afiche cuadrado
+   que ya trae adentro el monograma, el nombre y el eslogan. Ponerlo al lado
+   del titular dejaba dos nombres peleandose, y por eso se veia desalineado.
+   Su lugar es el FONDO: oscurecido, se aprovecha el control y la luz azul
+   como textura de la portada, y la marca esta presente sin competir. */
+.sjr .hero{position:relative;padding:56px 0 84px;overflow:hidden}.sjr .hero__fondo{position:absolute;inset:0;z-index:0;width:100%;height:100%;
+  object-fit:cover;object-position:60% 42%;opacity:.3;filter:saturate(1.15);pointer-events:none}/* Dos velos: uno para que el texto se lea, y otro que funde la foto con el
+   fondo de la pagina para que no se vea el corte de la imagen. */
+.sjr .hero::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(95deg,var(--fondo) 16%,rgba(6,8,15,.78) 52%,rgba(6,8,15,.6))}.sjr .hero::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(transparent 48%,var(--fondo))}@keyframes girar{to{transform:rotate(360deg)}}
+.sjr .hero__grid{display:grid;gap:44px;align-items:center;position:relative;z-index:2}.sjr .chip{display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:999px;
+  background:var(--vidrio);border:1px solid var(--borde);font-size:.82rem;color:var(--txt-2);backdrop-filter:blur(8px)}.sjr .chip b{color:var(--txt)}.sjr .punto{width:7px;height:7px;border-radius:50%;background:var(--verde);
+  box-shadow:0 0 0 3px rgba(52,211,153,.18);animation:latir 2.4s ease-in-out infinite}.sjr .punto--rojo{background:#f87171;box-shadow:0 0 0 3px rgba(248,113,113,.18)}@keyframes latir{0%,100%{opacity:1}50%{opacity:.45}}
+
+.sjr .hero h1{font-size:clamp(2.5rem,7.5vw,4.6rem);line-height:1.02;letter-spacing:-.035em;font-weight:800;margin:20px 0 18px}/* El texto con degradado se pinta SOLO dentro de su caja. Con la altura de
+   linea apretada, la panza de la "g" y la "j" quedaba fuera y se cortaba.
+   El relleno agranda la caja; el margen negativo lo compensa para que no
+   mueva el maquetado. */
+.sjr .deg{background:linear-gradient(115deg,#67e8f9 0%,#818cf8 48%,#c084fc 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  display:inline-block;padding-bottom:.16em;margin-bottom:-.16em}.sjr .hero__firma{display:block;font-size:clamp(.8rem,1.7vw,.93rem);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--cian);font-weight:600;margin:0 0 20px}.sjr .hero p.bajada{font-size:clamp(1rem,2vw,1.18rem);color:var(--txt-2);max-width:56ch;margin:0 0 30px}.sjr .hero__botones{display:flex;gap:13px;flex-wrap:wrap}/* Collage: cada caratula a SU forma. Solo se fija el ancho; el alto lo pone
+   la imagen, asi ninguna queda cortada.
+   TODO VA EN PORCENTAJES sobre un lienzo de 420 px: el conjunto se encoge
+   solo y se ve igual de bien en el telefono, donde antes estaba escondido
+   porque las posiciones en pixeles no cabian. */
+.sjr .collage{position:relative;display:block;width:100%;max-width:420px;margin:8px auto 0}.sjr .collage img{position:absolute;border-radius:16px;box-shadow:0 22px 50px -18px rgba(0,0,0,.85);
+  border:1px solid var(--borde-vivo);height:auto;animation:levitar 7s ease-in-out infinite}@keyframes levitar{0%,100%{transform:translateY(0) rotate(var(--g))}50%{transform:translateY(-14px) rotate(var(--g))}}
+
+.sjr .datos{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:46px}.sjr .dato{background:var(--vidrio);border:1px solid var(--borde);border-radius:var(--radio);
+  padding:20px 15px;backdrop-filter:blur(10px);position:relative;overflow:hidden}.sjr .dato::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cian),transparent);opacity:.45}/* Techo mas bajo y menos espaciado: "+4.800" es el mas largo de los cuatro y
+   con el tamano anterior quedaba pegado al borde de su tarjeta. */
+.sjr .dato__n{font-size:clamp(1.3rem,2.7vw,2.05rem);font-weight:800;letter-spacing:-.04em;
+  line-height:1.05;white-space:nowrap}.sjr .dato__t{font-size:.83rem;color:var(--txt-3);margin-top:5px;text-wrap:balance}/* ── Secciones ── */
+.sjr section{padding:84px 0;position:relative}.sjr .titulo{text-align:center;margin-bottom:46px}.sjr .titulo .sobre{font-size:.79rem;letter-spacing:.22em;text-transform:uppercase;color:var(--cian);font-weight:600;margin-bottom:12px}.sjr .titulo h2{font-size:clamp(1.9rem,4.2vw,2.9rem);font-weight:700;letter-spacing:-.03em;margin:0 0 12px}.sjr .titulo p{color:var(--txt-2);max-width:60ch;margin:0 auto;text-wrap:balance}/* ── Cajas de vidrio, con foco que sigue al mouse ── */
+.sjr .caja{background:var(--vidrio);border:1px solid var(--borde);border-radius:var(--radio);
+  padding:28px;backdrop-filter:blur(10px);position:relative;overflow:hidden;
+  transition:transform .3s ease,border-color .3s ease,background .3s ease}.sjr .caja::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  pointer-events:none;opacity:0;transition:opacity .3s ease;
+  background:radial-gradient(360px circle at var(--mx,50%) var(--my,50%),rgba(34,211,238,.1),transparent 62%)}.sjr .caja:hover{transform:translateY(-4px);border-color:var(--borde-vivo);background:var(--vidrio-fuerte)}.sjr .caja:hover::after{opacity:1}.sjr .caja h3{margin:0 0 10px;font-size:1.22rem;font-weight:600;letter-spacing:-.02em}.sjr .caja p{margin:0;color:var(--txt-2);font-size:.97rem}.sjr .caja__icono{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:1.3rem;
+  background:linear-gradient(140deg,rgba(34,211,238,.18),rgba(99,102,241,.18));
+  border:1px solid var(--borde-vivo);margin-bottom:16px}.sjr .bento{display:grid;gap:16px;grid-template-columns:1fr}.sjr .caja--ancha{background:linear-gradient(140deg,rgba(34,211,238,.09),rgba(99,102,241,.06))}/* ── Cinta de juegos ── */
+.sjr .cinta{position:relative;overflow:hidden;padding:8px 0 4px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}.sjr .cinta__pista{display:flex;gap:18px;width:max-content;animation:correr 95s linear infinite}.sjr .cinta:hover .cinta__pista{animation-play-state:paused}@keyframes correr{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.sjr .juego{flex:0 0 auto;position:relative}/* Tira de cine: mismo alto, ancho libre. Es lo que ya usa el carrusel real. */
+.sjr .juego img{height:clamp(160px,20vw,210px);width:auto;display:block;border-radius:14px;
+  border:1px solid var(--borde);background:#0a0f1d;transition:transform .3s ease,box-shadow .3s ease}.sjr .juego:hover img{transform:translateY(-8px) scale(1.03);box-shadow:0 24px 50px -18px rgba(34,211,238,.5);border-color:var(--borde-vivo)}.sjr .juego__n{position:absolute;left:0;right:0;bottom:0;padding:26px 12px 10px;border-radius:0 0 14px 14px;
+  background:linear-gradient(transparent,rgba(3,7,18,.92));font-size:.83rem;font-weight:500;
+  opacity:0;transform:translateY(6px);transition:all .28s ease;pointer-events:none}.sjr .juego:hover .juego__n{opacity:1;transform:translateY(0)}/* ── Torneo ── */
+.sjr .torneo{border-radius:26px;overflow:hidden;position:relative;
+  background:linear-gradient(135deg,rgba(34,211,238,.1),rgba(99,102,241,.1));
+  border:1px solid var(--borde-vivo);display:grid;grid-template-columns:1fr}.sjr .torneo__afiche{position:relative;min-height:220px;background:#080c16;overflow:hidden}.sjr .torneo__afiche__fondo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  filter:blur(24px) saturate(1.4) brightness(.5);transform:scale(1.25)}.sjr .torneo__afiche img.torneo__afiche__foto{position:relative;width:100%;height:100%;
+  object-fit:contain;display:block}.sjr .torneo__cuerpo{padding:clamp(24px,4vw,38px);text-align:left}.sjr .torneo__estado{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;
+  font-size:.78rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  background:rgba(52,211,153,.14);color:var(--verde);border:1px solid rgba(52,211,153,.3)}.sjr .torneo__estado--cerrado{background:rgba(148,163,184,.12);color:var(--txt-3);border-color:var(--borde)}.sjr .torneo h3{font-size:clamp(1.5rem,3.4vw,2.1rem);margin:14px 0 6px;font-weight:700;letter-spacing:-.03em}.sjr .torneo__meta{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0 20px}.sjr .pastilla{padding:7px 14px;border-radius:999px;background:var(--vidrio);border:1px solid var(--borde);font-size:.85rem;color:var(--txt-2)}.sjr .pastilla b{color:var(--txt)}/* Cuenta regresiva: lo que convierte "hay un torneo" en "faltan 85 días". */
+.sjr .reloj{display:flex;gap:10px;margin:0 0 24px}.sjr .reloj div{flex:1;text-align:center;background:rgba(0,0,0,.28);border:1px solid var(--borde);
+  border-radius:14px;padding:12px 6px}.sjr .reloj b{display:block;font-size:clamp(1.3rem,4vw,1.8rem);font-weight:800;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;line-height:1}.sjr .reloj small{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--txt-3)}/* ── Tarifas ── */
+.sjr .tarifas{display:grid;gap:16px;grid-template-columns:1fr;margin-top:14px}.sjr .tarifa{text-align:center;position:relative}/* Esta tarjeta NO recorta: su cinta de "la mas pedida" asoma por arriba y
+   antes le quedaba cortada a la mitad por el borde. */
+.sjr .tarifa--destacada{border-color:rgba(34,211,238,.4);overflow:visible;
+  background:linear-gradient(160deg,rgba(34,211,238,.12),rgba(99,102,241,.07))}.sjr .tarifa__etiqueta{position:absolute;z-index:3;top:-13px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(120deg,var(--cian),var(--indigo));color:#03111a;white-space:nowrap;
+  padding:6px 16px;border-radius:999px;font-size:.7rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;box-shadow:0 8px 22px -8px rgba(34,211,238,.8)}.sjr .tarifa__precio{font-size:clamp(2rem,5vw,2.6rem);font-weight:800;letter-spacing:-.03em;margin:8px 0 2px}/* ── Productos en venta ── */
+.sjr .productos{display:grid;gap:26px;grid-template-columns:1fr;align-items:center}.sjr .productos__foto{border-radius:var(--radio);overflow:hidden;border:1px solid var(--borde);position:relative;
+  box-shadow:0 30px 70px -28px rgba(0,0,0,.9)}/* La foto del carrito va ENTERA: solo se le fija el ancho. */
+.sjr .productos__foto img{width:100%;height:auto;display:block}.sjr .productos__foto::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(160deg,rgba(34,211,238,.1),transparent 55%)}.sjr .ventaja{display:flex;gap:13px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--borde)}.sjr .ventaja:last-of-type{border-bottom:0}.sjr .ventaja__ok{width:27px;height:27px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+  background:rgba(52,211,153,.14);color:var(--verde);border:1px solid rgba(52,211,153,.32);font-size:.78rem;margin-top:2px}.sjr .ventaja h4{margin:0 0 2px;font-size:1rem;font-weight:600}.sjr .ventaja p{margin:0;color:var(--txt-2);font-size:.9rem}/* ── El afiche de la casa ──
+   Va COMPLETO, sin recortes: trae su marca, su eslogan y sus insignias, y es
+   asi como tiene que verse. Solo se le fija el ancho; el alto sale de la
+   imagen, para no cortarle ni un borde. */
+.sjr .novedad{display:grid;gap:34px;align-items:center;grid-template-columns:1fr}.sjr .afiche{margin:0}.sjr .afiche img{width:100%;height:auto;display:block;border-radius:20px;
+  border:1px solid var(--borde-vivo);box-shadow:0 34px 80px -30px rgba(34,211,238,.45)}.sjr .novedad h2{font-size:clamp(1.8rem,4.2vw,2.8rem);font-weight:700;letter-spacing:-.03em;margin:18px 0 12px}.sjr .insignias{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0 26px}/* ── Productos de verdad, sacados del inventario ──
+   Las fotos de producto vienen de todos los tamaños, así que van CONTAIN
+   dentro de un cuadro parejo: se ve el producto entero y la rejilla queda
+   alineada. */
+.sjr .cats{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-bottom:30px}.sjr .cat{padding:8px 16px;border-radius:999px;background:var(--vidrio);border:1px solid var(--borde);
+  font-size:.86rem;color:var(--txt-2)}.sjr .cat b{color:var(--txt)}.sjr .prod-grid{display:grid;gap:14px;grid-template-columns:repeat(2,1fr)}.sjr .prod{background:var(--vidrio);border:1px solid var(--borde);border-radius:18px;overflow:hidden;
+  transition:transform .3s ease,border-color .3s ease,background .3s ease}.sjr .prod:hover{transform:translateY(-5px);border-color:var(--borde-vivo);background:var(--vidrio-fuerte)}.sjr .prod{display:flex;flex-direction:column}/* FLEX y no grid: dentro de una caja grid el max-height:100% de la foto no
+   tiene contra que medirse, y las fotos verticales se desbordaban y le
+   quedaban encima al nombre. Con flex la altura de la caja SI es definida. */
+/* CAJA CUADRADA Y A SANGRE, como las portadas de los juegos.
+   Se midieron las 43 fotos del inventario: la mediana es exactamente 1.00 y
+   con caja cuadrada el recorte promedio es del 9% (el peor, 32%). Es decir:
+   practicamente no se pierde nada y a cambio la foto llena el cuadro de
+   borde a borde. Antes iba entera sobre una copia desenfocada y el
+   desenfoque se veia como un marco de colores alrededor de cada producto. */
+.sjr .prod__foto{position:relative;aspect-ratio:1;flex:0 0 auto;background:#0a0f1d;overflow:hidden}.sjr .prod__foto img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;
+  transition:transform .5s cubic-bezier(.2,.7,.3,1)}.sjr .prod:hover .prod__foto img{transform:scale(1.06)}.sjr .prod__pie{margin-top:auto;padding:12px 14px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}.sjr .prod__n{font-size:.9rem;font-weight:500;line-height:1.3}.sjr .prod__p{font-size:.92rem;font-weight:700;color:var(--cian);white-space:nowrap}/* ── Galería sin recortes: cada foto a su forma ── */
+.sjr .galeria{columns:1;column-gap:14px}.sjr .foto{break-inside:avoid;margin:0 0 14px;position:relative;border-radius:18px;overflow:hidden;
+  border:1px solid var(--borde);display:block}.sjr .foto img{width:100%;height:auto;display:block;transition:transform .55s cubic-bezier(.2,.7,.3,1)}.sjr .foto:hover img{transform:scale(1.06)}.sjr .foto::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 58%,rgba(3,7,18,.7));
+  opacity:0;transition:opacity .35s ease;pointer-events:none}.sjr .foto:hover::after{opacity:1}/* ── Campeones: foto ENTERA, sin recorte, sin franjas vacías ──
+   Las fotos son verticales de celular (0.46). Cualquier marco común las
+   destrozaba. Acá van completas encima de una copia de sí mismas
+   desenfocada, que rellena el sobrante con sus propios colores. */
+.sjr .campeones{display:grid;gap:16px;grid-template-columns:repeat(2,1fr)}.sjr .campeon{background:var(--vidrio);border:1px solid var(--borde);border-radius:var(--radio);
+  overflow:hidden;backdrop-filter:blur(10px);position:relative;
+  transition:transform .3s ease,border-color .3s ease}.sjr .campeon:hover{transform:translateY(-5px);border-color:rgba(251,191,36,.36)}.sjr .campeon__marco{position:relative;aspect-ratio:3/4;overflow:hidden;background:#080c16}.sjr .campeon__fondo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  filter:blur(26px) saturate(1.5) brightness(.55);transform:scale(1.25)}.sjr .campeon__foto{position:relative;width:100%;height:100%;object-fit:contain;display:block}.sjr .campeon__marco::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(transparent 52%,rgba(6,8,15,.94))}.sjr .campeon__texto{position:absolute;left:0;right:0;bottom:0;padding:16px 14px;z-index:2;text-align:left}.sjr .campeon h4{margin:0 0 4px;font-size:1.02rem;font-weight:700;letter-spacing:-.02em}.sjr .campeon p{margin:0;font-size:.79rem;color:var(--txt-2);line-height:1.4;text-wrap:balance}.sjr .medalla{position:absolute;top:12px;right:12px;font-size:1.4rem;z-index:2;
+  filter:drop-shadow(0 3px 8px rgba(0,0,0,.8))}/* ── Visita ── */
+.sjr .visita{display:grid;gap:16px;grid-template-columns:1fr}.sjr .horario{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--borde);font-size:.94rem}.sjr .horario:last-of-type{border-bottom:0}.sjr .horario span:last-child{color:var(--txt-2)}.sjr .horario--hoy span{color:var(--cian);font-weight:600}.sjr .mapa{border-radius:var(--radio);border:1px solid var(--borde);overflow:hidden;min-height:280px;
+  background:linear-gradient(140deg,#0b1220,#0a0f1d);display:grid;place-items:center;color:var(--txt-3);text-align:center;padding:20px}/* ── WhatsApp siempre a la vista ── */
+.sjr .flotante{position:fixed;right:18px;bottom:18px;z-index:55;display:flex;align-items:center;gap:10px;
+  padding:14px 20px;border-radius:999px;text-decoration:none;font-weight:600;font-size:.92rem;
+  background:linear-gradient(135deg,#25d366,#0f9d58);color:#04150b;
+  box-shadow:0 14px 38px -10px rgba(37,211,102,.7);transition:transform .2s ease;
+  animation:entrar-abajo .5s .9s both}.sjr .flotante:hover{transform:translateY(-3px) scale(1.03)}@keyframes entrar-abajo{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+
+/* ── Pie ── */
+.sjr footer{border-top:1px solid var(--borde);padding:50px 0 36px;margin-top:40px}.sjr .pie{display:flex;flex-direction:column;gap:22px;align-items:center;text-align:center}.sjr .pie__marca{display:flex;flex-direction:column;align-items:center;gap:14px}.sjr .pie__logo{width:84px;height:84px;border-radius:24px;object-fit:cover;
+  box-shadow:0 0 0 1px var(--borde-vivo),0 0 34px -6px rgba(34,211,238,.55)}.sjr .pie__redes{display:flex;gap:11px}.sjr .red{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;
+  background:var(--vidrio);border:1px solid var(--borde);text-decoration:none;font-size:1.05rem;
+  transition:transform .2s ease,background .25s ease}.sjr .red:hover{transform:translateY(-3px);background:var(--vidrio-fuerte)}.sjr .pie small{color:var(--txt-3);font-size:.83rem}/* ── Aparecer al desplazar ── */
+.sjr .revelar{opacity:0;transform:translateY(30px) scale(.97);filter:blur(6px);
+  transition:opacity .8s cubic-bezier(.2,.7,.3,1),transform .8s cubic-bezier(.2,.7,.3,1),filter .8s ease}.sjr .revelar.a-la-vista{opacity:1;transform:none;filter:none}/* Las fotos se destapan de abajo hacia arriba en vez de solo aparecer. */
+.sjr .foto.revelar, .sjr .prod.revelar, .sjr .campeon.revelar{clip-path:inset(0 0 12% 0)}.sjr .foto.revelar.a-la-vista, .sjr .prod.revelar.a-la-vista, .sjr .campeon.revelar.a-la-vista{
+  clip-path:inset(0 0 0 0);transition:opacity .8s cubic-bezier(.2,.7,.3,1),
+  transform .8s cubic-bezier(.2,.7,.3,1),filter .8s ease,clip-path .9s cubic-bezier(.2,.7,.3,1)}/* La altura de linea deja aire para las letras con panza. */
+.sjr .hero h1{line-height:1.08}
+
+/* ── Pantallas grandes ── */
+@media(min-width:520px){.sjr .marca__txt{display:block}
+}
+@media(min-width:600px){.sjr .galeria{columns:2}.sjr .tarifas{grid-template-columns:repeat(3,1fr)}
+}
+@media(min-width:768px){.sjr .novedad{grid-template-columns:1fr 1fr;gap:52px}.sjr .datos{grid-template-columns:repeat(4,1fr)}.sjr .prod-grid{grid-template-columns:repeat(5,1fr);gap:18px}.sjr .bento{grid-template-columns:repeat(3,1fr)}.sjr .caja--ancha{grid-column:span 3}.sjr .campeones{grid-template-columns:repeat(4,1fr)}.sjr .visita{grid-template-columns:1fr 1.25fr}.sjr .productos{grid-template-columns:1fr 1fr;gap:40px}.sjr .pie{flex-direction:row;justify-content:space-between;text-align:left}.sjr .pie__marca{flex-direction:row;align-items:center;text-align:left}.sjr .torneo{grid-template-columns:.85fr 1.15fr;align-items:stretch}
+}
+@media(min-width:992px){.sjr .barra__links{display:flex}.sjr .galeria{columns:3}.sjr .hero__grid{grid-template-columns:1.05fr .95fr}.sjr .collage{margin:0}
 }
 
-.gallery-item img,
-.gallery-items img {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-  display: block;
+@media(prefers-reduced-motion:reduce){.sjr *{animation:none!important;transition:none!important}.sjr .revelar{opacity:1;transform:none}
 }
 
-.gallery-item img:hover {
-  transform: scale(1.05);
-  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
-}
-
-/* Hero Logo - Asegurar que se vea bien */
-.hero-logo img {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.6);
-  display: block;
-  margin: 0 auto;
-}
-
-/* Productos Section - Hover Cards */
-.hover-card {
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.hover-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
-}
-
-/* Ganadores Cards - Colores de fondo EXACTOS */
-.card-verde {
-  background-color: hsl(131, 84%, 10%) !important; 
-}
-
-.card-azul {
-  background-color: hsl(209, 88%, 10%) !important;
-}
-
-.card-roja {
-  background-color: hsl(285, 82%, 11%) !important;
-}
-
-.card-amarillo {
-  background-color: hsl(0, 76%, 16%) !important;
-}
-
-/* Ganadores - imágenes circulares centradas */
-#ganadores .img-fluid.rounded-circle {
-  width: 200px !important;
-  height: 200px !important;
-  object-fit: contain;
-  border-radius: 50%;
-  background: white;
-  padding: 10px;
-  display: block;
-  margin: 0 auto 1rem auto;
-}
-
-/* Map Container - Responsivo */
-.map-container {
-  position: relative;
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-#map {
-  height: 50vh;
-  width: 100%;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* La sección de juegos la arma el carrusel (CarruselJuegos.css).
-   Acá había reglas de la grilla vieja de 4 juegos —#games img forzaba
-   200x200 con object-fit: cover— y como llevaban un ID le GANABAN en
-   especificidad a las del carrusel: recortaban todas las portadas a un
-   cuadrado. Por eso Rocket League, que es acostada, se veía encajada.
-   Se quitaron: esa grilla ya no existe. */
-
-/* Secciones con fondos específicos */
-.p-3.shadow.rounded {
-  background-color: hsl(180, 14%, 97%);
-}
-
-.p-4.shadow.rounded.text-center {
-  background-color: hsl(0, 0%, 100%);
-}
-
-.col-12.shadow.rounded.text-center {
-  background-color: hsl(0, 0%, 100%);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .gallery-item {
-    margin-bottom: 1rem;
-  }
-  
-  .hero-logo img {
-    width: 60px;
-    height: 60px;
-  }
-  
-  #map {
-    height: 40vh;
-  }
-  
-  .card-verde,
-  .card-azul,
-  .card-roja,
-  .card-amarillo {
-    margin-bottom: 1rem;
-  }
-
-  #ganadores .img-fluid.rounded-circle {
-    width: 150px !important;
-    height: 150px !important;
-  }
-
-  /* (Las reglas de la grilla vieja de juegos se quitaron: el carrusel maneja
-     su propio tamaño, y estas le ganaban por llevar un ID.) */
-}
+/* ── El carrusel de juegos, adaptado al fondo oscuro ──
+   CarruselJuegos.css se escribió para la franja gris clara de antes: sus
+   desvanecidos de los costados usan --cj-fondo (gris por defecto) y su
+   barrita es azul oscuro, que sobre negro no se ve. Se ajusta desde acá y
+   no en el componente, porque el componente puede seguir usándose en otro
+   lado con el fondo claro. */
+.sjr { --cj-fondo: #06080f; }
+.sjr .cj-barra { background: rgba(255, 255, 255, 0.12); }
+.sjr .cj-barra__pulgar { background: rgba(255, 255, 255, 0.55); }
+.sjr .cj-contador { color: var(--txt-3); opacity: 1; }
+.sjr .cj-nombre { color: var(--txt-2); }
