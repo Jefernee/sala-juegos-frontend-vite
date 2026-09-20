@@ -233,9 +233,10 @@ const PublicProductsList = () => {
 
       <main>
         <div className="env cabecera">
-          <h1>
-            Catálogo de <span className="deg">productos</span>
-          </h1>
+          {/* De un solo color: "Catálogo de productos" es una sola cosa, y
+              partida en dos tonos se leía como si fueran dos frases. En la
+              portada sí van en dos tonos, porque ahí son dos frases. */}
+          <h1>Catálogo de productos</h1>
           <p>Acá sale solo lo que hay en este momento: si aparece, está disponible.</p>
         </div>
 
@@ -353,6 +354,9 @@ const PublicProductsList = () => {
             Un lugar seguro y confiable para divertirse sanamente
           </small>
           <small style={{ marginTop: 6 }}>© {new Date().getFullYear()} Sala de Juegos Ruiz</small>
+          <small style={{ marginTop: 2, opacity: 0.3, fontSize: ".7rem", letterSpacing: ".04em" }}>
+            Hecho por Jefernee Ruiz
+          </small>
         </div>
       </footer>
 

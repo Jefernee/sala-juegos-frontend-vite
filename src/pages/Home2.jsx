@@ -908,7 +908,12 @@ function Home2() {
             <a className="red" href="tel:86825481" aria-label="Llamar">📞</a>
             <a className="red" href="mailto:salajuegosruiz@gmail.com" aria-label="Correo">✉️</a>
           </div>
-          <small>© {new Date().getFullYear()} Sala de Juegos Ruiz</small>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <small>© {new Date().getFullYear()} Sala de Juegos Ruiz</small>
+            <small style={{ opacity: 0.3, fontSize: ".7rem", letterSpacing: ".04em" }}>
+            Hecho por Jefernee Ruiz
+          </small>
+          </div>
         </div>
       </footer>
     </div>

@@ -20,22 +20,49 @@
 }
 
 .cj-pista {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--cj-aire);
+  /* La ventana por la que se ve pasar la cinta. La tira de adentro se mueve
+     con una animación, y además esta ventana se puede desplazar con el dedo:
+     quien quiera adelantarse a mirar, puede. */
   overflow-x: auto;
-  /* Sin scroll-snap: el carrusel gira sin fin y se reubica sola entre copias;
-     el imán del snap pelea con esa reubicación y se nota como un tirón. */
-  scroll-behavior: smooth;
-  padding: 0.5rem 0.25rem 1rem;
-  /* Al saltar con las flechas, la tarjeta no queda pegada al borde. */
-  scroll-padding-left: 0.25rem;
-  /* La barra se esconde: las flechas y el arrastre ya dicen que hay más. */
+  overflow-y: hidden;
+  /* Sin desplazamiento suave: ya no hay flechas que lo necesiten, y con
+     el dedo solo agrega inercia encima de la del navegador. */
+  padding: 0.5rem 0 1rem;
+  /* La barra se esconde: la cinta andando ya dice que hay más. */
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
 }
 .cj-pista::-webkit-scrollbar { display: none; }
+
+/* LA TIRA. Se corre justo UN TERCIO, que es una copia entera de la lista.
+   Al llegar ahí vuelve al principio, y como las tres copias dibujan lo mismo,
+   el salto cae en un dibujo idéntico y no se ve.
+
+   Va en `transform`, que lo lleva el compositor: sale pareja al ritmo de la
+   pantalla. Moviendo `scrollLeft` cuadro a cuadro se veía "pegada", porque
+   ese empujón pasa por el hilo principal y rehace el maquetado en cada paso.
+
+   La duración se la pone el componente, calculada con el ancho real de una
+   copia para que la velocidad no dependa de cuántos juegos haya. */
+.cj-tira {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cj-aire);
+  width: max-content;
+  animation: cj-correr 90s linear infinite;
+  will-change: transform;
+}
+@keyframes cj-correr {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-33.3333%, 0, 0); }
+}
+
+/* Se para mientras el mouse está encima —para poder leer un nombre— y
+   mientras alguien la tiene tocada. Con `animation-play-state` se reanuda
+   DONDE IBA y al instante: se suelta y sigue de una, sin esperas. */
+.cj-pista:hover .cj-tira,
+.cj-tira--quieta { animation-play-state: paused; }
 
 .cj-item {
   flex: 0 0 auto;
@@ -86,42 +113,6 @@
   min-height: 2.5em;
 }
 
-/* ── Flechas ──
-   Solo con mouse: en el teléfono estorban y el dedo ya arrastra.
-   Se centran contra la FOTO, no contra la tarjeta entera (que incluye el
-   nombre debajo), por eso la cuenta usa el alto de la foto. */
-.cj-flecha {
-  position: absolute;
-  top: calc(0.5rem + var(--cj-alto) / 2);
-  transform: translateY(-50%);
-  z-index: 3;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(15, 23, 42, 0.85);
-  color: #fff;
-  font-size: 1.4rem;
-  line-height: 1;
-  cursor: pointer;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-  transition: opacity 0.15s ease, background 0.15s ease;
-}
-.cj-flecha:hover { background: #0f172a; border-color: rgba(255, 255, 255, 0.5); }
-.cj-flecha:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
-.cj-flecha:disabled { opacity: 0; pointer-events: none; }
-/* Pegadas al borde de adentro: así nunca empujan la página a lo ancho, por
-   angosta que sea la ventana. */
-.cj-flecha--izq { left: 2px; }
-.cj-flecha--der { right: 2px; }
-
-@media (hover: hover) and (min-width: 768px) {
-  .cj-flecha { display: flex; }
-}
-
 /* Difuminado en los bordes: se ve que la fila sigue. */
 .cj-wrap::before,
 .cj-wrap::after {
@@ -136,38 +127,11 @@
 .cj-wrap::before { left: 0; background: linear-gradient(to right, var(--cj-fondo, #e5e7eb), transparent); }
 .cj-wrap::after { right: 0; background: linear-gradient(to left, var(--cj-fondo, #e5e7eb), transparent); }
 
-/* Barrita de posición: con 50 juegos, las flechas no dicen si vas por el
-   principio o por el final. Es informativa y no se toca — un riel de 4 px
-   sería un blanco imposible para un dedo, y quien lo intente se frustra. */
-.cj-barra {
-  position: relative;
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.12);
-  margin: 0.2rem auto 0;
-  max-width: 220px;
-  overflow: hidden;
-}
-.cj-barra__pulgar {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.5);
-  transition: left 0.12s linear;
-}
-
-.cj-contador {
-  text-align: center;
-  font-size: 0.85rem;
-  opacity: 0.7;
-  margin: 0.25rem 0 0;
-}
-
 /* Quien pidió menos movimiento en su sistema no lo recibe. */
 @media (prefers-reduced-motion: reduce) {
+  /* Quien pidió menos movimiento no recibe la cinta andando. */
+  .cj-tira { animation: none; }
   .cj-pista { scroll-behavior: auto; }
   .cj-item { transition: none; }
   .cj-item:hover { transform: none; }
-  .cj-barra__pulgar { transition: none; }
 }
