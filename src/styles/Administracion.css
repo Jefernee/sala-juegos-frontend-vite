@@ -3445,6 +3445,13 @@
   vertical-align: 1px;
 }
 
+/* Gasto que se anotó solo desde el correo del BCR. Azul y no ámbar: el ámbar
+   ya dice "pagado con el ahorro". */
+.mov-row__etiqueta--correo {
+  background: var(--azul-bg);
+  color: var(--azul);
+}
+
 /* ─── EL RITMO DEL AÑO ─────────────────────────────────────────────────────────
    Lo que no cabe en una escalera: los promedios por mes CON MOVIMIENTO (no
    entre 12) y qué proporción de lo que entró se quedó apartada. Reemplaza a las

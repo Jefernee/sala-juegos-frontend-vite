@@ -1472,6 +1472,14 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                         {m.tipo === "retiro_ahorro" && (
                           <span className="mov-row__etiqueta">retiro (anotado a la vieja)</span>
                         )}
+                        {m.origen === "correo_bcr" && (
+                          <span
+                            className="mov-row__etiqueta mov-row__etiqueta--correo"
+                            title="Se anotó solo desde el correo del BCR"
+                          >
+                            📧 BCR
+                          </span>
+                        )}
                       </span>
                       <span className={`mov-row__monto mov-row__monto--${color}`}>
                         {signo}{formatCRC(m.monto)}
