@@ -173,10 +173,13 @@ const DonutGastos = ({ items }) => {
 };
 
 // ─── BLOQUE DE DESGLOSE POR CATEGORÍA ────────────────────────────────────────
-const DesgloseBloque = ({ titulo, icono, items, colorClase }) => {
+// Tocar una categoría la despliega y muestra los movimientos que la forman.
+// `movsDe(categoria)` los da ya filtrados (null = todavía cargando).
+const DesgloseBloque = ({ titulo, icono, items, colorClase, movsDe }) => {
   const ordenado = [...(items || [])].sort((a, b) => (b.total || 0) - (a.total || 0));
   const total = ordenado.reduce((s, it) => s + (Number(it.total) || 0), 0);
   const tipo = colorClase === "verde" ? "ingreso" : "egreso";
+  const [abierta, setAbierta] = useState(null);
 
   return (
     <div className="fin-desglose">
@@ -187,24 +190,52 @@ const DesgloseBloque = ({ titulo, icono, items, colorClase }) => {
         <div className="fin-desglose__lista">
           {ordenado.map((it, i) => {
             const pct = total > 0 ? Math.round(((it.total || 0) / total) * 100) : 0;
+            const estaAbierta = abierta === it.categoria;
+            const movs = estaAbierta ? movsDe?.(it.categoria) : null;
             return (
-              <div key={it.categoria} className="fin-cat">
-                <div className="fin-cat__head">
-                  <span className="fin-cat__nombre">
-                    <span className="fin-cat__dot" style={{ background: PALETA[i % PALETA.length] }} />
-                    {iconoCat(it.categoria, tipo)} {it.categoria}
-                    <span className="fin-cat__cantidad">
-                      ({it.cantidad} {it.cantidad === 1 ? "mov." : "movs."})
+              <div key={it.categoria} className={`fin-cat ${estaAbierta ? "fin-cat--abierta" : ""}`}>
+                <button
+                  type="button"
+                  className="fin-cat__toggle"
+                  aria-expanded={estaAbierta}
+                  onClick={() => setAbierta(estaAbierta ? null : it.categoria)}
+                  title={estaAbierta ? "Ocultar el detalle" : "Ver en qué se fue"}
+                >
+                  <div className="fin-cat__head">
+                    <span className="fin-cat__nombre">
+                      <span className="fin-cat__dot" style={{ background: PALETA[i % PALETA.length] }} />
+                      {iconoCat(it.categoria, tipo)} {it.categoria}
+                      <span className="fin-cat__cantidad">
+                        ({it.cantidad} {it.cantidad === 1 ? "mov." : "movs."})
+                      </span>
+                      <span className="fin-cat__flecha" aria-hidden="true">{estaAbierta ? "▾" : "▸"}</span>
                     </span>
-                  </span>
-                  <span className={`fin-cat__monto fin-cat__monto--${colorClase}`}>{formatCRC(it.total)}</span>
-                </div>
-                <div className="fin-cat__barra">
-                  <span
-                    className={`fin-cat__barra-fill fin-cat__barra-fill--${colorClase}`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
+                    <span className={`fin-cat__monto fin-cat__monto--${colorClase}`}>{formatCRC(it.total)}</span>
+                  </div>
+                  <div className="fin-cat__barra">
+                    <span
+                      className={`fin-cat__barra-fill fin-cat__barra-fill--${colorClase}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </button>
+                {estaAbierta && (
+                  <div className="fin-cat__detalle">
+                    {movs == null ? (
+                      <p className="fin-cat__detalle-vacio">Cargando…</p>
+                    ) : movs.length === 0 ? (
+                      <p className="fin-cat__detalle-vacio">No se encontraron los movimientos.</p>
+                    ) : (
+                      movs.map((m) => (
+                        <div key={m._id} className="fin-cat__mov">
+                          <span className="fin-cat__mov-fecha">{formatFecha(m.fecha || m.createdAt)}</span>
+                          <span className="fin-cat__mov-desc">{m.descripcion || "Sin detalle"}</span>
+                          <span className={`fin-cat__mov-monto fin-cat__monto--${colorClase}`}>{formatCRC(m.monto)}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -897,6 +928,10 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   const [resumen, setResumen] = useState(null);
   const [recomendaciones, setRecomendaciones] = useState([]);
   const [movimientos, setMovimientos] = useState([]);
+  const [movsMes, setMovsMes] = useState(null);         // el mes entero, sin paginar
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroCat, setFiltroCat] = useState("");
+  const [orden, setOrden] = useState("reciente");      // "reciente" | "monto"
   const [pagination, setPagination] = useState(null);
 
   const [loadingResumen, setLoadingResumen] = useState(true);
@@ -939,10 +974,17 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   const fetchResumen = useCallback(async () => {
     setLoadingResumen(true);
     setErrorCarga(false);
+    setMovsMes(null);
     try {
       const axios = await getAxios();
-      const res = await axios.get(`${BASE}/resumen?mes=${mes}&anio=${anio}`, getAuthHeaders());
+      // Junto al resumen viene el mes completo, sin paginar: es lo que se
+      // muestra al desplegar una categoría del desglose.
+      const [res, todos] = await Promise.all([
+        axios.get(`${BASE}/resumen?mes=${mes}&anio=${anio}`, getAuthHeaders()),
+        axios.get(`${BASE}?mes=${mes}&anio=${anio}`, getAuthHeaders()),
+      ]);
       setResumen(res.data || null);
+      setMovsMes(todos.data?.data || []);
     } catch (err) {
       setErrorCarga(true);
       manejarError(err);
@@ -1130,6 +1172,29 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   // GET para precargar también la descripción).
   const apertura = resumen?.apertura || null;
 
+  // ── Buscador de movimientos ───────────────────────────────────────────────
+  // Filtra el mes entero (movsMes) en el navegador: un mes son pocas decenas de
+  // movimientos. Los filtros se conservan al cambiar de mes, para poder seguir
+  // un mismo gasto ("gasolina") mes a mes.
+  const filtrando = busqueda.trim() !== "" || filtroCat !== "" || orden !== "reciente";
+  const catsDelMes = useMemo(() => {
+    const usadas = [...new Set((movsMes || []).map((m) => m.categoria))].sort((a, b) => a.localeCompare(b, "es"));
+    // La elegida se mantiene aunque el mes nuevo no la tenga.
+    return filtroCat && !usadas.includes(filtroCat) ? [filtroCat, ...usadas] : usadas;
+  }, [movsMes, filtroCat]);
+  const listaFiltrada = useMemo(() => {
+    if (!filtrando || movsMes == null) return null;
+    // Sin tildes ni mayúsculas: "super" encuentra "Súper".
+    const normal = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const q = normal(busqueda.trim());
+    const fechaDe = (m) => new Date(m.fecha || m.createdAt).getTime() || 0;
+    return movsMes
+      .filter((m) => !filtroCat || m.categoria === filtroCat)
+      .filter((m) => !q || normal(m.descripcion).includes(q) || normal(m.categoria).includes(q))
+      .sort((a, b) => (orden === "monto" ? (b.monto || 0) - (a.monto || 0) : fechaDe(b) - fechaDe(a)));
+  }, [filtrando, movsMes, busqueda, filtroCat, orden]);
+  const limpiarFiltros = () => { setBusqueda(""); setFiltroCat(""); setOrden("reciente"); };
+
   // El reporte anual reemplaza esta vista sin salir de la pestaña: se vuelve con
   // "← Volver al mes" y el mes seleccionado queda intacto.
   if (vista === "anual") {
@@ -1260,12 +1325,18 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                 icono="📈"
                 items={resumen?.desglose?.ingreso}
                 colorClase="verde"
+                movsDe={(cat) => movsMes && movsMes.filter((m) => m.tipo === "ingreso" && m.categoria === cat)}
               />
+              {/* Lo pagado con el ahorro no entra en estas barras (va en el
+                  detalle de los ahorros), así que tampoco en su desglose. */}
               <DesgloseBloque
                 titulo="Gastos por categoría"
                 icono="📉"
                 items={gastosReales}
                 colorClase="rojo"
+                movsDe={(cat) => movsMes && movsMes.filter(
+                  (m) => m.tipo === "egreso" && m.fondo !== "ahorro" && m.categoria === cat,
+                )}
               />
             </div>
             {gastosOrdenados.length > 0 && (
@@ -1305,8 +1376,61 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
             </div>
           )}
 
-          {/* 7 · Movimientos del mes */}
-          {loadingLista && movimientos.length === 0 ? (
+          {/* 7 · Movimientos del mes, con buscador. Sin filtros se ve la lista
+              paginada de siempre; con alguno, se filtra el mes entero acá. */}
+          {(movimientos.length > 0 || filtrando) && (
+            <div className="fin-filtros">
+              <input
+                type="search"
+                className="form-control admin-input fin-filtros__texto"
+                placeholder="🔎 Buscar (ej. gasolina, súper…)"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                aria-label="Buscar movimientos"
+              />
+              <select
+                className="form-select admin-select fin-filtros__cat"
+                value={filtroCat}
+                onChange={(e) => setFiltroCat(e.target.value)}
+                aria-label="Filtrar por categoría"
+              >
+                <option value="">Todas las categorías</option>
+                {catsDelMes.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <div className="fin-filtros__orden" role="group" aria-label="Ordenar">
+                {[["reciente", "Más reciente"], ["monto", "Monto más alto"]].map(([valor, texto]) => (
+                  <button
+                    key={valor}
+                    type="button"
+                    className={`fin-filtros__chip ${orden === valor ? "fin-filtros__chip--activo" : ""}`}
+                    aria-pressed={orden === valor}
+                    onClick={() => setOrden(valor)}
+                  >
+                    {texto}
+                  </button>
+                ))}
+              </div>
+              {filtrando && (
+                <p className="fin-filtros__resumen">
+                  {listaFiltrada == null
+                    ? "Buscando…"
+                    : `${listaFiltrada.length} ${listaFiltrada.length === 1 ? "movimiento" : "movimientos"}${
+                        // El total solo si todo es del mismo tipo: sumar lo que
+                        // entró con lo que se gastó no dice nada.
+                        listaFiltrada.length > 0 && listaFiltrada.every((m) => m.tipo === listaFiltrada[0].tipo)
+                          ? ` · ${formatCRC(listaFiltrada.reduce((s, m) => s + (Number(m.monto) || 0), 0))}`
+                          : ""
+                      }`}
+                  <button type="button" className="fin-filtros__limpiar" onClick={limpiarFiltros}>
+                    ✕ Quitar filtros
+                  </button>
+                </p>
+              )}
+            </div>
+          )}
+          {filtrando && listaFiltrada?.length === 0 ? (
+            <EstadoVacio icono="🔎" mensaje="Nada coincide con esa búsqueda este mes" />
+          ) : (loadingLista && movimientos.length === 0) || (filtrando && listaFiltrada == null) ? (
             <Cargando />
           ) : movimientos.length === 0 ? (
             <EstadoVacio icono="💸" mensaje="No hay movimientos registrados este mes">
@@ -1322,7 +1446,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                   <span>Fecha</span>
                   <span className="text-end">Acciones</span>
                 </div>
-                {movimientos.map((m) => {
+                {(filtrando ? listaFiltrada : movimientos).map((m) => {
                   // El color y el signo salen de la acción que representa, no
                   // del `tipo` crudo: un egreso pagado con el ahorro no baja la
                   // plata del mes, así que se pinta con el color del ahorro y
@@ -1381,7 +1505,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                   );
                 })}
               </div>
-              <Paginacion pagination={pagination} onPage={setPage} loading={loadingLista} />
+              {!filtrando && <Paginacion pagination={pagination} onPage={setPage} loading={loadingLista} />}
             </>
           )}
         </>

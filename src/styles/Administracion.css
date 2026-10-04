@@ -712,6 +712,65 @@
    la pantalla se llenaba de bordes repetidos y se leía como un bloque blanco.
    Ahora el blanco lo pone el contenedor una sola vez, las filas se separan con
    una línea fina, y el color del tipo sigue en el filo izquierdo de cada una. */
+/* Buscador de movimientos, encima de la tabla. */
+.fin-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.fin-filtros__texto { flex: 2 1 220px; min-width: 0; }
+.fin-filtros__cat   { flex: 1 1 180px; min-width: 0; width: auto; }
+
+.fin-filtros__orden {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.fin-filtros__chip {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--sup);
+  color: var(--txt-2);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fin-filtros__chip--activo {
+  background: var(--azul);
+  border-color: var(--azul);
+  color: #fff;
+}
+
+.fin-filtros__resumen {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--txt-2);
+  font-weight: 600;
+}
+
+.fin-filtros__limpiar {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--azul);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fin-filtros__limpiar:hover { text-decoration: underline; }
+
 .mov-tabla {
   display: flex;
   flex-direction: column;
@@ -2274,6 +2333,76 @@
 
 .fin-cat__monto--verde { color: var(--verde); }
 .fin-cat__monto--rojo  { color: var(--rojo); }
+
+/* Cada categoría es un botón que despliega sus movimientos. */
+.fin-cat__toggle {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0.45rem;
+  margin: -0.35rem -0.45rem;
+  box-sizing: content-box;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.fin-cat__toggle:hover,
+.fin-cat--abierta .fin-cat__toggle { background: var(--sup-2, rgba(100, 116, 139, 0.08)); }
+
+.fin-cat__toggle:focus-visible {
+  outline: 2px solid var(--azul, #3b82f6);
+  outline-offset: 1px;
+}
+
+.fin-cat__flecha {
+  font-size: 0.7rem;
+  color: var(--txt-3);
+}
+
+.fin-cat__detalle {
+  margin-top: 0.6rem;
+  border-left: 2px solid var(--borde);
+  padding-left: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fin-cat__detalle-vacio {
+  color: var(--txt-3);
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+.fin-cat__mov {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.6rem;
+  align-items: baseline;
+  font-size: 0.78rem;
+}
+
+.fin-cat__mov-fecha {
+  color: var(--txt-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-cat__mov-desc {
+  color: var(--txt-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fin-cat__mov-monto {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
 .fin-cat__barra {
   height: 6px;
