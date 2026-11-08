@@ -104,7 +104,7 @@ export const ICONOS_CAT = {
   // Egresos · ocasiones
   "Salidas y viajes": "🧳", Regalos: "🎁", Cumpleaños: "🎂", Rifas: "🎟️",
   // Egresos · compromisos financieros
-  "Deudas/Préstamos": "💳", "Cuota banco (BCR)": "🏦", Seguros: "🛡️",
+  "Mis deudas y cuotas": "💳", "Deudas/Préstamos": "💳", "Cuota banco (BCR)": "🏦", Seguros: "🛡️",
   "Préstamo dado": "🤝", "Abono de préstamo": "↩️",
   // Egresos · ahorro
   Ahorro: "🐷", "Ahorro CreAI": "🪙", "Ahorro MEP": "💰",
