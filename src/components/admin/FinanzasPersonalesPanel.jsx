@@ -838,12 +838,12 @@ const FormMovimiento = ({
         {avisoRaya && (
           <div className="fin-aviso-raya" role="alert">
             <p className="fin-aviso-raya__titulo">
-              ⚠️ Con esto empezás a gastar lo del mes pasado
+              ⚠️ Con esto empezás a gastar lo que tenías juntado
             </p>
             <p className="fin-aviso-raya__texto">
-              Sin tocar el arrastre te quedaban <strong>{formatCRC(avisoRaya.margen)}</strong>
+              Para gastar te quedaban <strong>{formatCRC(avisoRaya.margen)}</strong>
               {" "}y este gasto es de <strong>{formatCRC(avisoRaya.seVa)}</strong>: se irían{" "}
-              <strong>{formatCRC(avisoRaya.deMasPasado)}</strong> de lo que traías del mes pasado.
+              <strong>{formatCRC(avisoRaya.deMasPasado)}</strong> de lo que tenías juntado.
             </p>
             <div className="fin-aviso-raya__botones">
               <button
@@ -1124,17 +1124,32 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   //            anunciar, así que el monto queda en ₡0 —un "podés gastar hasta
   //            −₡40.000" no se entiende— y la nota dice cuánto ya se usó.
   // El rótulo no cambia nunca, para que la fila se lea igual en los tres casos.
-  const margenMes = resumen?.variacionSaldo ?? saldoFinal - saldoInicial;
-  const estadoM = estadoMargen(margenMes, totalIngresos);
+  //
+  // Desde que existe `podesGastar`, lo que sobró del mes anterior viaja con la
+  // fila hasta que entra el primer pago del mes (sueldo, aguinaldo, bono
+  // escolar): así el día 1 no marca ₡0 si sobró plata. El backend hace la
+  // cuenta (ver recorrerPodesGastar). Lo que se "toca" al pasarse ya no es "lo
+  // del mes pasado" sino lo juntado de antes, que vive dentro de "Te queda".
+  // Con un backend viejo cae en el margen del mes, como antes.
+  const margenMes = resumen?.podesGastar ?? resumen?.variacionSaldo ?? saldoFinal - saldoInicial;
+  const arrastreMargen = resumen?.podesGastarDetalle?.arrastre ?? 0;
+  const arrastreVivo = arrastreMargen > 0 && !resumen?.podesGastarDetalle?.fechaPrimerPago;
+  // El umbral del ámbar se mide contra lo que hubo para gastar (lo que entró +
+  // lo arrastrado): en un mes sin ingresos el aviso sigue teniendo escala.
+  const estadoM = estadoMargen(margenMes, totalIngresos + arrastreMargen);
   const puedoGastar = {
     que: "Podés gastar hasta",
     monto: Math.max(0, margenMes),
     nota:
       estadoM === "pasado"
-        ? `ya usaste ${formatCRC(Math.abs(margenMes))} de lo del mes pasado`
+        ? `ya usaste ${formatCRC(Math.abs(margenMes))} de lo que tenías juntado`
         : estadoM === "ojo"
-          ? "⚠️ te queda poco: pasado esto, gastás lo del mes pasado"
-          : "sin tocar lo del mes pasado",
+          ? "⚠️ te queda poco: pasado esto, gastás lo que tenías juntado"
+          : arrastreVivo
+            ? margenMes <= arrastreMargen
+              ? `es lo que queda de los ${formatCRC(arrastreMargen)} que sobraron del mes pasado`
+              : `incluye ${formatCRC(arrastreMargen)} que sobraron del mes pasado`
+            : "sin tocar lo que tenías juntado",
     clase: COLOR_MARGEN[estadoM],
   };
 
