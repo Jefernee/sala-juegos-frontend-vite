@@ -59,9 +59,6 @@ export const limpiarMontoInput = (texto, esUSD) => {
 // el margen baja del 10% de lo que entró en el mes, con un piso de ₡25.000 para
 // que en un mes de ingresos chicos —o con el salario todavía sin anotar— el
 // aviso siga existiendo en vez de desaparecer.
-//
-// Hoy el margen es `podesGastar` (arrastra lo que sobró del mes anterior hasta
-// el primer pago), y quien llama pasa como base lo que entró + lo arrastrado.
 export const MARGEN_PCT_AVISO = 0.1;
 export const MARGEN_PISO_AVISO = 25000;
 
