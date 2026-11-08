@@ -395,7 +395,7 @@ const FinanzasReporteAnual = ({ anioInicial, getAuthHeaders, manejarError, onVol
             <Escalera
               titulo={`💵 Tu plata en ${anio}`}
               filas={filasPlata}
-              totalQue={enCurso ? "Te queda" : `Te quedó al cerrar ${anio}`}
+              totalQue={enCurso ? "Tenés a mano" : `Tenías a mano al cerrar ${anio}`}
               totalMonto={rec.saldoFinalAnio}
               totalClase={(rec.saldoFinalAnio || 0) >= 0 ? "plata" : "rojo"}
             />

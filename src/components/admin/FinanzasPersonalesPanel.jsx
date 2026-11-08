@@ -838,12 +838,12 @@ const FormMovimiento = ({
         {avisoRaya && (
           <div className="fin-aviso-raya" role="alert">
             <p className="fin-aviso-raya__titulo">
-              ⚠️ Con esto empezás a gastar lo del mes pasado
+              ⚠️ Con esto empezás a gastar lo que tenías del mes pasado
             </p>
             <p className="fin-aviso-raya__texto">
-              Sin tocar el arrastre te quedaban <strong>{formatCRC(avisoRaya.margen)}</strong>
+              Podías gastar hasta <strong>{formatCRC(avisoRaya.margen)}</strong>
               {" "}y este gasto es de <strong>{formatCRC(avisoRaya.seVa)}</strong>: se irían{" "}
-              <strong>{formatCRC(avisoRaya.deMasPasado)}</strong> de lo que traías del mes pasado.
+              <strong>{formatCRC(avisoRaya.deMasPasado)}</strong> de lo que tenías del mes pasado.
             </p>
             <div className="fin-aviso-raya__botones">
               <button
@@ -1124,17 +1124,30 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   //            anunciar, así que el monto queda en ₡0 —un "podés gastar hasta
   //            −₡40.000" no se entiende— y la nota dice cuánto ya se usó.
   // El rótulo no cambia nunca, para que la fila se lea igual en los tres casos.
-  const margenMes = resumen?.variacionSaldo ?? saldoFinal - saldoInicial;
-  const estadoM = estadoMargen(margenMes, totalIngresos);
+  //
+  // Mientras el pago del mes no entra, el backend le suma a la fila lo que
+  // sobró del mes pasado (`podesGastar`, ver calcularPodesGastar): así el día 1
+  // no marca ₡0 si sobró plata, y cada gasto lo va bajando. Cuando entra el
+  // pago, `podesGastar` vuelve a ser el margen del mes. Con un backend viejo
+  // cae en el margen del mes, como antes.
+  const margenMes = resumen?.podesGastar ?? resumen?.variacionSaldo ?? saldoFinal - saldoInicial;
+  const arrastreMes = resumen?.podesGastarDetalle?.arrastre ?? 0;
+  const mesAnterior = MESES[(mes === 1 ? 12 : mes - 1) - 1].toLowerCase();
+  // El ámbar se mide contra lo que hubo para gastar: lo que entró + lo que sobró.
+  const estadoM = estadoMargen(margenMes, totalIngresos + arrastreMes);
   const puedoGastar = {
     que: "Podés gastar hasta",
     monto: Math.max(0, margenMes),
     nota:
       estadoM === "pasado"
-        ? `ya usaste ${formatCRC(Math.abs(margenMes))} de lo del mes pasado`
+        ? arrastreMes > 0
+          ? `ya usaste lo que sobró de ${mesAnterior} (${formatCRC(arrastreMes)}) y ${formatCRC(Math.abs(margenMes))} más de lo que tenías del mes pasado`
+          : `ya usaste ${formatCRC(Math.abs(margenMes))} de lo que tenías del mes pasado`
         : estadoM === "ojo"
-          ? "⚠️ te queda poco: pasado esto, gastás lo del mes pasado"
-          : "sin tocar lo del mes pasado",
+          ? "⚠️ queda poco: pasado esto, gastás lo que tenías del mes pasado"
+          : arrastreMes > 0
+            ? `lo que sobró de ${mesAnterior}`
+            : "sin tocar lo que tenías del mes pasado",
     clase: COLOR_MARGEN[estadoM],
   };
 
@@ -1293,7 +1306,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
             <Escalera
               titulo={`💵 Tu plata en ${nombreMes(mes, anio)}`}
               filas={filasPlata}
-              totalQue="Te queda"
+              totalQue="Tenés a mano"
               totalMonto={saldoFinal}
               totalClase={saldoFinal >= 0 ? "plata" : "rojo"}
               pie={puedoGastar}
