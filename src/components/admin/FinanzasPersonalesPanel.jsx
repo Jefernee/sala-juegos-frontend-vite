@@ -351,13 +351,16 @@ const TeDeben = ({ datos }) => {
   );
 };
 
+// Valor del select de persona que abre el campo para escribir un nombre nuevo.
+const OTRA_PERSONA = "__otra__";
+
 // ─── FORMULARIO DE MOVIMIENTO ────────────────────────────────────────────────
 // Uno solo para las dos cosas: anotar (va inline, arriba de todo, porque es lo
 // que más se usa) y editar (el mismo formulario dentro del modal). Antes eran
 // cuatro tipos con nombres del backend; ahora son tres botones en lenguaje
 // llano y, si es un gasto, UNA sola pregunta más: ¿de dónde salió la plata?
 const FormMovimiento = ({
-  registro, categorias, ahorroCfg, mes, anio, enModal, margen, personasConocidas = [],
+  registro, categorias, ahorroCfg, mes, anio, enModal, margen, personasPrestamo = [],
   getAuthHeaders, mostrarNotif, manejarError, onCancelar, onExito, onGuardando,
 }) => {
   const esEdicion = !!registro;
@@ -396,8 +399,10 @@ const FormMovimiento = ({
   const [origen, setOrigen] = useState(registro?.fondo === "ahorro" ? "ahorro" : "mano");
   const [bolsaAhorro, setBolsaAhorro] = useState(registro?.bolsaAhorro || "");
   const [categoria, setCategoria] = useState(registro?.categoria || "");
-  // A quién se le prestó / quién abonó. Solo en esas dos categorías.
+  // A quién se le prestó / quién abonó. Solo en esas dos categorías. Se elige
+  // de una lista; "Otra persona" abre el campo para escribir un nombre nuevo.
   const [persona, setPersona] = useState(registro?.persona || "");
+  const [otraPersona, setOtraPersona] = useState(false);
 
   // Al editar un movimiento en dólares, se arranca en USD mostrando el monto
   // original en dólares y el tipo de cambio con el que se guardó (no el de hoy),
@@ -792,29 +797,60 @@ const FormMovimiento = ({
           {errores.categoria && <div className="campo-error">{errores.categoria}</div>}
         </div>
 
-        {/* ¿A quién? / ¿Quién? — solo en préstamos y abonos. Sugiere los nombres
-            que ya se usaron, para que "Tobit" no quede como dos personas. */}
-        {pidePersona && (
-          <div className="fin-campo">
-            <label className="fin-campo__label">
-              {esGasto ? "¿A quién le prestaste?" : "¿Quién te abonó?"}
-            </label>
-            <input
-              type="text"
-              className={`form-control admin-input ${errores.persona ? "admin-input--error" : ""}`}
-              placeholder="Nombre"
-              maxLength={60}
-              list={`personas-${registro?._id || "nuevo"}`}
-              value={persona}
-              disabled={guardando}
-              onChange={(e) => { setPersona(e.target.value); setErrores((er) => ({ ...er, persona: "" })); }}
-            />
-            <datalist id={`personas-${registro?._id || "nuevo"}`}>
-              {personasConocidas.map((p) => <option key={p} value={p} />)}
-            </datalist>
-            {errores.persona && <div className="campo-error">{errores.persona}</div>}
-          </div>
-        )}
+        {/* ¿A quién? / ¿Quién? — solo en préstamos y abonos. Se ELIGE de una
+            lista para que "Anfernee" y "Anfer" no queden como dos personas:
+              · préstamo → todas las personas a las que ya se les prestó;
+              · abono    → solo las que todavía deben, con cuánto.
+            "➕ Otra persona" abre un campo para escribir un nombre nuevo. */}
+        {pidePersona && (() => {
+          const lista = esGasto ? personasPrestamo : personasPrestamo.filter((p) => p.pendiente > 0);
+          const enLista = lista.find((p) => p.persona.toLowerCase() === persona.trim().toLowerCase());
+          // Al editar un movimiento con un nombre que no está en la lista, se
+          // muestra en el campo de texto para no perderlo.
+          const escribiendo = otraPersona || (!!persona.trim() && !enLista);
+          return (
+            <div className="fin-campo">
+              <label className="fin-campo__label">
+                {esGasto ? "¿A quién le prestaste?" : "¿Quién te abonó?"}
+              </label>
+              <select
+                className={`form-select admin-select ${errores.persona && !escribiendo ? "admin-input--error" : ""}`}
+                value={escribiendo ? OTRA_PERSONA : (enLista?.persona || "")}
+                disabled={guardando}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setOtraPersona(v === OTRA_PERSONA);
+                  setPersona(v === OTRA_PERSONA ? "" : v);
+                  setErrores((er) => ({ ...er, persona: "" }));
+                }}
+              >
+                <option value="">Elegí la persona...</option>
+                {lista.map((p) => (
+                  <option key={p.persona} value={p.persona}>
+                    {esGasto ? p.persona : `${p.persona} — te debe ${formatCRC(p.pendiente)}`}
+                  </option>
+                ))}
+                <option value={OTRA_PERSONA}>➕ Otra persona</option>
+              </select>
+              {escribiendo && (
+                <input
+                  type="text"
+                  className={`form-control admin-input mt-2 ${errores.persona ? "admin-input--error" : ""}`}
+                  placeholder="Nombre completo"
+                  maxLength={60}
+                  value={persona}
+                  disabled={guardando}
+                  autoFocus={otraPersona}
+                  onChange={(e) => { setPersona(e.target.value); setErrores((er) => ({ ...er, persona: "" })); }}
+                />
+              )}
+              {!esGasto && lista.length === 0 && !escribiendo && (
+                <p className="fin-campo__ayuda">Nadie te debe nada ahora mismo.</p>
+              )}
+              {errores.persona && <div className="campo-error">{errores.persona}</div>}
+            </div>
+          );
+        })()}
 
         {/* ¿Cuánto? — con el selector de moneda (colones o dólares) */}
         <div className="fin-campo">
@@ -1170,11 +1206,9 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   useEffect(() => { fetchRecomendaciones(); }, [fetchRecomendaciones]);
   useEffect(() => { fetchPrestamos(); }, [fetchPrestamos]);
 
-  // Nombres ya usados en préstamos, para sugerirlos en el formulario.
-  const personasConocidas = useMemo(
-    () => (prestamos?.personas || []).map((p) => p.persona),
-    [prestamos],
-  );
+  // Personas de los préstamos ({ persona, pendiente }), para elegirlas de una
+  // lista en el formulario en vez de escribirlas.
+  const personasPrestamo = useMemo(() => prestamos?.personas || [], [prestamos]);
 
   const cambiarMes = (nuevoMes, nuevoAnio) => {
     setMes(nuevoMes);
@@ -1443,7 +1477,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                 mes={mes}
                 anio={anio}
                 margen={{ disponible: margenMes }}
-                personasConocidas={personasConocidas}
+                personasPrestamo={personasPrestamo}
                 getAuthHeaders={getAuthHeaders}
                 mostrarNotif={mostrarNotif}
                 manejarError={manejarError}
@@ -1710,7 +1744,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
           mes={mes}
           anio={anio}
           margen={{ disponible: margenMes }}
-          personasConocidas={personasConocidas}
+          personasPrestamo={personasPrestamo}
           getAuthHeaders={getAuthHeaders}
           mostrarNotif={mostrarNotif}
           manejarError={manejarError}
