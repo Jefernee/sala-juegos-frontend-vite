@@ -89,7 +89,7 @@ export const ICONOS_CAT = {
   // Ingresos
   Salario: "💼", "Salario MEP": "🏫", "Salario CreAI": "🤖",
   Aguinaldo: "🎄", "Aguinaldo MEP": "🎄", "Bono escolar": "🎒", FCL: "🏦", "Caja de ANDE": "🏛️",
-  Negocio: "🏪", "Ventas/Extras": "🛍️", Préstamos: "🤝",
+  Negocio: "🏪", "Ventas/Extras": "🛍️", "Me prestaron": "📥", Préstamos: "📥",
   // Egresos · comida y hogar
   "Comida preparada": "🍔", "Comida de colegio": "🍱", "Comida en Batán": "🍗",
   "Snacks y antojos": "🍩", Supermercado: "🛒",
