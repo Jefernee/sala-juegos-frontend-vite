@@ -2971,6 +2971,30 @@
   color: var(--azul);
 }
 
+/* "Te deben": misma caja que el detalle de los ahorros (es plata tuya que está
+   afuera), con el filo azul para que no se confunda con lo ahorrado. */
+.fin-tedeben { border-left-color: #3b82f6; }
+
+.fin-tedeben__cabeza {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.fin-tedeben__cabeza .fin-ahorro__subtitulo {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.fin-tedeben__total {
+  font-size: 1rem;
+  color: var(--azul);
+  font-variant-numeric: tabular-nums;
+}
+
 .fin-ahorro__item-monto--retiro { color: var(--azul); }
 
 .fin-ahorro__item--neto {

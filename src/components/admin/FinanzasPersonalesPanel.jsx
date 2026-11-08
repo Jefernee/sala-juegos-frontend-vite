@@ -24,6 +24,7 @@ import {
   FIN_BASE as BASE, formatMontoInput, limpiarMontoInput,
   PALETA, iconoCat, esAhorro,
   estadoMargen, COLOR_MARGEN,
+  CAT_PRESTAMO, CAT_ABONO,
 } from "./finanzasComunes";
 import { Bolsas, Escalera } from "./FinanzasBolsas";
 import MesSelector from "./MesSelector";
@@ -255,25 +256,28 @@ const DesgloseBloque = ({ titulo, icono, items, colorClase, movsDe }) => {
 //     cuál bolsa salió (desglose.gastoAhorroPorBolsa), que el backend manda ya
 //     separados de desglose.egreso para que la dona del mes no cuente plata que
 //     no salió del mes;
-//   • los retiros viejos (desglose.retiro), que con datos nuevos siempre va vacío.
-const AhorroDetalle = ({ apartado, pagado, pagadoPorBolsa, retiros }) => {
+//   • los retiros viejos (desglose.retiro), que con datos nuevos siempre va vacío;
+//   • lo que entró directo al ahorro (desglose.ingresoAhorro), ej. abonos.
+const AhorroDetalle = ({ apartado, entrado, pagado, pagadoPorBolsa, retiros }) => {
   const orden = (xs) => [...(xs || [])].sort((a, b) => (b.total || 0) - (a.total || 0));
   const apartados = orden(apartado);
+  const entrados = orden(entrado);
   const pagados = orden(pagado);
   const bolsasPago = orden(pagadoPorBolsa);
   const retirados = orden(retiros);
-  if (!apartados.length && !pagados.length && !retirados.length) return null;
+  if (!apartados.length && !entrados.length && !pagados.length && !retirados.length) return null;
 
-  const fila = (it, clase) => (
+  // "apartado" y "entrado" suman al ahorro (se pintan igual); lo demás resta.
+  const fila = (it, clase, tipo = "egreso") => (
     <div key={`${clase}-${it.categoria}`} className="fin-ahorro__item">
       <span className="fin-ahorro__item-nombre">
-        {iconoCat(it.categoria, "egreso")} {it.categoria}
+        {iconoCat(it.categoria, tipo)} {it.categoria}
         <span className="fin-cat__cantidad">
           ({it.cantidad} {it.cantidad === 1 ? "mov." : "movs."})
         </span>
       </span>
-      <span className={`fin-ahorro__item-monto fin-ahorro__item-monto--${clase}`}>
-        {clase === "apartado" ? "+" : "−"}{formatCRC(it.total)}
+      <span className={`fin-ahorro__item-monto fin-ahorro__item-monto--${clase === "entrado" ? "apartado" : clase}`}>
+        {clase === "apartado" || clase === "entrado" ? "+" : "−"}{formatCRC(it.total)}
       </span>
     </div>
   );
@@ -285,6 +289,12 @@ const AhorroDetalle = ({ apartado, pagado, pagadoPorBolsa, retiros }) => {
           <>
             <div className="fin-ahorro__subtitulo">🐷 Lo que apartaste</div>
             {apartados.map((it) => fila(it, "apartado"))}
+          </>
+        )}
+        {entrados.length > 0 && (
+          <>
+            <div className="fin-ahorro__subtitulo">↩️ Lo que entró a tus ahorros</div>
+            {entrados.map((it) => fila(it, "entrado", "ingreso"))}
           </>
         )}
         {pagados.length > 0 && (
@@ -309,13 +319,45 @@ const AhorroDetalle = ({ apartado, pagado, pagadoPorBolsa, retiros }) => {
   );
 };
 
+// ─── TE DEBEN ────────────────────────────────────────────────────────────────
+// Préstamos que se dieron menos los abonos que ya devolvieron, por persona
+// (GET /prestamos). No depende del mes: es lo que deben HOY. Solo se muestra
+// quien todavía debe algo; si nadie debe nada, la tarjeta no aparece.
+const TeDeben = ({ datos }) => {
+  const deben = (datos?.personas || []).filter((p) => p.pendiente > 0);
+  if (!deben.length) return null;
+  return (
+    <div className="fin-ahorro fin-tedeben">
+      <div className="fin-ahorro__lista">
+        <div className="fin-tedeben__cabeza">
+          <span className="fin-ahorro__subtitulo mb-0">🤝 Te deben</span>
+          <strong className="fin-tedeben__total">{formatCRC(datos.totalTeDeben)}</strong>
+        </div>
+        {deben.map((p) => (
+          <div key={p.persona} className="fin-ahorro__item">
+            <span className="fin-ahorro__item-nombre">
+              {p.persona}
+              <span className="fin-cat__cantidad">
+                {p.abonado > 0
+                  ? `prestaste ${formatCRC(p.prestado)} · abonó ${formatCRC(p.abonado)}`
+                  : `prestaste ${formatCRC(p.prestado)}`}
+              </span>
+            </span>
+            <span className="fin-ahorro__item-monto">{formatCRC(p.pendiente)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ─── FORMULARIO DE MOVIMIENTO ────────────────────────────────────────────────
 // Uno solo para las dos cosas: anotar (va inline, arriba de todo, porque es lo
 // que más se usa) y editar (el mismo formulario dentro del modal). Antes eran
 // cuatro tipos con nombres del backend; ahora son tres botones en lenguaje
 // llano y, si es un gasto, UNA sola pregunta más: ¿de dónde salió la plata?
 const FormMovimiento = ({
-  registro, categorias, ahorroCfg, mes, anio, enModal, margen,
+  registro, categorias, ahorroCfg, mes, anio, enModal, margen, personasConocidas = [],
   getAuthHeaders, mostrarNotif, manejarError, onCancelar, onExito, onGuardando,
 }) => {
   const esEdicion = !!registro;
@@ -347,11 +389,15 @@ const FormMovimiento = ({
           : "gaste";
 
   const [accion, setAccion] = useState(accionInicial);
-  // Solo para "Gasté": "mano" (el bolsillo del mes) o "ahorro" (sale del ahorro
-  // y se consume en el acto → fondo: "ahorro" + bolsaAhorro).
+  // Para "Gasté": "mano" (el bolsillo del mes) o "ahorro" (sale del ahorro y se
+  // consume en el acto). Para "Entró plata": "mano" o "ahorro" (entra directo a
+  // una bolsa, ej. el abono de un préstamo). En los dos, "ahorro" viaja como
+  // fondo: "ahorro" + bolsaAhorro.
   const [origen, setOrigen] = useState(registro?.fondo === "ahorro" ? "ahorro" : "mano");
   const [bolsaAhorro, setBolsaAhorro] = useState(registro?.bolsaAhorro || "");
   const [categoria, setCategoria] = useState(registro?.categoria || "");
+  // A quién se le prestó / quién abonó. Solo en esas dos categorías.
+  const [persona, setPersona] = useState(registro?.persona || "");
 
   // Al editar un movimiento en dólares, se arranca en USD mostrando el monto
   // original en dólares y el tipo de cambio con el que se guardó (no el de hoy),
@@ -384,9 +430,15 @@ const FormMovimiento = ({
   const meta = metaAccion(accion);
   const tipo = tipoDeAccion(accion);
   const esGasto = accion === "gaste";
+  const esIngreso = accion === "entro";
   const desdeAhorro = esGasto && origen === "ahorro";
-  // "De mis ahorros" necesita las bolsas del backend para poder mandarlas.
+  const alAhorro = esIngreso && origen === "ahorro";
+  const usaAhorro = desdeAhorro || alAhorro;
+  // "De mis ahorros" / "A mis ahorros" necesita las bolsas del backend.
   const hayBolsas = bolsas.length > 0;
+  // Préstamo dado (gasto) o abono de préstamo (ingreso): piden la persona.
+  const pidePersona =
+    (esGasto && categoria === CAT_PRESTAMO) || (esIngreso && categoria === CAT_ABONO);
 
   // Las categorías que se ofrecen dependen del botón: entrar plata trae las de
   // ingreso; "Ahorré" solo las bolsas; "Gasté" los egresos SIN las de ahorro
@@ -488,7 +540,9 @@ const FormMovimiento = ({
     setErrores({});
     setTopeAhorro(null);
     setAvisoRaya(null);
-    if (nueva !== "gaste") setOrigen("mano");
+    // "De mis ahorros" de un gasto no significa lo mismo que "A mis ahorros" de
+    // un ingreso: al cambiar de botón se vuelve siempre a la plata a mano.
+    setOrigen("mano");
     const nuevas = catsDe(nueva);
     setCategoria((actual) => (actual && nuevas.includes(actual) ? actual : ""));
   };
@@ -505,6 +559,10 @@ const FormMovimiento = ({
     if (!monto || montoNum <= 0) e.monto = "Escribí cuánto fue";
     if (esUSD && !tcListo) e.monto = "Esperá el tipo de cambio del día (o registralo en colones)";
     if (desdeAhorro && !bolsaAhorro) e.bolsaAhorro = "Elegí de cuál ahorro salió";
+    if (alAhorro && !bolsaAhorro) e.bolsaAhorro = "Elegí a cuál ahorro va";
+    if (pidePersona && !persona.trim()) {
+      e.persona = esGasto ? "Escribí a quién le prestaste" : "Escribí quién te abonó";
+    }
     setErrores(e);
     return Object.keys(e).length === 0;
   };
@@ -514,6 +572,7 @@ const FormMovimiento = ({
   // confirmar de un vistazo.
   const confirmacion = () => {
     const m = formatCRC(montoCRC);
+    if (alAhorro) return `Guardado. Subieron tus ahorros ${m}; tu plata queda igual.`;
     if (accion === "entro") return `Guardado. Tu plata subió ${m}.`;
     if (accion === "ahorre") return `Guardado. Pasaron ${m} de tu plata a tus ahorros.`;
     if (accion === "retiro") return `Guardado. Pasaron ${m} de tus ahorros a tu plata.`;
@@ -551,11 +610,14 @@ const FormMovimiento = ({
         body.montoOriginal = montoCRC;
         body.tipoCambio = null;
       }
-      // `fondo` viaja SIEMPRE: al editar, si el movimiento deja de ser un gasto
-      // pagado con ahorro (pasa a ingreso, a ahorro o a retiro), el backend
-      // exige el "mes" explícito o responde 400.
-      body.fondo = desdeAhorro ? "ahorro" : "mes";
-      if (desdeAhorro) body.bolsaAhorro = bolsaAhorro;
+      // `fondo` viaja SIEMPRE: al editar, si el movimiento deja de usar el
+      // ahorro (pasa a ahorro, a retiro, o se desmarca), el backend exige el
+      // "mes" explícito o responde 400.
+      body.fondo = usaAhorro ? "ahorro" : "mes";
+      if (usaAhorro) body.bolsaAhorro = bolsaAhorro;
+      // La persona solo va en préstamos y abonos; en cualquier otra categoría
+      // el backend la guarda en null.
+      if (pidePersona) body.persona = persona.trim();
 
       const desc = descripcion.trim();
       if (esEdicion) body.descripcion = desc; // permite limpiar la descripción
@@ -659,10 +721,45 @@ const FormMovimiento = ({
           </div>
         )}
 
-        {/* ¿De cuál ahorro? — solo si eligió pagarlo con los ahorros */}
-        {desdeAhorro && (
+        {/* ¿A dónde va la plata? — el espejo de la de arriba, para lo que entra */}
+        {esIngreso && hayBolsas && (
           <div className="fin-campo">
-            <label className="fin-campo__label">¿De cuál ahorro?</label>
+            <label className="fin-campo__label">¿A dónde va la plata?</label>
+            <div className="fin-radios">
+              <label className={`fin-radio ${origen === "mano" ? "fin-radio--activo" : ""}`}>
+                <input
+                  type="radio"
+                  name={`destino-${registro?._id || "nuevo"}`}
+                  checked={origen === "mano"}
+                  disabled={guardando}
+                  onChange={() => { setOrigen("mano"); setErrores((er) => ({ ...er, bolsaAhorro: "" })); }}
+                />
+                <span>A mi plata</span>
+              </label>
+              <label className={`fin-radio ${origen === "ahorro" ? "fin-radio--activo" : ""}`}>
+                <input
+                  type="radio"
+                  name={`destino-${registro?._id || "nuevo"}`}
+                  checked={origen === "ahorro"}
+                  disabled={guardando}
+                  onChange={() => setOrigen("ahorro")}
+                />
+                <span>A mis ahorros</span>
+              </label>
+            </div>
+            {alAhorro && (
+              <p className="fin-campo__ayuda">
+                Esta plata entra directo al ahorro: no cambia tu plata ni lo que podés
+                gastar, solo sube tus ahorros.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* ¿De/A cuál ahorro? — solo si eligió usar los ahorros */}
+        {usaAhorro && (
+          <div className="fin-campo">
+            <label className="fin-campo__label">{alAhorro ? "¿A cuál ahorro?" : "¿De cuál ahorro?"}</label>
             <select
               className={`form-select admin-select ${errores.bolsaAhorro ? "admin-input--error" : ""}`}
               value={bolsaAhorro}
@@ -694,6 +791,30 @@ const FormMovimiento = ({
           </select>
           {errores.categoria && <div className="campo-error">{errores.categoria}</div>}
         </div>
+
+        {/* ¿A quién? / ¿Quién? — solo en préstamos y abonos. Sugiere los nombres
+            que ya se usaron, para que "Tobit" no quede como dos personas. */}
+        {pidePersona && (
+          <div className="fin-campo">
+            <label className="fin-campo__label">
+              {esGasto ? "¿A quién le prestaste?" : "¿Quién te abonó?"}
+            </label>
+            <input
+              type="text"
+              className={`form-control admin-input ${errores.persona ? "admin-input--error" : ""}`}
+              placeholder="Nombre"
+              maxLength={60}
+              list={`personas-${registro?._id || "nuevo"}`}
+              value={persona}
+              disabled={guardando}
+              onChange={(e) => { setPersona(e.target.value); setErrores((er) => ({ ...er, persona: "" })); }}
+            />
+            <datalist id={`personas-${registro?._id || "nuevo"}`}>
+              {personasConocidas.map((p) => <option key={p} value={p} />)}
+            </datalist>
+            {errores.persona && <div className="campo-error">{errores.persona}</div>}
+          </div>
+        )}
 
         {/* ¿Cuánto? — con el selector de moneda (colones o dólares) */}
         <div className="fin-campo">
@@ -1029,9 +1150,31 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
     }
   }, [mes, anio, getAuthHeaders]);
 
+  // "Te deben": préstamos dados menos abonos, por persona. No depende del mes
+  // (es el estado de hoy). Complementario como las recomendaciones: si falla,
+  // la tarjeta no se muestra y no se molesta con un error.
+  const [prestamos, setPrestamos] = useState(null); // { totalTeDeben, personas: [] }
+  const fetchPrestamos = useCallback(async () => {
+    try {
+      const axios = await getAxios();
+      const res = await axios.get(`${BASE}/prestamos`, getAuthHeaders());
+      setPrestamos(res.data || null);
+    } catch (err) {
+      setPrestamos(null);
+      console.error("[FinanzasPersonales] No se pudieron cargar los préstamos:", err);
+    }
+  }, [getAuthHeaders]);
+
   useEffect(() => { fetchResumen(); }, [fetchResumen]);
   useEffect(() => { fetchLista(); }, [fetchLista]);
   useEffect(() => { fetchRecomendaciones(); }, [fetchRecomendaciones]);
+  useEffect(() => { fetchPrestamos(); }, [fetchPrestamos]);
+
+  // Nombres ya usados en préstamos, para sugerirlos en el formulario.
+  const personasConocidas = useMemo(
+    () => (prestamos?.personas || []).map((p) => p.persona),
+    [prestamos],
+  );
 
   const cambiarMes = (nuevoMes, nuevoAnio) => {
     setMes(nuevoMes);
@@ -1043,12 +1186,14 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
     fetchResumen();
     fetchLista();
     fetchRecomendaciones();
+    fetchPrestamos();
   };
 
   const handleExito = (eraEdicion) => {
     if (eraEdicion) setEditando(null);
     fetchResumen();
     fetchRecomendaciones();
+    fetchPrestamos();
     if (!eraEdicion && page !== 1) setPage(1); // el nuevo queda de primero
     else fetchLista();
   };
@@ -1063,6 +1208,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
       setAEliminar(null);
       fetchResumen();
       fetchRecomendaciones();
+      fetchPrestamos();
       if (movimientos.length === 1 && page > 1) setPage((p) => p - 1);
       else fetchLista();
     } catch (err) {
@@ -1077,13 +1223,14 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   // que cierran (y que el dueño puede verificar a mano):
   //   saldoInicial  + totalIngresos − totalGastos − totalAhorro
   //                 + totalRetiroAhorro                        = saldoFinal
-  //   ahorroInicial + totalAhorro − totalGastoDesdeAhorro
-  //                 − totalRetiroAhorro                        = ahorroAcumulado
+  //   ahorroInicial + totalAhorro + totalIngresoAlAhorro
+  //                 − totalGastoDesdeAhorro − totalRetiroAhorro = ahorroAcumulado
   const totalIngresos = resumen?.totalIngresos ?? 0;
   const totalGastos = resumen?.totalGastos ?? 0;        // consumo del mes, sin el ahorro
   const totalAhorro = resumen?.totalAhorro ?? 0;        // lo apartado (bruto)
   const totalRetiro = resumen?.totalRetiroAhorro ?? 0;  // solo datos viejos
   const pagadoConAhorro = resumen?.totalGastoDesdeAhorro ?? 0;
+  const entroAlAhorro = resumen?.totalIngresoAlAhorro ?? 0; // ingresos directo al ahorro
   const saldoInicial = resumen?.saldoInicial ?? 0;
   const saldoFinal = resumen?.saldoFinal ?? 0;
   const ahorroAcumulado = resumen?.ahorroAcumulado ?? 0;
@@ -1091,7 +1238,8 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   // viejo no lo manda, se despeja de la identidad de arriba (no es un cálculo
   // inventado: es la misma ecuación, al revés).
   const ahorroInicial =
-    resumen?.ahorroInicial ?? (ahorroAcumulado - totalAhorro + totalRetiro + pagadoConAhorro);
+    resumen?.ahorroInicial ??
+    (ahorroAcumulado - totalAhorro - entroAlAhorro + totalRetiro + pagadoConAhorro);
 
   const gastoAhorro = resumen?.desglose?.gastoAhorro || [];
   const cuantosPagos = gastoAhorro.reduce((s, it) => s + (Number(it.cantidad) || 0), 0);
@@ -1154,6 +1302,11 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   const filasAhorro = [
     { clave: "arrastre", que: "Tenías ahorrado", monto: ahorroInicial },
     { clave: "aparte", que: "Ahorraste", monto: totalAhorro, signo: "+" },
+    // Ingresos que entraron directo al ahorro (ej. abonos de préstamos). Se
+    // oculta si no hubo.
+    ...(entroAlAhorro > 0
+      ? [{ clave: "entroAhorro", que: "Entró a tus ahorros", monto: entroAlAhorro, signo: "+" }]
+      : []),
     ...(totalRetiro > 0
       ? [{ clave: "retiro", que: "Sacaste del ahorro", monto: totalRetiro, signo: "−" }]
       : []),
@@ -1290,6 +1443,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                 mes={mes}
                 anio={anio}
                 margen={{ disponible: margenMes }}
+                personasConocidas={personasConocidas}
                 getAuthHeaders={getAuthHeaders}
                 mostrarNotif={mostrarNotif}
                 manejarError={manejarError}
@@ -1322,10 +1476,13 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
               {/* En qué se movió el ahorro: por bolsa y por gasto. */}
               <AhorroDetalle
                 apartado={apartados}
+                entrado={resumen?.desglose?.ingresoAhorro}
                 pagado={gastoAhorro}
                 pagadoPorBolsa={resumen?.desglose?.gastoAhorroPorBolsa}
                 retiros={resumen?.desglose?.retiro}
               />
+              {/* A quién le prestaste y cuánto falta que te devuelvan. */}
+              <TeDeben datos={prestamos} />
             </div>
           </div>
 
@@ -1338,7 +1495,10 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                 icono="📈"
                 items={resumen?.desglose?.ingreso}
                 colorClase="verde"
-                movsDe={(cat) => movsMes && movsMes.filter((m) => m.tipo === "ingreso" && m.categoria === cat)}
+                movsDe={(cat) => movsMes && movsMes.filter(
+                  // Lo que entró directo al ahorro no está en estas barras.
+                  (m) => m.tipo === "ingreso" && m.fondo !== "ahorro" && m.categoria === cat,
+                )}
               />
               {/* Lo pagado con el ahorro no entra en estas barras (va en el
                   detalle de los ahorros), así que tampoco en su desglose. */}
@@ -1465,13 +1625,14 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                   // plata del mes, así que se pinta con el color del ahorro y
                   // se etiqueta con la bolsa de la que salió.
                   const pagadoDeAhorro = m.tipo === "egreso" && m.fondo === "ahorro";
+                  const entroAlAhorro = m.tipo === "ingreso" && m.fondo === "ahorro";
                   const accion = m.tipo === "ingreso"
                     ? "entro"
                     : m.tipo === "retiro_ahorro"
                       ? "retiro"
                       : esAhorro(m.categoria) ? "ahorre" : "gaste";
                   const meta = metaAccion(accion);
-                  const color = pagadoDeAhorro ? "ambar" : meta.color;
+                  const color = pagadoDeAhorro || entroAlAhorro ? "ambar" : meta.color;
                   const signo = accion === "entro" || accion === "retiro" ? "+" : "−";
                   return (
                     <div key={m._id} className={`mov-row mov-row--${color}`}>
@@ -1481,6 +1642,14 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                         </span>
                         {pagadoDeAhorro && (
                           <span className="mov-row__etiqueta">pagado con {m.bolsaAhorro || "el ahorro"}</span>
+                        )}
+                        {entroAlAhorro && (
+                          <span className="mov-row__etiqueta">entró a {m.bolsaAhorro || "el ahorro"}</span>
+                        )}
+                        {m.persona && (
+                          <span className="mov-row__etiqueta">
+                            {m.tipo === "egreso" ? `a ${m.persona}` : `de ${m.persona}`}
+                          </span>
                         )}
                         {m.tipo === "retiro_ahorro" && (
                           <span className="mov-row__etiqueta">retiro (anotado a la vieja)</span>
@@ -1541,6 +1710,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
           mes={mes}
           anio={anio}
           margen={{ disponible: margenMes }}
+          personasConocidas={personasConocidas}
           getAuthHeaders={getAuthHeaders}
           mostrarNotif={mostrarNotif}
           manejarError={manejarError}

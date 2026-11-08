@@ -105,6 +105,7 @@ export const ICONOS_CAT = {
   "Salidas y viajes": "🧳", Regalos: "🎁", Cumpleaños: "🎂", Rifas: "🎟️",
   // Egresos · compromisos financieros
   "Deudas/Préstamos": "💳", "Cuota banco (BCR)": "🏦", Seguros: "🛡️",
+  "Préstamo dado": "🤝", "Abono de préstamo": "↩️",
   // Egresos · ahorro
   Ahorro: "🐷", "Ahorro CreAI": "🪙", "Ahorro MEP": "💰",
   // Comodín
@@ -117,4 +118,9 @@ export const iconoCat = (categoria, tipo) =>
 // El ahorro no es consumo: cualquier categoría que empiece con "Ahorro"
 // (Ahorro, Ahorro CreAI, Ahorro MEP…) se saca del gráfico de gastos y se muestra
 // aparte, para que la distribución de gastos refleje el gasto real del mes.
+// Préstamos que se dan y sus abonos (los nombres son los del backend). Los dos
+// piden `persona`, y con eso se arma la tarjeta "Te deben".
+export const CAT_PRESTAMO = "Préstamo dado";
+export const CAT_ABONO = "Abono de préstamo";
+
 export const esAhorro = (categoria) => /^ahorro/i.test(String(categoria || "").trim());
