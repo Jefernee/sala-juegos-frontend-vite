@@ -78,6 +78,29 @@ export const estadoMargen = (margen, totalIngresos) => {
 // del mismo color sin tener que acordarse de cambiar los dos.
 export const COLOR_MARGEN = { bien: "plata", ojo: "ambar", pasado: "rojo" };
 
+// ─── LÍMITE POR CATEGORÍA ("lo que solés gastar") ───────────────────────────
+// El límite lo manda el backend (GET /limites): el propio del usuario o su
+// promedio de los últimos 3 meses. Acá se decide SOLO el color, y es la única
+// regla: la usan el aviso de "Anotar", las barras y la línea de arriba.
+//   pasado → ya gastó más que el límite
+//   ojo    → pasó el 80%, o ya gastó la mitad y va 30 puntos por delante del
+//            mes (ej. 70% gastado con el 30% del mes)
+//   bien   → el resto
+// `avance` es la parte del mes que ya pasó (0 a 1). Sin límite → null.
+export const LIMITE_OJO_PCT = 0.8;
+export const LIMITE_RITMO_MIN = 0.5;
+export const LIMITE_RITMO_VENTAJA = 0.3;
+
+export const estadoLimite = (gastado, limite, avance) => {
+  const l = Number(limite) || 0;
+  if (l <= 0) return null;
+  const r = (Number(gastado) || 0) / l;
+  if (r > 1) return "pasado";
+  if (r >= LIMITE_OJO_PCT) return "ojo";
+  if (r >= LIMITE_RITMO_MIN && r >= (Number(avance) || 0) + LIMITE_RITMO_VENTAJA) return "ojo";
+  return "bien";
+};
+
 // Paleta para el desglose y la dona (mismo espíritu que el estado de resultados).
 export const PALETA = ["#f97316", "#ef4444", "#eab308", "#8b5cf6", "#ec4899", "#06b6d4", "#14b8a6", "#f59e0b", "#a3e635"];
 

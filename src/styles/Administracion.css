@@ -3956,3 +3956,51 @@
   .jg-baja { width: 44px; height: 44px; }
   .jg-mas { min-height: 44px; padding: 0 0.4rem; }
 }
+
+/* ── Aviso de "lo que solés gastar" (dentro de Anotar) ──────────────────────
+   Colores apagados a propósito: salvia (vas bien), arena (vas rápido) y rosa
+   viejo (te pasaste). Es una ayuda para decidir, no una alarma. */
+.fin-limite {
+  --lim-color: #7c9a8a;
+  --lim-fondo: #f1f5f3;
+  --lim-borde: #dfe8e3;
+  margin-top: 0.7rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  background: var(--lim-fondo);
+  border: 1px solid var(--lim-borde);
+}
+.fin-limite--ojo    { --lim-color: #b08a4a; --lim-fondo: #faf6ef; --lim-borde: #ecdfc7; }
+.fin-limite--pasado { --lim-color: #b26b67; --lim-fondo: #faf3f2; --lim-borde: #efd9d7; }
+
+.fin-limite__texto {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--txt-2);
+}
+.fin-limite__texto strong {
+  color: var(--txt);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fin-limite__barra {
+  position: relative;
+  height: 6px;
+  margin-top: 0.6rem;
+  border-radius: 99px;
+  background: #e9ebef;
+  overflow: hidden;
+}
+.fin-limite__barra i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 99px;
+  background: var(--lim-color);
+  transition: width 0.25s ease;
+}
+.fin-limite__barra .fin-limite__nuevo { opacity: 0.35; }

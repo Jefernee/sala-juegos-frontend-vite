@@ -23,7 +23,7 @@ import { getAxios, formatCRC, formatFecha, nombreMes, MESES } from "./adminUtils
 import {
   FIN_BASE as BASE, formatMontoInput, limpiarMontoInput,
   PALETA, iconoCat, esAhorro,
-  estadoMargen, COLOR_MARGEN,
+  estadoMargen, COLOR_MARGEN, estadoLimite,
   CAT_PRESTAMO, CAT_ABONO,
 } from "./finanzasComunes";
 import { Bolsas, Escalera } from "./FinanzasBolsas";
@@ -359,8 +359,60 @@ const OTRA_PERSONA = "__otra__";
 // que más se usa) y editar (el mismo formulario dentro del modal). Antes eran
 // cuatro tipos con nombres del backend; ahora son tres botones en lenguaje
 // llano y, si es un gasto, UNA sola pregunta más: ¿de dónde salió la plata?
+// ─── AVISO DE "LO QUE SOLÉS GASTAR" ─────────────────────────────────────────
+// Va dentro de "Anotar", debajo del monto: dice cuánto se lleva gastado en la
+// categoría elegida y adónde llega con este gasto, contra el límite (el propio
+// o el promedio de los últimos 3 meses). Nunca impide guardar. El color sale de
+// estadoLimite (finanzasComunes), la misma regla de las barras.
+const AvisoLimite = ({ categoria, previo, monto, limite, propio, avance }) => {
+  const despues = previo + monto;
+  const estado = estadoLimite(despues, limite, avance);
+  if (!estado) return null;
+  const queEs = propio ? "tu límite" : "lo que solés gastar";
+  const falta = avance < 1 ? Math.round((1 - avance) * 100) : 0;
+  const yFalta = falta > 0 ? `, y todavía falta el ${falta}% del mes` : "";
+  const L = <strong>{formatCRC(limite)}</strong>;
+
+  let texto;
+  if (previo > limite) {
+    texto = (
+      <>Ya gastaste <strong>{formatCRC(previo)}</strong> en {categoria}, más de {queEs} en todo el mes ({L}).
+        {monto > 0 && <> Con esto llegás a <strong>{formatCRC(despues)}</strong>.</>}</>
+    );
+  } else if (monto <= 0) {
+    texto = <>Llevás <strong>{formatCRC(previo)}</strong> de los {L} {propio ? "de tu límite" : "que solés gastar"} en {categoria}.</>;
+  } else if (estado === "pasado") {
+    texto = (
+      <>Llevás <strong>{formatCRC(previo)}</strong> en {categoria} este mes. Con esto llegás a{" "}
+        <strong>{formatCRC(despues)}</strong> y pasás {queEs} ({L}) por <strong>{formatCRC(despues - limite)}</strong>{yFalta}.</>
+    );
+  } else if (estado === "ojo") {
+    texto = (
+      <>Llevás <strong>{formatCRC(previo)}</strong> en {categoria} este mes. Con esto llegás a{" "}
+        <strong>{formatCRC(despues)}</strong>,{" "}
+        {despues / limite >= 0.8 ? <>casi todo {queEs} ({L})</> : <>más rápido que de costumbre ({L} en el mes)</>}{yFalta}.</>
+    );
+  } else {
+    texto = (
+      <>Llevás <strong>{formatCRC(previo)}</strong> en {categoria}. Con esto llegás a{" "}
+        <strong>{formatCRC(despues)}</strong> de los {L} {propio ? "de tu límite" : "que solés gastar"}. Vas bien.</>
+    );
+  }
+
+  const pct = (n) => `${Math.min(100, Math.max(0, (n / limite) * 100))}%`;
+  return (
+    <div className={`fin-limite fin-limite--${estado}`} role="status">
+      <p className="fin-limite__texto">{texto}</p>
+      <div className="fin-limite__barra" aria-hidden="true">
+        {monto > 0 && <i className="fin-limite__nuevo" style={{ width: pct(despues) }} />}
+        <i style={{ width: pct(previo) }} />
+      </div>
+    </div>
+  );
+};
+
 const FormMovimiento = ({
-  registro, categorias, ahorroCfg, mes, anio, enModal, margen, personasPrestamo = [],
+  registro, categorias, ahorroCfg, mes, anio, enModal, margen, personasPrestamo = [], limites = null,
   getAuthHeaders, mostrarNotif, manejarError, onCancelar, onExito, onGuardando,
 }) => {
   const esEdicion = !!registro;
@@ -499,6 +551,19 @@ const FormMovimiento = ({
   // volvería la pantalla inusable.
   const cruzaLaRaya =
     esGasto && !desdeAhorro && montoCRC > 0 && margenActual > 0 && margenDespues < 0;
+
+  // Límite de la categoría elegida (solo "Gasté" de la plata del mes). Al
+  // editar, el monto viejo ya está dentro de lo gastado: se descuenta para no
+  // contarlo dos veces, igual que con la raya.
+  const limiteCat = esGasto && !desdeAhorro && categoria
+    ? (limites?.categorias || []).find((c) => c.categoria === categoria && !c.fijo && c.limite > 0)
+    : null;
+  const previoCat = limiteCat
+    ? Math.max(0, limiteCat.gastado - (
+        esEdicion && registro.tipo === "egreso" && registro.fondo !== "ahorro" && registro.categoria === categoria
+          ? Number(registro.monto) || 0
+          : 0))
+    : 0;
 
   // Trae el tipo de cambio del día (Hacienda). Cacheado por día; `forzar` refresca.
   const cargarTC = useCallback(async (forzar = false) => {
@@ -969,6 +1034,17 @@ const FormMovimiento = ({
               )}
             </div>
           )}
+
+          {limiteCat && (
+            <AvisoLimite
+              categoria={categoria}
+              previo={previoCat}
+              monto={montoCRC}
+              limite={limiteCat.limite}
+              propio={limiteCat.propio != null}
+              avance={Number(limites?.avanceMes) || 0}
+            />
+          )}
         </div>
 
         {/* Detalle (opcional) */}
@@ -1201,10 +1277,25 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
     }
   }, [getAuthHeaders]);
 
+  // "Lo que solés gastar" por categoría (GET /limites). Complementario: si
+  // falla, simplemente no hay avisos de límite.
+  const [limites, setLimites] = useState(null); // { avanceMes, categorias: [] }
+  const fetchLimites = useCallback(async () => {
+    try {
+      const axios = await getAxios();
+      const res = await axios.get(`${BASE}/limites?mes=${mes}&anio=${anio}`, getAuthHeaders());
+      setLimites(res.data || null);
+    } catch (err) {
+      setLimites(null);
+      console.error("[FinanzasPersonales] No se pudieron cargar los límites:", err);
+    }
+  }, [mes, anio, getAuthHeaders]);
+
   useEffect(() => { fetchResumen(); }, [fetchResumen]);
   useEffect(() => { fetchLista(); }, [fetchLista]);
   useEffect(() => { fetchRecomendaciones(); }, [fetchRecomendaciones]);
   useEffect(() => { fetchPrestamos(); }, [fetchPrestamos]);
+  useEffect(() => { fetchLimites(); }, [fetchLimites]);
 
   // Personas de los préstamos ({ persona, pendiente }), para elegirlas de una
   // lista en el formulario en vez de escribirlas.
@@ -1221,6 +1312,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
     fetchLista();
     fetchRecomendaciones();
     fetchPrestamos();
+    fetchLimites();
   };
 
   const handleExito = (eraEdicion) => {
@@ -1228,6 +1320,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
     fetchResumen();
     fetchRecomendaciones();
     fetchPrestamos();
+    fetchLimites();
     if (!eraEdicion && page !== 1) setPage(1); // el nuevo queda de primero
     else fetchLista();
   };
@@ -1243,6 +1336,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
       fetchResumen();
       fetchRecomendaciones();
       fetchPrestamos();
+      fetchLimites();
       if (movimientos.length === 1 && page > 1) setPage((p) => p - 1);
       else fetchLista();
     } catch (err) {
@@ -1478,6 +1572,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                 anio={anio}
                 margen={{ disponible: margenMes }}
                 personasPrestamo={personasPrestamo}
+                limites={limites}
                 getAuthHeaders={getAuthHeaders}
                 mostrarNotif={mostrarNotif}
                 manejarError={manejarError}
@@ -1745,6 +1840,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
           anio={anio}
           margen={{ disponible: margenMes }}
           personasPrestamo={personasPrestamo}
+          limites={limites}
           getAuthHeaders={getAuthHeaders}
           mostrarNotif={mostrarNotif}
           manejarError={manejarError}
