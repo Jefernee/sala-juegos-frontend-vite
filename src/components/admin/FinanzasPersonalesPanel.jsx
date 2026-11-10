@@ -176,11 +176,99 @@ const DonutGastos = ({ items }) => {
 // ─── BLOQUE DE DESGLOSE POR CATEGORÍA ────────────────────────────────────────
 // Tocar una categoría la despliega y muestra los movimientos que la forman.
 // `movsDe(categoria)` los da ya filtrados (null = todavía cargando).
-const DesgloseBloque = ({ titulo, icono, items, colorClase, movsDe }) => {
+// ─── EDITOR DEL LÍMITE DE UNA CATEGORÍA ─────────────────────────────────────
+// En línea, debajo de la categoría. "Usar ese" quita el límite propio y la
+// categoría vuelve a su promedio.
+const EditorLimite = ({ categoria, promedio, propio, onGuardar, onCerrar }) => {
+  const [valor, setValor] = useState(String(propio ?? (promedio || "")));
+  const [guardando, setGuardando] = useState(false);
+  const guardar = async (monto) => {
+    setGuardando(true);
+    const ok = await onGuardar(categoria, monto);
+    setGuardando(false);
+    if (ok) onCerrar();
+  };
+  const montoNum = Number(valor) || 0;
+  return (
+    <form
+      className="fin-limedit"
+      onSubmit={(e) => { e.preventDefault(); if (montoNum > 0) guardar(montoNum); }}
+    >
+      <div className="fin-limedit__fila">
+        <label className="fin-limedit__label" htmlFor={`lim-${categoria}`}>Mi límite para {categoria}</label>
+        <div className="fin-limedit__control">
+          <span className="fin-limedit__prefijo">₡</span>
+          <input
+            id={`lim-${categoria}`}
+            type="text"
+            inputMode="numeric"
+            className="fin-limedit__input"
+            value={formatMontoInput(valor, false)}
+            onChange={(e) => setValor(limpiarMontoInput(e.target.value, false))}
+            disabled={guardando}
+            autoFocus
+          />
+        </div>
+        <button type="submit" className="fin-limedit__guardar" disabled={guardando || montoNum <= 0}>
+          {guardando ? "Guardando…" : "Guardar"}
+        </button>
+      </div>
+      <p className="fin-limedit__pie">
+        {promedio > 0 ? <>Normalmente gastás {formatCRC(promedio)}</> : <>Todavía no hay promedio para esta categoría</>}
+        {propio != null && (
+          <> · <button type="button" className="fin-limedit__link" onClick={() => guardar(null)} disabled={guardando}>
+            {promedio > 0 ? "usar ese" : "quitar mi límite"}
+          </button></>
+        )}
+        {" · "}
+        <button type="button" className="fin-limedit__link" onClick={onCerrar} disabled={guardando}>cancelar</button>
+      </p>
+    </form>
+  );
+};
+
+// Los movimientos que forman una categoría (al desplegarla).
+const DetalleCategoria = ({ movs, colorClase }) => (
+  <div className="fin-cat__detalle">
+    {movs == null ? (
+      <p className="fin-cat__detalle-vacio">Cargando…</p>
+    ) : movs.length === 0 ? (
+      <p className="fin-cat__detalle-vacio">No se encontraron los movimientos.</p>
+    ) : (
+      movs.map((m) => (
+        <div key={m._id} className="fin-cat__mov">
+          <span className="fin-cat__mov-fecha">{formatFecha(m.fecha || m.createdAt)}</span>
+          <span className="fin-cat__mov-desc">{m.descripcion || "Sin detalle"}</span>
+          <span className={`fin-cat__mov-monto fin-cat__monto--${colorClase}`}>{formatCRC(m.monto)}</span>
+        </div>
+      ))
+    )}
+  </div>
+);
+
+// Texto corto debajo de la barra de una categoría con límite.
+const NOTA_LIMITE = {
+  ojo: { promedio: "Vas rápido", propio: "Cerca de tu límite" },
+  pasado: { promedio: "Pasaste lo de costumbre", propio: "Pasaste tu límite" },
+};
+
+// `limites` (solo en la lista de gastos): { avanceMes, categorias, limitables }
+// de GET /limites. Con él, cada categoría muestra "de ₡X", la rayita del día y
+// el ✏️ para cambiar su límite (`onGuardarLimite(categoria, monto|null)`).
+const DesgloseBloque = ({ titulo, icono, items, colorClase, movsDe, limites, onGuardarLimite }) => {
   const ordenado = [...(items || [])].sort((a, b) => (b.total || 0) - (a.total || 0));
   const total = ordenado.reduce((s, it) => s + (Number(it.total) || 0), 0);
   const tipo = colorClase === "verde" ? "ingreso" : "egreso";
   const [abierta, setAbierta] = useState(null);
+  const [editando, setEditando] = useState(null); // categoría con el editor abierto
+  const [otra, setOtra] = useState("");           // "Ponerle límite a otra categoría"
+
+  const conLimites = !!limites && !!onGuardarLimite;
+  const infoDe = (cat) => (limites?.categorias || []).find((c) => c.categoria === cat) || null;
+  const avance = Number(limites?.avanceMes) || 0;
+  const limitables = limites?.limitables || [];
+  const enLista = new Set(ordenado.map((it) => it.categoria));
+  const otras = limitables.filter((c) => !enLista.has(c));
 
   return (
     <div className="fin-desglose">
@@ -193,53 +281,157 @@ const DesgloseBloque = ({ titulo, icono, items, colorClase, movsDe }) => {
             const pct = total > 0 ? Math.round(((it.total || 0) / total) * 100) : 0;
             const estaAbierta = abierta === it.categoria;
             const movs = estaAbierta ? movsDe?.(it.categoria) : null;
+            // Con límites: la barra pasa a medir lo gastado contra el límite (no
+            // la parte del total) y se pinta según estadoLimite.
+            const info = conLimites ? infoDe(it.categoria) : null;
+            const gastado = Number(it.total) || 0;
+            const conLimite = !!info && !info.fijo && info.limite > 0;
+            // Se puede editar TODA categoría (menos préstamo, que no es gasto),
+            // también las fijas: con el tiempo cambian, y ponerle un límite a
+            // una fija la pasa a controlar como cualquier otra (el backend la
+            // deja de tratar como fija). No depende de `limitables`.
+            const editable = conLimites && it.categoria !== CAT_PRESTAMO;
+            const estado = conLimite ? estadoLimite(gastado, info.limite, avance) : null;
+            const esPropio = conLimite && info.propio != null;
+            const cuantos = `${it.cantidad} ${it.cantidad === 1 ? "mov." : "movs."}`;
+
+            // Lista de ingresos (sin límites): igual que siempre.
+            if (!conLimites) {
+              return (
+                <div key={it.categoria} className={`fin-cat ${estaAbierta ? "fin-cat--abierta" : ""}`}>
+                  <button
+                    type="button"
+                    className="fin-cat__toggle"
+                    aria-expanded={estaAbierta}
+                    onClick={() => setAbierta(estaAbierta ? null : it.categoria)}
+                    title={estaAbierta ? "Ocultar el detalle" : "Ver en qué se fue"}
+                  >
+                    <div className="fin-cat__head">
+                      <span className="fin-cat__nombre">
+                        <span className="fin-cat__dot" style={{ background: PALETA[i % PALETA.length] }} />
+                        {iconoCat(it.categoria, tipo)} {it.categoria}
+                        <span className="fin-cat__cantidad">({cuantos})</span>
+                        <span className="fin-cat__flecha" aria-hidden="true">{estaAbierta ? "▾" : "▸"}</span>
+                      </span>
+                      <span className={`fin-cat__monto fin-cat__monto--${colorClase}`}>{formatCRC(it.total)}</span>
+                    </div>
+                    <div className="fin-cat__barra">
+                      <span
+                        className={`fin-cat__barra-fill fin-cat__barra-fill--${colorClase}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </button>
+                  {estaAbierta && <DetalleCategoria movs={movs} colorClase={colorClase} />}
+                </div>
+              );
+            }
+
+            // Lista de gastos con límites. Dos renglones, nada más:
+            //   ● 🎁 Regalos ............ ₡25.550 de ₡36.458  ✏️
+            //   [══════════ barra contra el límite ══════════]
+            // El color de la barra dice cómo se va (estadoLimite); el detalle de
+            // movimientos sale al tocar la fila.
             return (
-              <div key={it.categoria} className={`fin-cat ${estaAbierta ? "fin-cat--abierta" : ""}`}>
+              <div key={it.categoria} className={`fin-cat fin-cat--lim ${estaAbierta ? "fin-cat--abierta" : ""}`}>
                 <button
                   type="button"
                   className="fin-cat__toggle"
                   aria-expanded={estaAbierta}
                   onClick={() => setAbierta(estaAbierta ? null : it.categoria)}
-                  title={estaAbierta ? "Ocultar el detalle" : "Ver en qué se fue"}
+                  title={`${cuantos} · ${estaAbierta ? "ocultar el detalle" : "ver en qué se fue"}${NOTA_LIMITE[estado] ? ` · ${NOTA_LIMITE[estado][esPropio ? "propio" : "promedio"]}` : ""}`}
                 >
-                  <div className="fin-cat__head">
-                    <span className="fin-cat__nombre">
+                  <div className="fin-lim__head">
+                    <span className="fin-lim__nombre">
                       <span className="fin-cat__dot" style={{ background: PALETA[i % PALETA.length] }} />
-                      {iconoCat(it.categoria, tipo)} {it.categoria}
-                      <span className="fin-cat__cantidad">
-                        ({it.cantidad} {it.cantidad === 1 ? "mov." : "movs."})
+                      <span className="fin-lim__icono">{iconoCat(it.categoria, tipo)}</span>
+                      <span className="fin-lim__texto">{it.categoria}</span>
+                      <span className="fin-lim__movs">
+                        {cuantos} <span aria-hidden="true">{estaAbierta ? "▾" : "▸"}</span>
                       </span>
-                      <span className="fin-cat__flecha" aria-hidden="true">{estaAbierta ? "▾" : "▸"}</span>
                     </span>
-                    <span className={`fin-cat__monto fin-cat__monto--${colorClase}`}>{formatCRC(it.total)}</span>
+                    <span className="fin-lim__monto">{formatCRC(it.total)}</span>
                   </div>
-                  <div className="fin-cat__barra">
-                    <span
-                      className={`fin-cat__barra-fill fin-cat__barra-fill--${colorClase}`}
-                      style={{ width: `${pct}%` }}
-                    />
+                  <div className="fin-lim__fila-barra">
+                    <div className="fin-lim__barra">
+                      <span
+                        className={`fin-limbar fin-limbar--${conLimite ? estado : "neutro"}`}
+                        style={{ width: `${conLimite ? Math.min(100, (gastado / info.limite) * 100) : info?.fijo ? 100 : pct}%` }}
+                      />
+                    </div>
+                    <small className="fin-lim__de">
+                      {conLimite ? `de ${formatCRC(info.limite)}` : info?.fijo ? "fijo" : ""}
+                    </small>
                   </div>
                 </button>
+                {editable && (
+                  <button
+                    type="button"
+                    className="fin-cat__lapiz"
+                    onClick={() => setEditando(editando === it.categoria ? null : it.categoria)}
+                    title="Cambiar el límite"
+                    aria-label={`Cambiar el límite de ${it.categoria}`}
+                  >
+                    ✏️
+                  </button>
+                )}
+                {editando === it.categoria && (
+                  <EditorLimite
+                    categoria={it.categoria}
+                    promedio={info?.promedio || 0}
+                    propio={info?.propio ?? null}
+                    onGuardar={onGuardarLimite}
+                    onCerrar={() => setEditando(null)}
+                  />
+                )}
                 {estaAbierta && (
-                  <div className="fin-cat__detalle">
-                    {movs == null ? (
-                      <p className="fin-cat__detalle-vacio">Cargando…</p>
-                    ) : movs.length === 0 ? (
-                      <p className="fin-cat__detalle-vacio">No se encontraron los movimientos.</p>
-                    ) : (
-                      movs.map((m) => (
-                        <div key={m._id} className="fin-cat__mov">
-                          <span className="fin-cat__mov-fecha">{formatFecha(m.fecha || m.createdAt)}</span>
-                          <span className="fin-cat__mov-desc">{m.descripcion || "Sin detalle"}</span>
-                          <span className={`fin-cat__mov-monto fin-cat__monto--${colorClase}`}>{formatCRC(m.monto)}</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                  <DetalleCategoria movs={movs} colorClase="neutro" />
                 )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Para controlar una categoría que este mes todavía no tiene gastos
+          (ej. una que nunca se usó y por eso no tiene promedio). */}
+      {conLimites && otras.length > 0 && (
+        <div className="fin-limotra">
+          {otra === "" ? (
+            <button type="button" className="fin-limedit__link" onClick={() => setOtra(" ")}>
+              ＋ Ponerle límite a otra categoría
+            </button>
+          ) : (
+            <>
+              <select
+                className="form-select admin-select fin-limotra__select"
+                value={otra.trim()}
+                onChange={(e) => setOtra(e.target.value || " ")}
+                aria-label="Categoría"
+              >
+                <option value="">Elegí la categoría…</option>
+                {otras.map((c) => (
+                  <option key={c} value={c}>{iconoCat(c, "egreso")} {c}</option>
+                ))}
+              </select>
+              {otra.trim() && (() => {
+                const info = infoDe(otra.trim());
+                return (
+                  <EditorLimite
+                    key={otra}
+                    categoria={otra.trim()}
+                    promedio={info?.promedio || 0}
+                    propio={info?.propio ?? null}
+                    onGuardar={onGuardarLimite}
+                    onCerrar={() => setOtra("")}
+                  />
+                );
+              })()}
+              {!otra.trim() && (
+                <button type="button" className="fin-limedit__link" onClick={() => setOtra("")}>cancelar</button>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
@@ -258,7 +450,17 @@ const DesgloseBloque = ({ titulo, icono, items, colorClase, movsDe }) => {
 //     no salió del mes;
 //   • los retiros viejos (desglose.retiro), que con datos nuevos siempre va vacío;
 //   • lo que entró directo al ahorro (desglose.ingresoAhorro), ej. abonos.
-const AhorroDetalle = ({ apartado, entrado, pagado, pagadoPorBolsa, retiros }) => {
+// Cada fila se despliega (como en "Gastos por categoría") y muestra los
+// movimientos que la forman, sacados del mes completo (`movsMes`).
+const FILTRO_AHORRO = {
+  apartado: (m) => m.tipo === "egreso" && m.fondo !== "ahorro",
+  entrado: (m) => m.tipo === "ingreso" && m.fondo === "ahorro",
+  pagado: (m) => m.tipo === "egreso" && m.fondo === "ahorro",
+  retiro: (m) => m.tipo === "retiro_ahorro",
+};
+
+const AhorroDetalle = ({ apartado, entrado, pagado, pagadoPorBolsa, retiros, movsMes }) => {
+  const [abierta, setAbierta] = useState(null); // "clase|categoria"
   const orden = (xs) => [...(xs || [])].sort((a, b) => (b.total || 0) - (a.total || 0));
   const apartados = orden(apartado);
   const entrados = orden(entrado);
@@ -268,19 +470,34 @@ const AhorroDetalle = ({ apartado, entrado, pagado, pagadoPorBolsa, retiros }) =
   if (!apartados.length && !entrados.length && !pagados.length && !retirados.length) return null;
 
   // "apartado" y "entrado" suman al ahorro (se pintan igual); lo demás resta.
-  const fila = (it, clase, tipo = "egreso") => (
-    <div key={`${clase}-${it.categoria}`} className="fin-ahorro__item">
-      <span className="fin-ahorro__item-nombre">
-        {iconoCat(it.categoria, tipo)} {it.categoria}
-        <span className="fin-cat__cantidad">
-          ({it.cantidad} {it.cantidad === 1 ? "mov." : "movs."})
-        </span>
-      </span>
-      <span className={`fin-ahorro__item-monto fin-ahorro__item-monto--${clase === "entrado" ? "apartado" : clase}`}>
-        {clase === "apartado" || clase === "entrado" ? "+" : "−"}{formatCRC(it.total)}
-      </span>
-    </div>
-  );
+  const fila = (it, clase, tipo = "egreso") => {
+    const clave = `${clase}|${it.categoria}`;
+    const estaAbierta = abierta === clave;
+    const movs = estaAbierta && movsMes
+      ? movsMes.filter((m) => FILTRO_AHORRO[clase](m) && m.categoria === it.categoria)
+      : null;
+    const cuantos = `${it.cantidad} ${it.cantidad === 1 ? "mov." : "movs."}`;
+    return (
+      <div key={clave} className="fin-ahorro__fila">
+        <button
+          type="button"
+          className="fin-ahorro__item fin-ahorro__toggle"
+          aria-expanded={estaAbierta}
+          onClick={() => setAbierta(estaAbierta ? null : clave)}
+          title={estaAbierta ? "Ocultar el detalle" : "Ver los movimientos"}
+        >
+          <span className="fin-ahorro__item-nombre">
+            {iconoCat(it.categoria, tipo)} {it.categoria}
+            <span className="fin-lim__movs">{cuantos} <span aria-hidden="true">{estaAbierta ? "▾" : "▸"}</span></span>
+          </span>
+          <span className={`fin-ahorro__item-monto fin-ahorro__item-monto--${clase === "entrado" ? "apartado" : clase === "retiro" ? "pagado" : clase}`}>
+            {clase === "apartado" || clase === "entrado" ? "+" : "−"}{formatCRC(it.total)}
+          </span>
+        </button>
+        {estaAbierta && <DetalleCategoria movs={movsMes ? movs : null} colorClase="neutro" />}
+      </div>
+    );
+  };
 
   return (
     <div className="fin-ahorro">
@@ -311,7 +528,7 @@ const AhorroDetalle = ({ apartado, entrado, pagado, pagadoPorBolsa, retiros }) =
         {retirados.length > 0 && (
           <>
             <div className="fin-ahorro__subtitulo">🏧 Lo que sacaste del ahorro</div>
-            {retirados.map((it) => fila(it, "pagado"))}
+            {retirados.map((it) => fila(it, "retiro"))}
           </>
         )}
       </div>
@@ -330,20 +547,20 @@ const TeDeben = ({ datos }) => {
     <div className="fin-ahorro fin-tedeben">
       <div className="fin-ahorro__lista">
         <div className="fin-tedeben__cabeza">
-          <span className="fin-ahorro__subtitulo mb-0">🤝 Te deben</span>
+          <span className="fin-ahorro__subtitulo">🤝 Te deben</span>
           <strong className="fin-tedeben__total">{formatCRC(datos.totalTeDeben)}</strong>
         </div>
         {deben.map((p) => (
-          <div key={p.persona} className="fin-ahorro__item">
-            <span className="fin-ahorro__item-nombre">
-              {p.persona}
-              <span className="fin-cat__cantidad">
-                {p.abonado > 0
-                  ? `prestaste ${formatCRC(p.prestado)} · abonó ${formatCRC(p.abonado)}`
-                  : `prestaste ${formatCRC(p.prestado)}`}
-              </span>
-            </span>
-            <span className="fin-ahorro__item-monto">{formatCRC(p.pendiente)}</span>
+          <div key={p.persona} className="fin-tedeben__persona">
+            <div className="fin-ahorro__item">
+              <span className="fin-ahorro__item-nombre">{p.persona}</span>
+              <span className="fin-ahorro__item-monto">{formatCRC(p.pendiente)}</span>
+            </div>
+            <p className="fin-tedeben__detalle">
+              {p.abonado > 0
+                ? `Le prestaste ${formatCRC(p.prestado)} y ya te devolvió ${formatCRC(p.abonado)}`
+                : `Le prestaste ${formatCRC(p.prestado)}`}
+            </p>
           </div>
         ))}
       </div>
@@ -1297,6 +1514,22 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
   useEffect(() => { fetchPrestamos(); }, [fetchPrestamos]);
   useEffect(() => { fetchLimites(); }, [fetchLimites]);
 
+  // ✏️ de "Gastos por categoría". monto null = volver al promedio.
+  const guardarLimite = useCallback(async (categoria, monto) => {
+    try {
+      const axios = await getAxios();
+      await axios.put(`${BASE}/limites`, { categoria, monto }, getAuthHeaders());
+      mostrarNotif(monto == null
+        ? `${categoria} vuelve a usar lo que solés gastar.`
+        : `Listo: tu límite para ${categoria} es ${formatCRC(monto)}.`);
+      await fetchLimites();
+      return true;
+    } catch (err) {
+      manejarError(err);
+      return false;
+    }
+  }, [getAuthHeaders, mostrarNotif, manejarError, fetchLimites]);
+
   // Personas de los préstamos ({ persona, pendiente }), para elegirlas de una
   // lista en el formulario en vez de escribirlas.
   const personasPrestamo = useMemo(() => prestamos?.personas || [], [prestamos]);
@@ -1609,6 +1842,7 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                 pagado={gastoAhorro}
                 pagadoPorBolsa={resumen?.desglose?.gastoAhorroPorBolsa}
                 retiros={resumen?.desglose?.retiro}
+                movsMes={movsMes}
               />
               {/* A quién le prestaste y cuánto falta que te devuelvan. */}
               <TeDeben datos={prestamos} />
@@ -1636,6 +1870,8 @@ const FinanzasPersonalesPanel = ({ getAuthHeaders, mostrarNotif, manejarError })
                 icono="📉"
                 items={gastosReales}
                 colorClase="rojo"
+                limites={limites}
+                onGuardarLimite={guardarLimite}
                 movsDe={(cat) => movsMes && movsMes.filter(
                   (m) => m.tipo === "egreso" && m.fondo !== "ahorro" && m.categoria === cat,
                 )}

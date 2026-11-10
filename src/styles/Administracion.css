@@ -3961,7 +3961,7 @@
    Colores apagados a propósito: salvia (vas bien), arena (vas rápido) y rosa
    viejo (te pasaste). Es una ayuda para decidir, no una alarma. */
 .fin-limite {
-  --lim-color: #7c9a8a;
+  --lim-color: #3fae7c;
   --lim-fondo: #f1f5f3;
   --lim-borde: #dfe8e3;
   margin-top: 0.7rem;
@@ -3970,8 +3970,8 @@
   background: var(--lim-fondo);
   border: 1px solid var(--lim-borde);
 }
-.fin-limite--ojo    { --lim-color: #b08a4a; --lim-fondo: #faf6ef; --lim-borde: #ecdfc7; }
-.fin-limite--pasado { --lim-color: #b26b67; --lim-fondo: #faf3f2; --lim-borde: #efd9d7; }
+.fin-limite--ojo    { --lim-color: #eba430; --lim-fondo: #faf6ef; --lim-borde: #ecdfc7; }
+.fin-limite--pasado { --lim-color: #e2574c; --lim-fondo: #faf3f2; --lim-borde: #efd9d7; }
 
 .fin-limite__texto {
   margin: 0;
@@ -4004,3 +4004,296 @@
   transition: width 0.25s ease;
 }
 .fin-limite__barra .fin-limite__nuevo { opacity: 0.35; }
+
+/* ── Gastos por categoría con su límite ─────────────────────────────────────
+   Dos renglones por categoría: nombre + "₡X de ₡Y" y la barra contra el
+   límite. El ✏️ flota a la derecha del monto, así todas las barras miden lo
+   mismo. Tonos apagados (salvia, arena, rosa viejo), los del aviso de Anotar. */
+.fin-cat--lim { position: relative; }
+.fin-cat--lim .fin-cat__toggle { padding-right: 0.45rem; }
+.fin-lim__head {
+  /* Renglón 1: el nombre con todo el ancho y el monto a la derecha. */
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.3rem;
+  padding-right: 1.5rem; /* lugar del ✏️ */
+}
+/* Renglón 2: la barra y "de ₡X" en una columna de ancho fijo, así todas las
+   barras miden lo mismo y los límites quedan uno debajo del otro. */
+.fin-lim__fila-barra {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6.2rem;
+  align-items: center;
+  column-gap: 0.6rem;
+  padding-right: 1.5rem; /* misma vertical que el monto */
+}
+.fin-lim__nombre {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--txt-2);
+}
+.fin-lim__icono { flex: none; }
+.fin-lim__texto {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fin-lim__monto {
+  flex: none;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--txt);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fin-lim__de {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--txt-4);
+}
+.fin-lim__barra {
+  height: 5px;
+  border-radius: 999px;
+  background: #eceef1;
+  overflow: hidden;
+}
+.fin-limbar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.fin-limbar--bien   { background: #3fae7c; }
+.fin-limbar--ojo    { background: #eba430; }
+.fin-limbar--pasado { background: #e2574c; }
+.fin-limbar--neutro { background: #d5dae1; }
+
+.fin-cat__lapiz {
+  position: absolute;
+  top: -0.2rem;
+  right: -0.3rem;
+  padding: 0.2rem 0.3rem;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  line-height: 1;
+  opacity: 0.75;
+  cursor: pointer;
+}
+.fin-cat__lapiz:hover,
+.fin-cat__lapiz:focus-visible { opacity: 1; background: #f3f4f6; }
+
+.fin-cat__monto--neutro { color: var(--txt-2); }
+
+/* Editor en línea del límite */
+.fin-limedit {
+  margin-top: 0.55rem;
+  padding: 0.7rem 0.8rem;
+  background: #f9fafb;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+}
+.fin-limedit__fila {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.6rem;
+}
+.fin-limedit__label {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--txt-2);
+}
+.fin-limedit__control {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 120px;
+  border: 1px solid #d1d5db;
+  border-radius: 9px;
+  background: #fff;
+  overflow: hidden;
+}
+.fin-limedit__prefijo {
+  padding: 0 0 0 0.65rem;
+  color: var(--txt-3);
+  font-weight: 600;
+}
+.fin-limedit__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.6rem 0.45rem 0.3rem;
+  border: 0;
+  outline: none;
+  font: inherit;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+}
+.fin-limedit__guardar {
+  padding: 0.48rem 0.95rem;
+  border: 0;
+  border-radius: 9px;
+  background: #1f2937;
+  color: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fin-limedit__guardar:disabled { opacity: 0.5; cursor: default; }
+.fin-limedit__pie {
+  margin: 0.5rem 0 0;
+  font-size: 0.76rem;
+  color: var(--txt-3);
+}
+.fin-limedit__link {
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: var(--txt-3);
+  text-decoration: underline;
+  text-decoration-color: #cbd0d8;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.fin-limotra {
+  margin-top: 0.9rem;
+  padding-top: 0.7rem;
+  border-top: 1px dashed var(--borde);
+  font-size: 0.8rem;
+}
+.fin-limotra__select { margin-bottom: 0.1rem; font-size: 0.85rem; }
+
+/* ── Detalle de los ahorros y "Te deben", rediseño ─────────────────────────
+   Van como las tarjetas blancas de arriba: sin fondo amarillo, sin filo de
+   color y sin el hueco de arriba (la línea punteada separaba de un encabezado
+   que ya no existe). Solo dos colores con significado: verde lo que entra al
+   ahorro, coral lo que sale. Los títulos de sección, en gris como los de las
+   escaleras. Estas reglas pisan las de arriba a propósito. */
+.fin-ahorro,
+.fin-tedeben {
+  margin-top: 0.75rem;
+  padding: 0.95rem 1.1rem;
+  background: var(--sup);
+  border: 1px solid var(--borde);
+  border-left: 1px solid var(--borde);
+  border-radius: 16px;
+  box-shadow: var(--sombra);
+}
+.fin-ahorro__lista {
+  gap: 0.5rem;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.fin-ahorro__subtitulo {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: var(--display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt-3);
+}
+/* Cada sección nueva (salvo la primera) se separa con una línea fina. */
+.fin-ahorro__lista > .fin-ahorro__subtitulo ~ .fin-ahorro__subtitulo {
+  margin-top: 0.45rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #eef0f3;
+}
+.fin-ahorro__item-nombre {
+  font-size: 0.9rem;
+  color: var(--txt);
+}
+.fin-ahorro__item-monto {
+  font-size: 0.92rem;
+  color: var(--txt);
+}
+.fin-ahorro__item-monto--apartado { color: #2f8a60; }
+.fin-ahorro__item-monto--pagado   { color: #d0473d; }
+.fin-ahorro__bolsas {
+  margin: -0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--txt-4);
+}
+
+.fin-tedeben__cabeza {
+  align-items: center;
+  margin-bottom: 0.15rem;
+}
+.fin-tedeben__total {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--txt);
+}
+.fin-tedeben__persona + .fin-tedeben__persona {
+  padding-top: 0.55rem;
+  border-top: 1px solid #eef0f3;
+}
+.fin-tedeben__detalle {
+  margin: 0.1rem 0 0;
+  font-size: 0.76rem;
+  color: var(--txt-4);
+}
+
+/* "3 movs. ▸" al lado del nombre: avisa que la fila se despliega. */
+.fin-lim__movs {
+  flex: none;
+  margin-left: 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--txt-4);
+  white-space: nowrap;
+}
+/* Filas del detalle de los ahorros: se tocan para ver sus movimientos. */
+.fin-ahorro__toggle {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  margin: 0 -0.4rem;
+  box-sizing: content-box;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.fin-ahorro__toggle:hover { background: #f6f7f9; }
+.fin-ahorro__fila .fin-cat__detalle { margin-top: 0.3rem; }
+
+/* Movimientos de una categoría desplegada: la descripción arriba con todo el
+   ancho, la fecha chica debajo y el monto a la derecha. Antes la fecha larga
+   ("5 de noviembre de 2026") iba en su propia columna y en el celular partía
+   la descripción en cinco renglones. */
+.fin-cat__mov {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "desc monto" "fecha monto";
+  row-gap: 0.05rem;
+  column-gap: 0.75rem;
+  align-items: start;
+}
+.fin-cat__mov + .fin-cat__mov {
+  padding-top: 0.45rem;
+  border-top: 1px solid #f1f2f4;
+}
+.fin-cat__mov-desc  { grid-area: desc; font-size: 0.82rem; color: var(--txt); }
+.fin-cat__mov-fecha { grid-area: fecha; font-size: 0.72rem; color: var(--txt-4); }
+.fin-cat__mov-monto { grid-area: monto; align-self: center; font-size: 0.85rem; }
