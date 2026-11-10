@@ -22,6 +22,7 @@ export const CATEGORIAS = [
   { id: "snacks", label: "Snacks", icono: "🍪" },
   { id: "helados", label: "Helados", icono: "🍦" },
   { id: "preparados", label: "Preparados", icono: "🍮" },
+  { id: "escolares", label: "Útiles escolares", icono: "✏️" },
   { id: "otros", label: "Otros", icono: "📦" },
 ];
 
