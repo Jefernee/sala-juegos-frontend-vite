@@ -35,15 +35,27 @@ const MapComponent = lazy(() => import("../components/MapComponent"));
 // ── Datos de la casa ────────────────────────────────────────────────────────
 const WHATSAPP = "https://wa.me/50671603115";
 const MAPS = "https://maps.google.com/?q=Sala+de+Juegos+Ruiz,+Batán,+Limón,+Costa+Rica";
-// La novedad del momento. El afiche y el juego van juntos: cuando llegue el
-// proximo estreno se cambian estas cuatro lineas y la portada entera se
-// actualiza —el afiche de la seccion y la caratula grande del collage—.
-const NOVEDAD = {
+// Respaldo de la novedad. Las novedades reales salen de Administración
+// (/api/novedades/publicas); esta solo se muestra mientras cargan o si el
+// servidor falla o no devuelve nada, para que la sección nunca quede vacía.
+const NOVEDAD_RESPALDO = {
+  _id: "respaldo",
   juego: "EA FC 27",
   afiche: "/afiche-fc27.jpg",
   titulo: "EA Sports FC 27",
-  bajada: "El fútbol como nunca antes lo has vivido. Vení a estrenarlo con tus amigos.",
+  etiqueta: "Recién llegado",
+  texto: "El fútbol como nunca antes lo has vivido. Vení a estrenarlo con tus amigos.",
 };
+
+// Ajustes a mano del collage de la portada: COLLAGE_QUITAR son juegos que no
+// deben salir ahí (aunque estén en la vitrina) y COLLAGE_FIJOS son juegos que
+// van siempre después de la novedad. Se comparan sin distinguir mayúsculas y
+// si un nombre no está en la vitrina se ignora.
+const COLLAGE_QUITAR = ["FIFA 26"];
+const COLLAGE_FIJOS = ["GTA 6"];
+
+// Categorías del inventario que salen en "Para acompañar la partida".
+const CATEGORIAS_TIENDA = ["preparados", "snacks", "helados", "bebidas"];
 
 const PS_PLUS =
   "https://www.playstation.com/es-es/ps-plus/games/?category=GAME_CATALOG#plus-container";
@@ -185,6 +197,27 @@ function Home2() {
     };
   }, []);
 
+  // ── Novedades ─────────────────────────────────────────────────────────────
+  // Hasta 3, ya en orden. Mientras cargan, o si falla o viene vacío, queda la
+  // novedad de respaldo.
+  const [novedades, setNovedades] = useState([NOVEDAD_RESPALDO]);
+
+  useEffect(() => {
+    let vigente = true;
+    axios
+      .get(`${API_URL}/api/novedades/publicas`)
+      .then(({ data }) => {
+        const lista = Array.isArray(data?.data) ? data.data : [];
+        if (vigente && lista.length) setNovedades(lista.slice(0, 3));
+      })
+      .catch(() => {
+        /* se queda la novedad de respaldo */
+      });
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
   // ── Torneos ───────────────────────────────────────────────────────────────
   const [torneos, setTorneos] = useState([]);
   const [torneosLoading, setTorneosLoading] = useState(true);
@@ -215,12 +248,24 @@ function Home2() {
   useEffect(() => {
     let cancelado = false;
     axios
-      .get(`${API_URL}/api/products/public`, { params: { page: 1, limit: 24 } })
+      .get(`${API_URL}/api/products/public`, { params: { page: 1, limit: 200 } })
       .then(({ data }) => {
         if (cancelado) return;
-        const lista = (data?.productos || [])
-          .filter((p) => p.imagen && !resolverDisponibilidad(p).agotado)
-          .slice(0, 10);
+        // "Para acompañar la partida" es para comer y tomar: los útiles
+        // escolares y los "otros" (tazas, controles…) quedan en el catálogo.
+        // Se piden todos porque vienen del más nuevo al más viejo: con 24, una
+        // tanda de escolares recién cargada llenaba la sección.
+        const visibles = (data?.productos || []).filter(
+          (p) =>
+            p.imagen &&
+            !resolverDisponibilidad(p).agotado &&
+            CATEGORIAS_TIENDA.includes(p.categoria),
+        );
+        // Los preparados van primero para que siempre salgan.
+        const lista = [
+          ...visibles.filter((p) => p.categoria === "preparados"),
+          ...visibles.filter((p) => p.categoria !== "preparados"),
+        ].slice(0, 10);
         setProductos(lista);
       })
       .catch(() => {
@@ -304,7 +349,7 @@ function Home2() {
     );
     document.querySelectorAll(".sjr .revelar").forEach((el) => ojo.observe(el));
     return () => ojo.disconnect();
-  }, [juegos, torneos, productos]);
+  }, [juegos, torneos, productos, novedades]);
 
   // Los números se cuentan solos al asomar.
   useEffect(() => {
@@ -364,14 +409,19 @@ function Home2() {
 
   const totalJuegos = juegosReales ? juegos.length : 50;
 
-  // El juego de la novedad encabeza el collage, en el sitio grande. Va atado
-  // al afiche de NOVEDAD: cuando llegue el proximo estreno se cambian los dos
-  // juntos y no queda uno apuntando al otro.
+  // El juego de la primera novedad encabeza el collage, en el sitio grande.
+  const novedad = novedades[0];
+  const novedadesChicas = novedades.slice(1, 3);
+  const juegoNovedad = novedad?.juego;
   const portadas = useMemo(() => {
-    const i = juegos.findIndex((j) => j.nombre === NOVEDAD.juego);
-    const lista = i > 0 ? [juegos[i], ...juegos.filter((_, k) => k !== i)] : juegos;
-    return lista.slice(0, 6);
-  }, [juegos]);
+    const igual = (x, y) => String(x).toLowerCase() === String(y).toLowerCase();
+    const estaEn = (lista, j) => lista.some((n) => igual(n, j.nombre));
+    const primero = juegoNovedad ? juegos.find((j) => igual(j.nombre, juegoNovedad)) : null;
+    const fijos = COLLAGE_FIJOS.map((n) => juegos.find((j) => igual(j.nombre, n))).filter(Boolean);
+    const resto = juegos.filter((j) => !estaEn(COLLAGE_QUITAR, j));
+    const lista = [primero, ...fijos, ...resto].filter(Boolean);
+    return lista.filter((j, k) => lista.indexOf(j) === k).slice(0, 6);
+  }, [juegos, juegoNovedad]);
 
   const collage = useMemo(() => armarCollage(portadas), [portadas]);
 
@@ -525,22 +575,22 @@ function Home2() {
                 el ancho; el alto sale de la imagen. */}
             <figure className="afiche revelar">
               <img
-                src={NOVEDAD.afiche}
-                alt={`${NOVEDAD.titulo} ya disponible en Sala de Juegos Ruiz`}
+                src={novedad.afiche}
+                alt={novedad.titulo}
                 loading="lazy"
               />
             </figure>
             <div className="revelar">
               <span className="chip">
-                <span className="punto" /> Recién llegado
+                <span className="punto" /> {novedad.etiqueta}
               </span>
               <h2>
-                {NOVEDAD.titulo}
+                {novedad.titulo}
                 <br />
                 <span className="deg">ya está en la sala</span>
               </h2>
               <p style={{ color: "var(--txt-2)", fontSize: "1.05rem", margin: 0 }}>
-                {NOVEDAD.bajada}
+                {novedad.texto}
               </p>
               <div className="insignias">
                 <span className="pastilla">🎮 <b>PlayStation 5</b></span>
@@ -552,6 +602,26 @@ function Home2() {
               </a>
             </div>
           </div>
+
+          {/* La 2.ª y la 3.ª, más chicas y debajo. Si no hay, no se dibuja. */}
+          {novedadesChicas.length > 0 && (
+            <div className="env">
+              <div className="novedades-mas">
+                {novedadesChicas.map((n) => (
+                  <article className="novedad-chica revelar" key={n._id}>
+                    <figure className="afiche">
+                      <img src={n.afiche} alt={n.titulo} loading="lazy" />
+                    </figure>
+                    <span className="chip">
+                      <span className="punto" /> {n.etiqueta}
+                    </span>
+                    <h3>{n.titulo}</h3>
+                    <p>{n.texto}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* ── Juegos ── */}

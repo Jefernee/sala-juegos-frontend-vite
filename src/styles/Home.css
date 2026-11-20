@@ -101,10 +101,12 @@ html { scroll-behavior: smooth; }
   border:1px solid var(--borde-vivo);height:auto;animation:levitar 7s ease-in-out infinite}@keyframes levitar{0%,100%{transform:translateY(0) rotate(var(--g))}50%{transform:translateY(-14px) rotate(var(--g))}}
 
 .sjr .datos{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:46px}/* Son cinco y en telefono van de dos en dos: el ultimo se queda solo, asi que ocupa el renglon entero y se ve a proposito. */.sjr .dato:last-child{grid-column:span 2}.sjr .dato{background:var(--vidrio);border:1px solid var(--borde);border-radius:var(--radio);
-  padding:20px 15px;backdrop-filter:blur(10px);position:relative;overflow:hidden}.sjr .dato::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,var(--cian),transparent);opacity:.45}/* Techo mas bajo y menos espaciado: "+4.800" es el mas largo de los cuatro y
-   con el tamano anterior quedaba pegado al borde de su tarjeta. */
-.sjr .dato__n{font-size:clamp(1.3rem,2.7vw,2.05rem);font-weight:800;letter-spacing:-.04em;
+  padding:20px 15px;backdrop-filter:blur(10px);position:relative;overflow:hidden;container-type:inline-size}.sjr .dato::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cian),transparent);opacity:.45}/* El numero se mide contra el ancho de SU tarjeta (cqi), no de la pantalla:
+   las cinco tarjetas viven en la mitad izquierda de la portada y no crecen con
+   la ventana, asi que con vw "+4.800" se salia del cuadro en pantallas anchas.
+   21cqi deja entrar hasta "+10.000". */
+.sjr .dato__n{font-size:clamp(1.05rem,21cqi,2.05rem);font-weight:800;letter-spacing:-.04em;
   line-height:1.05;white-space:nowrap}.sjr .dato__t{font-size:.83rem;color:var(--txt-3);margin-top:5px;text-wrap:balance}/* ── Secciones ── */
 .sjr section{padding:84px 0;position:relative}.sjr .titulo{text-align:center;margin-bottom:46px}.sjr .titulo .sobre{font-size:.79rem;letter-spacing:.22em;text-transform:uppercase;color:var(--cian);font-weight:600;margin-bottom:12px}.sjr .titulo h2{font-size:clamp(1.9rem,4.2vw,2.9rem);font-weight:700;letter-spacing:-.03em;margin:0 0 12px}.sjr .titulo p{color:var(--txt-2);max-width:60ch;margin:0 auto;text-wrap:balance}/* ── Cajas de vidrio, con foco que sigue al mouse ── */
 .sjr .caja{background:var(--vidrio);border:1px solid var(--borde);border-radius:var(--radio);
@@ -221,3 +223,11 @@ html { scroll-behavior: smooth; }
 .sjr .cj-barra__pulgar { background: rgba(255, 255, 255, 0.55); }
 .sjr .cj-contador { color: var(--txt-3); opacity: 1; }
 .sjr .cj-nombre { color: var(--txt-2); }
+/* ── Novedades 2.ª y 3.ª: más chicas, con marco horizontal ── */
+.sjr .novedades-mas{display:grid;gap:28px;grid-template-columns:1fr;margin-top:56px}
+.sjr .novedad-chica h3{font-size:1.35rem;font-weight:700;letter-spacing:-.02em;margin:14px 0 6px}
+.sjr .novedad-chica p{color:var(--txt-2);margin:0}
+.sjr .novedad-chica .chip{margin-top:16px}
+.sjr .novedad-chica .afiche{aspect-ratio:16/9;overflow:hidden;border-radius:20px;box-shadow:0 20px 50px -28px rgba(34,211,238,.45);margin:0}
+.sjr .novedad-chica .afiche img{width:100%;height:100%;object-fit:cover;object-position:center 8%;display:block;border:0;border-radius:0;box-shadow:none}
+@media(min-width:768px){.sjr .novedades-mas{grid-template-columns:1fr 1fr;gap:40px}}

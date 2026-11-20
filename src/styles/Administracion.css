@@ -4297,3 +4297,21 @@
 .fin-cat__mov-desc  { grid-area: desc; font-size: 0.82rem; color: var(--txt); }
 .fin-cat__mov-fecha { grid-area: fecha; font-size: 0.72rem; color: var(--txt-4); }
 .fin-cat__mov-monto { grid-area: monto; align-self: center; font-size: 0.85rem; }
+
+/* ─── NOVEDADES ───────────────────────────────────────────────────────────── */
+.orden-btns { display: inline-flex; gap: 4px; }
+.novedad-miniatura {
+  width: 90px;
+  background: #0b1120;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.novedad-miniatura img { width: 100%; height: auto; display: block; }
+
+/* Novedades: así se recortan en la página (2.º y 3.er lugar) */
+.activo-card__img-wrap--recorte { height: auto; aspect-ratio: 16 / 9; }
+.activo-card__img-wrap--recorte .activo-card__img { object-fit: cover; object-position: center 8%; }
+.novedad-recorte { width: 260px; max-width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 8px; }
+.novedad-recorte img { width: 100%; height: 100%; object-fit: cover; object-position: center 8%; display: block; }

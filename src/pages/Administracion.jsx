@@ -9,6 +9,7 @@ import ActivosPanel from "../components/admin/ActivosPanel";
 import JuegosPanel from "../components/admin/JuegosPanel";
 import UsuariosPanel from "../components/admin/UsuariosPanel";
 import TorneosPanel from "../components/admin/TorneosPanel";
+import NovedadesPanel from "../components/admin/NovedadesPanel";
 import FinanzasPersonalesPanel from "../components/admin/FinanzasPersonalesPanel";
 import { mensajeDeError, cierraLaSesion } from "../utils/sesion";
 import { puedeGestionarUsuarios, esAdministrador } from "../utils/auth";
@@ -24,6 +25,7 @@ const TABS_BASE = [
   { id: "activos", icono: "🕹️", label: "Activos" },
   { id: "juegos", icono: "🎮", label: "Juegos" },
   { id: "torneos", icono: "🏆", label: "Torneos" },
+  { id: "novedades", icono: "📣", label: "Novedades" },
 ];
 
 // Pestañas exclusivas del administrador (dueño): gestión de usuarios y su
@@ -124,6 +126,7 @@ const Administracion = () => {
         {vista === "activos" && <ActivosPanel {...propsComunes} />}
         {vista === "juegos" && <JuegosPanel {...propsComunes} />}
         {vista === "torneos" && <TorneosPanel {...propsComunes} />}
+        {vista === "novedades" && <NovedadesPanel {...propsComunes} />}
         {vista === "usuarios" && gestionaUsuarios && <UsuariosPanel {...propsComunes} />}
         {vista === "finanzas" && esAdmin && <FinanzasPersonalesPanel {...propsComunes} />}
       </div>
