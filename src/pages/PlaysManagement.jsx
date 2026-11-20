@@ -20,6 +20,7 @@ const LUGARES_JUEGO = [
   "Play 5 número 1",
   "Play 5 número 2",
   "Play 5 número 3",
+  "Play 5 número 4",
   "Ping Pong",
 ];
 
@@ -707,10 +708,6 @@ const PlaysManagement = () => {
 
   const handleJuegoChange = (e) => {
     const sel = Array.from(e.target.selectedOptions, (o) => o.value);
-    if (sel.length > 2) {
-      mostrarNotif("Solo puedes seleccionar hasta 2 juegos", "warning");
-      return;
-    }
     setFormData((prev) => ({ ...prev, juegosJugados: sel }));
     setErrores((er) => (er.juegosJugados ? { ...er, juegosJugados: "" } : er));
   };
@@ -1217,7 +1214,7 @@ const PlaysManagement = () => {
                           cuando alguien lo pide. */}
                       <div className="juegos-etiqueta">
                         <label className="form-label fw-bold mb-0">
-                          Juegos Jugados agregar almenos 1 (máx. 2) *
+                          Juegos Jugados (al menos 1) *
                         </label>
                         <button
                           type="button"

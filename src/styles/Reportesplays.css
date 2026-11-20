@@ -226,15 +226,18 @@
 }
 
 /* ── Dos columnas ─────────────────────────────────────────────────────────── */
+/* minmax(0, 1fr) y no 1fr: con 1fr la columna se estira al ancho del nombre
+   más largo (juego o cliente) y la tarjeta se sale de la pantalla del teléfono
+   en vez de cortar el nombre con "…". */
 .rp-dos-col {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
   margin-bottom: 1.25rem;
 }
 @media (max-width: 768px) {
   .rp-dos-col {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 .rp-dos-col .rp-seccion {
@@ -380,11 +383,6 @@
 .rp-empleado-controles strong {
   color: #b45309;
   font-weight: 700;
-}
-@media (max-width: 768px) {
-  .rp-empleado-controles {
-    padding-left: 68px;
-  }
 }
 
 /* ── Juegos más jugados ───────────────────────────────────────────────────── */
@@ -634,11 +632,25 @@
   .rp-juego-nombre {
     font-size: 12px;
   }
+  /* En teléfono el nombre ("Play 5 número 4", un empleado) va en su propia
+     línea y completo; debajo, la barra y el monto. Con 90 px al lado de la
+     barra se cortaba con "…". */
+  .rp-bar-row {
+    flex-wrap: wrap;
+    row-gap: 3px;
+  }
   .rp-bar-label {
-    width: 90px;
+    width: 100%;
+    white-space: normal;
+    overflow: visible;
+    color: #374151;
   }
   .rp-bar-value {
-    width: 50px;
+    width: auto;
+    min-width: 50px;
+  }
+  .rp-empleado-controles {
+    padding-left: 0;
   }
 }
 

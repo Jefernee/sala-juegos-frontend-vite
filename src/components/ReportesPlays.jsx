@@ -99,7 +99,14 @@ function JuegosMasJugados({ juegos = [] }) {
             <span className="rp-juego-pos">
               {i < 3 ? medallas[i] : <span className="rp-juego-num">{i + 1}</span>}
             </span>
-            <span className="rp-juego-nombre">{j.nombre}</span>
+            {/* El monto va debajo del nombre (como en "Clientes que más
+                jugaron") para no ensanchar la fila en el teléfono. */}
+            <span className="rp-cliente-texto">
+              <span className="rp-juego-nombre">{j.nombre}</span>
+              {j.montoRecaudado != null && (
+                <span className="rp-cliente-sub">{fmt(j.montoRecaudado)}</span>
+              )}
+            </span>
           </div>
           <div className="rp-juego-der">
             <div className="rp-bar-track" style={{ width: 80 }}>
