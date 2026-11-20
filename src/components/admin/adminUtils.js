@@ -66,6 +66,8 @@ export const ICONOS_GANANCIA = {
   "Maquinas Chinos": "🎰",
   "Maquinas Zapata": "🕹️",
   Futbolin: "⚽",
+  Peluches: "🧸",
+  Torneos: "🏆",
 };
 
 export const ICONOS_SERVICIO = {
@@ -75,6 +77,7 @@ export const ICONOS_SERVICIO = {
   Patente: "📋",
   "PlayStation Plus": "🎮",
   "Mantenimiento General": "🔧",
+  Otros: "📦",
 };
 
 export const ESTADOS_ACTIVO = ["En uso", "En reparación", "Reparado", "Fuera de servicio", "Almacenado"];
