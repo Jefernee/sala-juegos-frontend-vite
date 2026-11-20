@@ -49,7 +49,7 @@ const NOVEDAD_RESPALDO = {
 
 // Ajustes a mano del collage de la portada: COLLAGE_QUITAR son juegos que no
 // deben salir ahí (aunque estén en la vitrina) y COLLAGE_FIJOS son juegos que
-// van siempre después de la novedad. Se comparan sin distinguir mayúsculas y
+// van siempre en el sitio grande. Se comparan sin distinguir mayúsculas y
 // si un nombre no está en la vitrina se ignora.
 const COLLAGE_QUITAR = ["FIFA 26"];
 const COLLAGE_FIJOS = ["GTA 6"];
@@ -409,7 +409,8 @@ function Home2() {
 
   const totalJuegos = juegosReales ? juegos.length : 50;
 
-  // El juego de la primera novedad encabeza el collage, en el sitio grande.
+  // El juego de la primera novedad va en el collage, en el 3.er sitio (el
+  // grande es para COLLAGE_FIJOS).
   const novedad = novedades[0];
   const novedadesChicas = novedades.slice(1, 3);
   const juegoNovedad = novedad?.juego;
@@ -418,9 +419,14 @@ function Home2() {
     const estaEn = (lista, j) => lista.some((n) => igual(n, j.nombre));
     const primero = juegoNovedad ? juegos.find((j) => igual(j.nombre, juegoNovedad)) : null;
     const fijos = COLLAGE_FIJOS.map((n) => juegos.find((j) => igual(j.nombre, n))).filter(Boolean);
-    const resto = juegos.filter((j) => !estaEn(COLLAGE_QUITAR, j));
-    const lista = [primero, ...fijos, ...resto].filter(Boolean);
-    return lista.filter((j, k) => lista.indexOf(j) === k).slice(0, 6);
+    const resto = juegos.filter(
+      (j) => !estaEn(COLLAGE_QUITAR, j) && !fijos.includes(j) && j !== primero,
+    );
+    // Los fijos van en el sitio grande (1.º); el juego de la novedad, en el
+    // 3.º, el segundo más grande (columna izquierda, debajo; ver COLUMNAS).
+    const lista = [...fijos, ...resto];
+    if (primero && !fijos.includes(primero)) lista.splice(Math.min(2, lista.length), 0, primero);
+    return lista.slice(0, 6);
   }, [juegos, juegoNovedad]);
 
   const collage = useMemo(() => armarCollage(portadas), [portadas]);
